@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}
+در حال تحلیل
+{% endblock %}
+
+{% block content %}
+
+<div class="loading-container">
+
+<div class="loader"></div>
+
+<h2>
+
+در حال تحلیل فایل...
+
+</h2>
+
+<p>
+
+هوش مصنوعی در حال بررسی اطلاعات آزمایش است.
+
+</p>
+
+<p>
+
+{{ filename }}
+
+</p>
+
+</div>
+
+{% endblock %}

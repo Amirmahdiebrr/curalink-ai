@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}روند آزمایش‌ها | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="cl-profile-section">
+    <div class="container">
+
+        <div class="cl-profile-header">
+            <div class="cl-profile-avatar">
+                {{ (user.display_name or user.nicename or "?")[0] }}
+            </div>
+            <div>
+                <h1>روند آزمایش‌ها</h1>
+                <p>مقایسه‌ی مقادیر آزمایش‌های شما در طول زمان</p>
+            </div>
+        </div>
+
+        {% if latest_results|length == 0 %}
+
+        <div class="cl-history-empty">
+            <p>هنوز هیچ مقدار عددی از آزمایش‌های شما ثبت نشده است.</p>
+            <a href="/#upload" class="btn btn-solid">شروع اولین تحلیل</a>
+        </div>
+
+        {% else %}
+
+        <div class="cl-trends-grid">
+
+            <div class="cl-profile-card">
+                <h3 class="cl-profile-card-title">آخرین مقادیر ثبت‌شده</h3>
+
+                <div class="cl-trends-table">
+                    {% for r in latest_results %}
+                    <div class="cl-trends-row cl-trends-status-{{ r.status or 'normal' }}">
+                        <span class="cl-trends-name">{{ r.test_name }}</span>
+                        <span class="cl-trends-value">{{ r.value_text }} {{ r.unit or '' }}</span>
+                        <span class="cl-trends-range">{{ r.reference_range or '—' }}</span>
+                        <span class="cl-trends-badge">
+                            {% if r.status == 'high' %}بالا
+                            {% elif r.status == 'low' %}پایین
+                            {% else %}طبیعی
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="cl-profile-card">
+                <h3 class="cl-profile-card-title">نمودار روند</h3>
+                <p class="cl-profile-card-sub">یک آزمایش را انتخاب کنید تا روند تغییرات آن نمایش داده شود.</p>
+
+                <select id="test-select" class="cl-trends-select">
+                    {% for name in test_names %}
+                    <option value="{{ name }}">{{ name }}</option>
+                    {% endfor %}
+                </select>
+
+                <div class="cl-trends-chart-wrap">
+                    <canvas id="trend-chart"></canvas>
+                </div>
+
+                <p class="cl-trends-note" id="trend-note"></p>
+            </div>
+
+        </div>
+
+        {% endif %}
+
+        <p class="cl-trends-disclaimer">
+            ⚠️ این نمودارها و مقادیر صرفاً جهت اطلاع و کمک به پیگیری روند آزمایشات شما تهیه شده‌اند و جایگزین تشخیص یا نظر پزشک متخصص نیستند.
+        </p>
+
+    </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+(function () {
+
+    const select = document.getElementById("test-select");
+    const noteEl = document.getElementById("trend-note");
+
+    if (!select) {
+        return;
+    }
+
+    let chart = null;
+
+    async function loadChart(testName) {
+
+        try {
+            const res = await fetch(`/trends/data/${encodeURIComponent(testName)}`);
+            const data = await res.json();
+
+            const labels = data.points.map(p => p.date);
+            const values = data.points.map(p => p.value);
+
+            if (data.points.length < 2) {
+                noteEl.textContent = "برای نمایش روند، حداقل به دو آزمایش با این نام نیاز است.";
+            } else {
+                noteEl.textContent = "";
+            }
+
+            const ctx = document.getElementById("trend-chart").getContext("2d");
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: testName,
+                        data: values,
+                        borderColor: "#2563EB",
+                        backgroundColor: "rgba(37, 99, 235, 0.1)",
+                        tension: 0.3,
+                        fill: true,
+                        pointRadius: 5,
+                        pointBackgroundColor: "#16345C",
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: false }
+                    }
+                }
+            });
+
+        } catch (e) {
+            noteEl.textContent = "خطا در بارگذاری داده‌های نمودار.";
+        }
+    }
+
+    select.addEventListener("change", function () {
+        loadChart(select.value);
+    });
+
+    if (select.value) {
+        loadChart(select.value);
+    }
+
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,26 @@
+# Environment
+.env
+venv/
+
+# Python
+__pycache__/
+*.pyc
+
+# Database
+*.db
+
+# Uploads
+uploads/
+temp/
+
+# JSON outputs
+ocr_response.json
+resp*.json
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store

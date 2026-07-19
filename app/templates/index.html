@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}CuraLink AI | تحلیل هوشمند آزمایشات{% endblock %}
+
+{% block content %}
+
+<section class="hero">
+    <div class="container hero-grid">
+
+        <div class="hero-text">
+
+            <p class="eyebrow">CuraLink AI | تسهیل‌کننده تحلیل هوشمند آزمایشات پزشکی</p>
+
+            <h1>
+                همراه با تحلیل
+                <span>دقیق و هوشمند</span>
+            </h1>
+
+            <p class="lead">
+                CuraLink AI پلتفرمی است که با ارائه تحلیل آزمایشات پزشکی
+                به کمک هوش مصنوعی و OCR، نتیجه آزمایش شما را در چند ثانیه
+                به زبان ساده توضیح می‌دهد؛ همه در همین صفحه و بدون نیاز به مراجعه حضوری.
+            </p>
+
+            <div class="hero-actions">
+                <a href="#upload" class="btn btn-solid btn-lg">شروع تحلیل رایگان</a>
+                <a href="#features" class="btn btn-ghost">بیشتر بدانید</a>
+            </div>
+
+        </div>
+
+        <div class="hero-media">
+
+            <img class="hero-robot" src="/static/images/robot.png" alt="دستیار هوشمند CuraLink">
+
+            <div class="badge badge-top">
+                <span class="badge-icon">✓</span>
+                <div>
+                    <strong>دقت بالای OCR</strong>
+                    <small>استخراج هوشمند از PDF و تصویر</small>
+                </div>
+            </div>
+
+            <div class="badge badge-bottom">
+                <span class="badge-icon">🩺</span>
+                <div>
+                    <strong>تحلیل تخصصی AI</strong>
+                    <small>مبتنی بر داده‌های پزشکی معتبر</small>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+<section class="upload-section" id="upload">
+    <div class="container">
+
+        <div class="upload-card">
+
+            <div class="upload-card-head">
+                <h2>آپلود آزمایش</h2>
+                <p>فایل خود را انتخاب کنید تا در چند ثانیه تحلیل شود</p>
+            </div>
+
+            <form action="/analyze" method="post" enctype="multipart/form-data" id="upload-form">
+
+                <label class="field-label" for="exam_type">نوع آزمایش را انتخاب کنید</label>
+
+                <select name="exam_type" id="exam_type" required>
+                    <option value="" disabled selected>— انتخاب کنید —</option>
+                    <option value="blood">آزمایش خون</option>
+                    <option value="urine">آزمایش ادرار</option>
+                    <option value="biochemistry">بیوشیمی</option>
+                    <option value="sonography">سونوگرافی</option>
+                    <option value="radiology">رادیولوژی</option>
+                    <option value="other">سایر</option>
+                </select>
+
+                <label class="upload-area" id="dropzone" for="file">
+                    <input type="file" name="file" id="file" accept=".pdf,.jpg,.jpeg,.png" required>
+                    <span class="upload-icon">📄</span>
+                    <p id="file-label">فایل PDF یا تصویر آزمایش را انتخاب کنید</p>
+                </label>
+
+                <button type="submit">شروع تحلیل با AI</button>
+
+            </form>
+
+        </div>
+
+    </div>
+</section>
+
+<section class="features" id="features">
+    <div class="container features-grid">
+
+        <div class="feature">
+            <span class="feature-icon">🔎</span>
+            <h3>OCR هوشمند</h3>
+            <p>استخراج خودکار اطلاعات آزمایش از تصویر و PDF</p>
+        </div>
+
+        <div class="feature">
+            <span class="feature-icon">🩺</span>
+            <h3>تحلیل پزشکی AI</h3>
+            <p>بررسی مقادیر و توضیح نتایج به زبان ساده</p>
+        </div>
+
+        <div class="feature">
+            <span class="feature-icon">📋</span>
+            <h3>گزارش قابل فهم</h3>
+            <p>نمایش موارد غیرطبیعی و نکات مهم</p>
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

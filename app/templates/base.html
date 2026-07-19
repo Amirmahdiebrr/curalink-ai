@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>
+        {% block title %}CuraLink AI{% endblock %}
+    </title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/static/css/style.css">
+
+    {% block head %}{% endblock %}
+
+</head>
+
+<body>
+
+    <header class="navbar">
+        <div class="container navbar-inner">
+
+            <a href="/" class="logo">
+                <img src="/static/images/logo.png" alt="CuraLink AI">
+            </a>
+
+            <nav>
+                <a href="/" class="nav-active">خانه</a>
+                <a href="https://curalinkcare.com/about/" target="_blank" rel="noopener">درباره ما</a>
+                <a href="https://curalinkcare.com/our-services/" target="_blank" rel="noopener">خدمات ما</a>
+                {% if user %}
+                <a href="/history">تاریخچه</a>
+                <a href="/trends">روند آزمایش‌ها</a>
+                {% endif %}
+                <a href="https://curalinkcare.com/contact/" target="_blank" rel="noopener">تماس با ما</a>
+            </nav>
+
+            <div class="navbar-cta">
+                {% if user %}
+                    <a href="/profile" class="btn btn-outline">{{ user.display_name or user.nicename or 'پروفایل من' }}</a>
+                    <a href="/logout" class="btn btn-solid">خروج</a>
+                {% else %}
+                    <a href="/login" class="btn btn-outline">ورود به پنل</a>
+                    <a href="https://curalinkcare.com/choose-register/" target="_blank" rel="noopener" class="btn btn-solid">ثبت‌نام</a>
+                {% endif %}
+            </div>
+
+        </div>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="container footer-inner">
+
+            <img src="/static/images/logo.png" alt="CuraLink AI" class="footer-logo">
+
+            <div class="footer-info">
+                <p class="footer-company">شرکت درمان پیوند ایرانیان &nbsp;|&nbsp; شناسه ثبتی: ۲۴۴۹۷</p>
+                <p class="footer-address">
+                    آدرس: ارومیه، گلشهر یک، کوی گلشن، کوی گلنار، مجتمع گلستان یک، بلوک یاس، واحد ۱/۲
+                </p>
+            </div>
+
+            <p class="footer-copyright">© ۱۴۰۵ CuraLink AI — تحلیل هوشمند آزمایشات پزشکی</p>
+
+        </div>
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+    {% block scripts %}{% endblock %}
+
+</body>
+</html>

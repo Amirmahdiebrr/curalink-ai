@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}نتیجه تحلیل | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="result-section">
+    <div class="container">
+
+        <h1 class="result-title">نتیجه تحلیل آزمایش</h1>
+
+        <div class="result-card">
+            <h2>تحلیل پزشکی هوش مصنوعی</h2>
+            <div class="analysis-content">
+                {{ result.analysis_html | safe }}
+            </div>
+        </div>
+
+        <details class="ocr-details">
+            <summary>مشاهده متن خام استخراج‌شده (OCR)</summary>
+            <pre>{{ result.ocr }}</pre>
+        </details>
+
+        <div class="result-actions">
+            <a href="/" class="btn btn-solid">تحلیل آزمایش جدید</a>
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

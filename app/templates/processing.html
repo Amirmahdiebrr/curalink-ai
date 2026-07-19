@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}در حال تحلیل... | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="processing-section">
+    <div class="container">
+
+        <div class="processing-card" id="processing-card" data-job-id="{{ job_id }}">
+
+            <div class="loader"></div>
+
+            <h1 class="processing-title">در حال تحلیل آزمایش شما</h1>
+            <p class="processing-sub">این فرآیند معمولاً کمتر از یک دقیقه طول می‌کشد</p>
+
+            <div class="stage-list">
+                <div class="stage-item" data-stage="saving">
+                    <span class="stage-dot"></span>
+                    <span class="stage-label">آماده‌سازی فایل</span>
+                </div>
+                <div class="stage-item" data-stage="ocr">
+                    <span class="stage-dot"></span>
+                    <span class="stage-label">استخراج متن آزمایش (OCR)</span>
+                </div>
+                <div class="stage-item" data-stage="ai">
+                    <span class="stage-dot"></span>
+                    <span class="stage-label">تحلیل پزشکی با هوش مصنوعی</span>
+                </div>
+                <div class="stage-item" data-stage="done">
+                    <span class="stage-dot"></span>
+                    <span class="stage-label">آماده‌سازی گزارش</span>
+                </div>
+            </div>
+
+            <p class="processing-note">
+                در صورت شلوغ بودن سرویس هوش مصنوعی، ممکن است این مرحله کمی بیشتر طول بکشد. لطفاً این صفحه را نبندید.
+            </p>
+
+            <div class="processing-error" id="processing-error" style="display:none;">
+                <p id="processing-error-text"></p>
+                <a href="/" class="btn btn-solid">تلاش مجدد</a>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const card = document.getElementById("processing-card");
+    const jobId = card.getAttribute("data-job-id");
+
+    const stageOrder = ["saving", "ocr", "ai", "done"];
+
+    function setActiveStage(stage) {
+        const currentIndex = stageOrder.indexOf(stage);
+
+        document.querySelectorAll(".stage-item").forEach(function (el) {
+            const elStage = el.getAttribute("data-stage");
+            const elIndex = stageOrder.indexOf(elStage);
+
+            el.classList.remove("active", "done");
+
+            if (elIndex < currentIndex) {
+                el.classList.add("done");
+            } else if (elIndex === currentIndex) {
+                el.classList.add("active");
+            }
+        });
+    }
+
+    function showError(message) {
+        document.querySelector(".loader").style.display = "none";
+        document.getElementById("processing-error").style.display = "block";
+        document.getElementById("processing-error-text").textContent = message;
+    }
+
+    async function poll() {
+        try {
+            const res = await fetch(`/status/${jobId}`);
+
+            if (res.status === 404) {
+                showError("این درخواست پیدا نشد. لطفاً دوباره تلاش کنید.");
+                return;
+            }
+
+            const data = await res.json();
+
+            setActiveStage(data.stage);
+
+            if (data.status === "done") {
+                window.location.href = `/result/${jobId}`;
+                return;
+            }
+
+            if (data.status === "error") {
+                showError(data.error || "خطایی در پردازش رخ داد.");
+                return;
+            }
+
+            setTimeout(poll, 1500);
+
+        } catch (e) {
+            setTimeout(poll, 2000);
+        }
+    }
+
+    poll();
+})();
+</script>
+{% endblock %}

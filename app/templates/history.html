@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}تاریخچه آزمایشات | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="cl-profile-section">
+    <div class="container">
+
+        <div class="cl-profile-header">
+            <div class="cl-profile-avatar">
+                {{ (user.display_name or user.nicename or "?")[0] }}
+            </div>
+            <div>
+                <h1>تاریخچه آزمایشات</h1>
+                <p>{{ records|length }} تحلیل ثبت‌شده</p>
+            </div>
+        </div>
+
+        {% if records|length == 0 %}
+
+        <div class="cl-history-empty">
+            <p>هنوز هیچ آزمایشی ثبت نکرده‌اید.</p>
+            <a href="/#upload" class="btn btn-solid">شروع اولین تحلیل</a>
+        </div>
+
+        {% else %}
+
+        <div class="cl-history-list">
+            {% for record in records %}
+            <a href="/history/{{ record.id }}" class="cl-history-item">
+                <div class="cl-history-item-main">
+                    <span class="cl-history-badge">{{ exam_type_labels.get(record.exam_type, "آزمایش") }}</span>
+                    <span class="cl-history-filename">{{ record.filename }}</span>
+                </div>
+                <span class="cl-history-date">{{ record.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
+            </a>
+            {% endfor %}
+        </div>
+
+        {% endif %}
+
+    </div>
+</section>
+
+{% endblock %}

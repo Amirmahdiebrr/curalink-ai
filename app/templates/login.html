@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}ورود | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="cl-auth-split">
+
+    <div class="cl-auth-brand">
+        <div class="cl-auth-brand-inner">
+            <img src="/static/images/robot.png" alt="CuraLink AI" class="cl-auth-robot">
+            <h2>تحلیل هوشمند آزمایشات پزشکی</h2>
+            <p>با حساب کاربری کیورالینک خود وارد شوید و از تحلیل سریع و دقیق آزمایشات‌تان با هوش مصنوعی بهره‌مند شوید.</p>
+        </div>
+    </div>
+
+    <div class="cl-auth-form-side">
+        <div class="cl-auth-box">
+
+            <img src="/static/images/logo.png" alt="CuraLink AI" class="cl-auth-logo">
+
+            <h1 class="cl-auth-heading">ورود به کیورالینک</h1>
+            <p class="cl-auth-desc">با حساب کاربری سایت کیورالینک وارد شوید</p>
+
+            {% if error %}
+            <div class="cl-auth-alert cl-auth-alert-error">{{ error }}</div>
+            {% endif %}
+
+            <form method="post" action="/login" class="cl-auth-fields">
+
+                <div class="cl-field">
+                    <label for="username">نام کاربری یا آدرس ایمیل</label>
+                    <input type="text" id="username" name="username" placeholder="نام کاربری یا ایمیل خود را وارد کنید" required>
+                </div>
+
+                <div class="cl-field">
+                    <label for="password">رمز عبور</label>
+                    <input type="password" id="password" name="password" placeholder="رمز عبور خود را وارد کنید" required>
+                </div>
+
+                <button type="submit" class="cl-auth-submit">ورود</button>
+
+            </form>
+
+            <p class="cl-auth-footer-link">
+                حساب کاربری ندارید؟
+                <a href="https://curalinkcare.com/choose-register/" target="_blank" rel="noopener">همین حالا ثبت‌نام کنید</a>
+            </p>
+
+        </div>
+    </div>
+
+</section>
+
+{% endblock %}
