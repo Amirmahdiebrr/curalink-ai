@@ -27,7 +27,7 @@ async def run_job(job_id: str, files: list[tuple[bytes, str]], exam_type: str, u
     update_job(job_id, status="processing", stage="saving")
 
     try:
-        result = await service.process(files, on_stage=on_stage)
+        result = await service.process(files, exam_type=exam_type, on_stage=on_stage)
         result["exam_type"] = exam_type
         update_job(job_id, status="done", stage="done", result=result)
 

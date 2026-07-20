@@ -25,6 +25,9 @@ EXAM_TYPE_LABELS = {
     "biochemistry": "بیوشیمی",
     "sonography": "سونوگرافی",
     "radiology": "رادیولوژی",
+    "mri": "MRI",
+    "ct_scan": "CT Scan",
+    "mammography": "ماموگرافی",
     "other": "سایر",
 }
 

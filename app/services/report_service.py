@@ -10,7 +10,7 @@ from app.services.file_service import FileService
 from app.services.ocr_service import OCRService
 from app.services.ai_service import AIService
 
-from app.prompts.lab_prompt import LAB_PROMPT
+from app.prompts.exam_prompts import get_prompt_template
 
 
 JSON_BLOCK_PATTERN = re.compile(r"```json\s*(\[.*?\])\s*```", re.DOTALL)
@@ -54,9 +54,30 @@ class ReportService:
         return clean_html
 
     def _extract_structured_results(self, analysis_text: str):
+
         match = JSON_BLOCK_PATTERN.search(analysis_text)
 
         if not match:
+            # الگوی دقیق ```json [...] ``` پیدا نشد؛ برای دیباگ،
+            # انتهای پاسخ خام را چاپ می‌کنیم تا بفهمیم مدل چه چیزی نوشته.
+            tail = analysis_text[-600:] if len(analysis_text) > 600 else analysis_text
+            print("[ReportService] No JSON block matched. Raw response tail:", flush=True)
+            print(tail, flush=True)
+
+            # تلاش دوم: شاید بلوک بدون فنس کد ```json``` نوشته شده،
+            # فقط یک آرایه‌ی JSON خام در انتهای متن باشد.
+            fallback_match = re.search(r"(\[\s*\{.*?\}\s*\])\s*$", analysis_text, re.DOTALL)
+
+            if fallback_match:
+                try:
+                    structured = json.loads(fallback_match.group(1))
+                    if isinstance(structured, list):
+                        narrative_text = analysis_text[:fallback_match.start()].rstrip()
+                        print(f"[ReportService] Fallback JSON extraction succeeded, {len(structured)} item(s)", flush=True)
+                        return narrative_text, structured
+                except Exception as e:
+                    print(f"[ReportService] Fallback JSON parse failed: {e}", flush=True)
+
             return analysis_text, []
 
         json_block = match.group(1)
@@ -92,9 +113,11 @@ class ReportService:
 
         return f"--- بخش {index} از فایل: {filename} ---\n{file_text.strip()}"
 
-    async def process(self, files: list[tuple[bytes, str]], on_stage=None):
+    async def process(self, files: list[tuple[bytes, str]], exam_type: str = None, on_stage=None):
         """
         files: لیستی از (بایت‌های فایل, نام اصلی فایل).
+        exam_type: نوع آزمایش/تصویربرداری انتخاب‌شده توسط کاربر؛ تعیین‌کننده‌ی
+                   پرامپت تخصصی مورد استفاده برای تحلیل.
         یک یا چند فایل پشتیبانی می‌شود؛ OCR روی همه‌ی فایل‌ها به‌صورت
         هم‌زمان (parallel) انجام و متن‌ها ترکیب می‌شوند، سپس یک
         فراخوانی واحد به AI برای تحلیل ارسال می‌شود.
@@ -105,6 +128,7 @@ class ReportService:
         print("=" * 50)
         print("START REPORT PROCESS")
         print(f"FILE COUNT: {len(files)}")
+        print(f"EXAM TYPE: {exam_type}")
         print("=" * 50)
 
         self._notify(on_stage, "saving")
@@ -160,7 +184,10 @@ class ReportService:
             }
 
         limited_text = text[:12000]
-        prompt = LAB_PROMPT.format(limited_text)
+
+        prompt_template = get_prompt_template(exam_type)
+        prompt = prompt_template.format(limited_text)
+
         print(f"PROMPT LENGTH: {len(prompt)}", flush=True)
 
         self._notify(on_stage, "ai")
