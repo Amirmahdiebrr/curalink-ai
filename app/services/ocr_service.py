@@ -8,13 +8,20 @@ NVIDIA's hosted Nemotron OCR v1 model (cloud-based, GPU-accelerated).
 from __future__ import annotations
 
 import base64
+import io
 import time
 from pathlib import Path
 
 import httpx
 import fitz  # PyMuPDF
 
+from PIL import Image, ImageOps
+import pillow_heif
+
 from app.config import NVIDIA_API_KEY
+
+
+pillow_heif.register_heif_opener()
 
 
 NEMOTRON_OCR_URL = "https://ai.api.nvidia.com/v1/cv/nvidia/nemotron-ocr-v1"
@@ -24,6 +31,10 @@ REQUEST_HEADERS = {
     "Accept": "application/json",
     "Content-Type": "application/json",
 }
+
+# حداکثر ضلع بزرگ تصویر بعد از تبدیل، برای جلوگیری از فایل‌های حجیم آیفون
+MAX_IMAGE_DIMENSION = 2200
+JPEG_QUALITY = 85
 
 
 class OCRExtractionError(Exception):
@@ -44,6 +55,35 @@ class OCRService:
         finally:
             doc.close()
         return images
+
+    @classmethod
+    def _resize_if_needed(cls, image: Image.Image) -> Image.Image:
+        width, height = image.size
+        largest_side = max(width, height)
+
+        if largest_side <= MAX_IMAGE_DIMENSION:
+            return image
+
+        scale = MAX_IMAGE_DIMENSION / largest_side
+        new_size = (int(width * scale), int(height * scale))
+
+        return image.resize(new_size, Image.LANCZOS)
+
+    @classmethod
+    def _heic_to_jpeg_bytes(cls, file_path: Path) -> bytes:
+        image = Image.open(file_path)
+
+        # اصلاح چرخش عکس بر اساس اطلاعات EXIF گوشی
+        image = ImageOps.exif_transpose(image)
+
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+
+        image = cls._resize_if_needed(image)
+
+        buffer = io.BytesIO()
+        image.save(buffer, format="JPEG", quality=JPEG_QUALITY, optimize=True)
+        return buffer.getvalue()
 
     @classmethod
     def _build_data_url(cls, image_bytes: bytes, media_type: str) -> str:
@@ -75,6 +115,20 @@ class OCRService:
                     "type": "image_url",
                     "url": cls._build_data_url(img_bytes, "png")
                 })
+
+        elif extension in (".heic", ".heif"):
+            print("[OCR] HEIC/HEIF detected, converting to compressed JPEG...", flush=True)
+            t0 = time.perf_counter()
+            try:
+                jpeg_bytes = cls._heic_to_jpeg_bytes(file_path)
+            except Exception as e:
+                raise OCRExtractionError(f"خطا در تبدیل فایل HEIC: {e}") from e
+            print(f"[OCR] HEIC converted to JPEG ({len(jpeg_bytes) / 1024:.0f} KB)  [{time.perf_counter() - t0:.2f}s]", flush=True)
+
+            image_payloads.append({
+                "type": "image_url",
+                "url": cls._build_data_url(jpeg_bytes, "jpeg")
+            })
 
         elif extension in (".jpg", ".jpeg", ".png"):
             media_type = "jpeg" if extension in (".jpg", ".jpeg") else "png"

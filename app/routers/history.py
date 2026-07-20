@@ -75,5 +75,5 @@ async def history_detail(request: Request, record_id: int, db: Session = Depends
     return templates.TemplateResponse(
         request,
         "result.html",
-        {"request": request, "result": result, "user": user}
+        {"request": request, "result": result, "user": user, "job_id": None, "record_id": record.id}
     )

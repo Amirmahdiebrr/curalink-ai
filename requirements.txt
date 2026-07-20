@@ -7,3 +7,11 @@ pillow
 pymupdf
 pytesseract
 reportlab
+sqlalchemy
+jinja2
+httpx
+markdown
+itsdangerous
+PyPDF2
+bleach
+pillow-heif

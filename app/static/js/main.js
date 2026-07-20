@@ -6,12 +6,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (fileInput && fileLabel && dropzone) {
 
-        function updateLabel(file) {
-            fileLabel.textContent = file ? file.name : "فایل PDF یا تصویر آزمایش را انتخاب کنید";
+        function updateLabel(fileList) {
+            if (!fileList || fileList.length === 0) {
+                fileLabel.textContent = "یک یا چند فایل PDF/تصویر آزمایش را انتخاب کنید";
+                return;
+            }
+
+            if (fileList.length === 1) {
+                fileLabel.textContent = fileList[0].name;
+                return;
+            }
+
+            fileLabel.textContent = `${fileList.length} فایل انتخاب شد`;
         }
 
         fileInput.addEventListener("change", function () {
-            updateLabel(fileInput.files[0]);
+            updateLabel(fileInput.files);
         });
 
         ["dragenter", "dragover"].forEach(function (eventName) {
@@ -29,10 +39,10 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         dropzone.addEventListener("drop", function (e) {
-            const file = e.dataTransfer.files[0];
-            if (file) {
-                fileInput.files = e.dataTransfer.files;
-                updateLabel(file);
+            const droppedFiles = e.dataTransfer.files;
+            if (droppedFiles && droppedFiles.length > 0) {
+                fileInput.files = droppedFiles;
+                updateLabel(droppedFiles);
             }
         });
     }
@@ -50,7 +60,18 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             try {
-                const formData = new FormData(form);
+                const formData = new FormData();
+
+                const examType = document.getElementById("exam_type");
+                if (examType) {
+                    formData.append("exam_type", examType.value);
+                }
+
+                if (fileInput && fileInput.files.length > 0) {
+                    for (let i = 0; i < fileInput.files.length; i++) {
+                        formData.append("files", fileInput.files[i]);
+                    }
+                }
 
                 const res = await fetch("/analyze", {
                     method: "POST",

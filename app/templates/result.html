@@ -2,6 +2,10 @@
 
 {% block title %}نتیجه تحلیل | CuraLink AI{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="/static/css/chat.css">
+{% endblock %}
+
 {% block content %}
 
 <section class="result-section">
@@ -21,6 +25,29 @@
             <pre>{{ result.ocr }}</pre>
         </details>
 
+        {% if job_id or record_id %}
+        <div class="cl-chat-box" id="chat-box" data-job-id="{{ job_id or '' }}" data-record-id="{{ record_id or '' }}">
+
+            <div class="cl-chat-header">
+                <span class="cl-chat-header-icon">💬</span>
+                <div>
+                    <strong>پرسش و پاسخ درباره‌ی این آزمایش</strong>
+                    <small>فقط سوالات مرتبط با این گزارش و مسائل پزشکی پاسخ داده می‌شود</small>
+                </div>
+            </div>
+
+            <div class="cl-chat-messages" id="chat-messages">
+                <div class="cl-chat-empty" id="chat-empty">سوال خود را درباره‌ی این آزمایش بپرسید...</div>
+            </div>
+
+            <form class="cl-chat-input-row" id="chat-form">
+                <input type="text" id="chat-input" class="cl-chat-input" placeholder="مثلاً: این عدد هموگلوبین بالا چه معنی‌ای دارد؟" autocomplete="off">
+                <button type="submit" class="cl-chat-send-btn">ارسال</button>
+            </form>
+
+        </div>
+        {% endif %}
+
         <div class="result-actions">
             <a href="/" class="btn btn-solid">تحلیل آزمایش جدید</a>
         </div>
@@ -28,4 +55,123 @@
     </div>
 </section>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+
+    const chatBox = document.getElementById("chat-box");
+
+    if (!chatBox) {
+        return;
+    }
+
+    const jobId = chatBox.getAttribute("data-job-id") || null;
+    const recordId = chatBox.getAttribute("data-record-id") || null;
+
+    const messagesEl = document.getElementById("chat-messages");
+    const emptyEl = document.getElementById("chat-empty");
+    const form = document.getElementById("chat-form");
+    const input = document.getElementById("chat-input");
+    const sendBtn = form.querySelector("button[type='submit']");
+
+    let conversation = [];
+
+    function scrollToBottom() {
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function addMessage(role, text) {
+        if (emptyEl) {
+            emptyEl.remove();
+        }
+
+        const bubble = document.createElement("div");
+        bubble.className = "cl-chat-msg " + (role === "user" ? "cl-chat-msg-user" : "cl-chat-msg-ai");
+        bubble.textContent = text;
+
+        messagesEl.appendChild(bubble);
+        scrollToBottom();
+    }
+
+    function addError(text) {
+        const bubble = document.createElement("div");
+        bubble.className = "cl-chat-msg cl-chat-msg-error";
+        bubble.textContent = text;
+
+        messagesEl.appendChild(bubble);
+        scrollToBottom();
+    }
+
+    function addTyping() {
+        const typing = document.createElement("div");
+        typing.className = "cl-chat-typing";
+        typing.id = "chat-typing";
+        typing.textContent = "در حال نوشتن پاسخ...";
+
+        messagesEl.appendChild(typing);
+        scrollToBottom();
+    }
+
+    function removeTyping() {
+        const typing = document.getElementById("chat-typing");
+        if (typing) {
+            typing.remove();
+        }
+    }
+
+    form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const question = input.value.trim();
+
+        if (!question) {
+            return;
+        }
+
+        addMessage("user", question);
+        conversation.push({ role: "user", content: question });
+
+        input.value = "";
+        input.disabled = true;
+        sendBtn.disabled = true;
+
+        addTyping();
+
+        try {
+            const res = await fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    job_id: jobId,
+                    record_id: recordId ? parseInt(recordId, 10) : null,
+                    question: question,
+                    history: conversation,
+                })
+            });
+
+            const data = await res.json();
+
+            removeTyping();
+
+            if (!res.ok) {
+                addError(data.error || "خطایی رخ داد. لطفاً دوباره تلاش کنید.");
+            } else {
+                addMessage("ai", data.answer);
+                conversation.push({ role: "assistant", content: data.answer });
+            }
+
+        } catch (err) {
+            removeTyping();
+            addError("ارتباط با سرور برقرار نشد. لطفاً دوباره تلاش کنید.");
+        } finally {
+            input.disabled = false;
+            sendBtn.disabled = false;
+            input.focus();
+        }
+    });
+
+})();
+</script>
 {% endblock %}

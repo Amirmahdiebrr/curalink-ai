@@ -1025,8 +1025,19 @@ pre{
 .footer-address{
     color:#8CA0B3;
     font-size:13px;
-    margin:0;
+    margin:0 0 6px;
     line-height:1.9;
+}
+
+.footer-phone{
+    color:#8CA0B3;
+    font-size:13px;
+    margin:0;
+}
+
+.footer-phone a{
+    color:var(--accent);
+    font-weight:700;
 }
 
 .footer-copyright{

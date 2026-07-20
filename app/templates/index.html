@@ -23,7 +23,7 @@
             </p>
 
             <div class="hero-actions">
-                <a href="#upload" class="btn btn-solid btn-lg">شروع تحلیل رایگان</a>
+                <a href="#upload" class="btn btn-solid btn-lg">شروع تحلیل آزمایش‌های شما</a>
                 <a href="#features" class="btn btn-ghost">بیشتر بدانید</a>
             </div>
 
@@ -61,7 +61,7 @@
 
             <div class="upload-card-head">
                 <h2>آپلود آزمایش</h2>
-                <p>فایل خود را انتخاب کنید تا در چند ثانیه تحلیل شود</p>
+                <p>می‌توانید چند فایل (مثلاً چند صفحه یا چند عکس از یک آزمایش) را با هم انتخاب کنید</p>
             </div>
 
             <form action="/analyze" method="post" enctype="multipart/form-data" id="upload-form">
@@ -79,9 +79,9 @@
                 </select>
 
                 <label class="upload-area" id="dropzone" for="file">
-                    <input type="file" name="file" id="file" accept=".pdf,.jpg,.jpeg,.png" required>
+                    <input type="file" name="files" id="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif" multiple required>
                     <span class="upload-icon">📄</span>
-                    <p id="file-label">فایل PDF یا تصویر آزمایش را انتخاب کنید</p>
+                    <p id="file-label">یک یا چند فایل PDF/تصویر آزمایش را انتخاب کنید</p>
                 </label>
 
                 <button type="submit">شروع تحلیل با AI</button>

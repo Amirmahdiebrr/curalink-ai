@@ -6,6 +6,7 @@ Responsibilities:
 - Save uploaded file bytes to disk
 """
 
+import uuid
 from pathlib import Path
 
 from app.core.constants import (
@@ -47,10 +48,15 @@ class FileService:
     def save_bytes(filename: str, content: bytes) -> Path:
         """
         Validate and save raw file bytes to the uploads directory.
+        A random prefix avoids collisions when multiple uploaded
+        files share the same original name.
         """
         FileService.validate_bytes(filename, content)
 
-        filepath = UPLOAD_DIR / filename
+        extension = Path(filename).suffix.lower()
+        unique_name = f"{uuid.uuid4().hex}{extension}"
+
+        filepath = UPLOAD_DIR / unique_name
 
         with open(filepath, "wb") as buffer:
             buffer.write(content)

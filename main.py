@@ -15,6 +15,7 @@ from app.routers.analyze import router as analyze_router
 from app.routers.auth import router as auth_router
 from app.routers.history import router as history_router
 from app.routers.trends import router as trends_router
+from app.routers.chat import router as chat_router
 
 
 app = FastAPI(
@@ -37,6 +38,7 @@ app.include_router(analyze_router)
 app.include_router(auth_router)
 app.include_router(history_router)
 app.include_router(trends_router)
+app.include_router(chat_router)
 
 
 print("ROUTES:")

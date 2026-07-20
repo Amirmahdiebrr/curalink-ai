@@ -19,7 +19,7 @@ templates = Jinja2Templates(directory="app/templates")
 service = ReportService()
 
 
-async def run_job(job_id: str, content: bytes, filename: str, exam_type: str, user_id: int | None):
+async def run_job(job_id: str, files: list[tuple[bytes, str]], exam_type: str, user_id: int | None):
 
     def on_stage(stage: str):
         update_job(job_id, stage=stage)
@@ -27,7 +27,7 @@ async def run_job(job_id: str, content: bytes, filename: str, exam_type: str, us
     update_job(job_id, status="processing", stage="saving")
 
     try:
-        result = await service.process(content, filename, on_stage=on_stage)
+        result = await service.process(files, on_stage=on_stage)
         result["exam_type"] = exam_type
         update_job(job_id, status="done", stage="done", result=result)
 
@@ -62,22 +62,25 @@ async def run_job(job_id: str, content: bytes, filename: str, exam_type: str, us
 async def analyze(
     request: Request,
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
+    files: list[UploadFile] = File(...),
     exam_type: str = Form(None),
     db: Session = Depends(get_db),
 ):
 
     print(f"[Analyze] exam_type received: {exam_type}", flush=True)
+    print(f"[Analyze] file count received: {len(files)}", flush=True)
 
     current_user = get_current_user(request, db)
     user_id = current_user.id if current_user else None
 
-    content = await file.read()
-    filename = file.filename
+    file_data = []
+    for uploaded_file in files:
+        content = await uploaded_file.read()
+        file_data.append((content, uploaded_file.filename))
 
     job_id = create_job(exam_type, user_id=user_id)
 
-    background_tasks.add_task(run_job, job_id, content, filename, exam_type, user_id)
+    background_tasks.add_task(run_job, job_id, file_data, exam_type, user_id)
 
     return JSONResponse({"job_id": job_id})
 
@@ -107,7 +110,7 @@ async def processing_page(request: Request, job_id: str, db: Session = Depends(g
         return templates.TemplateResponse(
             request,
             "result.html",
-            {"request": request, "result": job["result"], "user": user}
+            {"request": request, "result": job["result"], "user": user, "job_id": job_id, "record_id": None}
         )
 
     return templates.TemplateResponse(
@@ -133,5 +136,5 @@ async def result_page(request: Request, job_id: str, db: Session = Depends(get_d
     return templates.TemplateResponse(
         request,
         "result.html",
-        {"request": request, "result": job["result"], "user": user}
+        {"request": request, "result": job["result"], "user": user, "job_id": job_id, "record_id": None}
     )

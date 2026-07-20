@@ -23,7 +23,9 @@ ALLOWED_FILE_EXTENSIONS = [
     ".jpg",
     ".jpeg",
     ".tiff",
-    ".bmp"
+    ".bmp",
+    ".heic",
+    ".heif",
 
 ]
 
