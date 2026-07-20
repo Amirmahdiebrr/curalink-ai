@@ -11,6 +11,8 @@ from app.services.ocr_service import OCRService
 from app.services.ai_service import AIService
 
 from app.prompts.exam_prompts import get_prompt_template
+from app.prompts.classify_prompt import CLASSIFY_PROMPT_TEMPLATE
+from app.core.exam_types import EXAM_TYPE_LABELS, VALID_EXAM_TYPES
 
 
 JSON_BLOCK_PATTERN = re.compile(r"```json\s*(\[.*?\])\s*```", re.DOTALL)
@@ -29,6 +31,10 @@ ALLOWED_TAGS = [
 ALLOWED_ATTRS = {
     "a": ["href", "title", "rel", "target"],
 }
+
+MAX_SYMPTOMS_LENGTH = 1000
+
+NO_SYMPTOMS_TEXT = "کاربر شرحی وارد نکرده است."
 
 
 class ReportService:
@@ -52,6 +58,17 @@ class ReportService:
         )
 
         return clean_html
+
+    def _prepare_symptoms(self, symptoms: str | None) -> str:
+        if not symptoms:
+            return NO_SYMPTOMS_TEXT
+
+        cleaned = symptoms.strip()
+
+        if not cleaned:
+            return NO_SYMPTOMS_TEXT
+
+        return cleaned[:MAX_SYMPTOMS_LENGTH]
 
     def _extract_structured_results(self, analysis_text: str):
 
@@ -113,11 +130,44 @@ class ReportService:
 
         return f"--- بخش {index} از فایل: {filename} ---\n{file_text.strip()}"
 
-    async def process(self, files: list[tuple[bytes, str]], exam_type: str = None, on_stage=None):
+    async def _detect_exam_type(self, limited_text: str) -> str | None:
+        """
+        Asks the AI to classify the actual document type from OCR text,
+        independent of what the user selected. Returns a valid exam_type
+        key, or None if detection failed / was inconclusive.
+        """
+        classify_prompt = CLASSIFY_PROMPT_TEMPLATE.format(limited_text[:4000])
+
+        try:
+            raw = await self.ai.analyze(classify_prompt)
+        except Exception as e:
+            print(f"[ReportService] Exam type detection error: {e}", flush=True)
+            return None
+
+        cleaned = (raw or "").strip().lower()
+
+        for key in VALID_EXAM_TYPES:
+            if key in cleaned:
+                return key
+
+        print(f"[ReportService] Exam type detection inconclusive, raw: {cleaned[:200]}", flush=True)
+        return None
+
+    async def process(
+        self,
+        files: list[tuple[bytes, str]],
+        exam_type: str = None,
+        symptoms: str | None = None,
+        on_stage=None,
+    ):
         """
         files: لیستی از (بایت‌های فایل, نام اصلی فایل).
         exam_type: نوع آزمایش/تصویربرداری انتخاب‌شده توسط کاربر؛ تعیین‌کننده‌ی
-                   پرامپت تخصصی مورد استفاده برای تحلیل.
+                   پرامپت تخصصی مورد استفاده برای تحلیل (مگر اینکه سیستم
+                   تشخیص دهد که نوع واقعی سند متفاوت است، که در آن صورت
+                   نوع تشخیص‌داده‌شده جایگزین می‌شود).
+        symptoms: شرح علائم یا سابقه‌ی پزشکی که کاربر اختیاری وارد کرده،
+                  برای کمک به تفسیر دقیق‌تر AI (در همه‌ی انواع آزمایش/تصویربرداری استفاده می‌شود).
         یک یا چند فایل پشتیبانی می‌شود؛ OCR روی همه‌ی فایل‌ها به‌صورت
         هم‌زمان (parallel) انجام و متن‌ها ترکیب می‌شوند، سپس یک
         فراخوانی واحد به AI برای تحلیل ارسال می‌شود.
@@ -129,7 +179,11 @@ class ReportService:
         print("START REPORT PROCESS")
         print(f"FILE COUNT: {len(files)}")
         print(f"EXAM TYPE: {exam_type}")
+        print(f"HAS SYMPTOMS: {bool(symptoms and symptoms.strip())}")
         print("=" * 50)
+
+        requested_label = EXAM_TYPE_LABELS.get(exam_type, exam_type)
+        symptoms_display = self._prepare_symptoms(symptoms)
 
         self._notify(on_stage, "saving")
 
@@ -181,16 +235,37 @@ class ReportService:
                 "analysis": "",
                 "analysis_html": error_html,
                 "structured_results": [],
+                "exam_type": exam_type,
+                "requested_exam_type": exam_type,
+                "requested_exam_type_label": requested_label,
+                "exam_type_mismatch": False,
+                "detected_exam_type": None,
+                "detected_exam_type_label": None,
             }
 
         limited_text = text[:12000]
 
-        prompt_template = get_prompt_template(exam_type)
-        prompt = prompt_template.format(limited_text)
+        self._notify(on_stage, "ai")
+
+        step_start = time.perf_counter()
+        detected_type = await self._detect_exam_type(limited_text)
+        detect_duration = time.perf_counter() - step_start
+        print(f"[ReportService] Detected exam_type: {detected_type} (requested: {exam_type})  [{detect_duration:.2f}s]", flush=True)
+
+        exam_type_mismatch = False
+        final_exam_type = exam_type
+        detected_label = None
+
+        if detected_type and exam_type and detected_type != exam_type:
+            exam_type_mismatch = True
+            final_exam_type = detected_type
+            detected_label = EXAM_TYPE_LABELS.get(detected_type, detected_type)
+            print(f"[ReportService] MISMATCH: user selected '{exam_type}' but detected '{detected_type}' -> using detected type", flush=True)
+
+        prompt_template = get_prompt_template(final_exam_type)
+        prompt = prompt_template.format(text=limited_text, symptoms=symptoms_display)
 
         print(f"PROMPT LENGTH: {len(prompt)}", flush=True)
-
-        self._notify(on_stage, "ai")
 
         step_start = time.perf_counter()
         raw_analysis = await self.ai.analyze(prompt)
@@ -205,7 +280,7 @@ class ReportService:
 
         total_duration = time.perf_counter() - total_start
         print("=" * 50)
-        print(f"TOTAL TIME: {total_duration:.2f}s  (OCR: {ocr_duration:.2f}s | AI: {ai_duration:.2f}s)")
+        print(f"TOTAL TIME: {total_duration:.2f}s  (OCR: {ocr_duration:.2f}s | Detect: {detect_duration:.2f}s | AI: {ai_duration:.2f}s)")
         print("=" * 50)
 
         self._notify(on_stage, "done")
@@ -216,4 +291,10 @@ class ReportService:
             "analysis": narrative_text,
             "analysis_html": analysis_html,
             "structured_results": structured_results,
+            "exam_type": final_exam_type,
+            "requested_exam_type": exam_type,
+            "requested_exam_type_label": requested_label,
+            "exam_type_mismatch": exam_type_mismatch,
+            "detected_exam_type": detected_type,
+            "detected_exam_type_label": detected_label,
         }

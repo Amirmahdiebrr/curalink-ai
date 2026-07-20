@@ -57,6 +57,8 @@
 <section class="upload-section" id="upload">
     <div class="container">
 
+        {% if user %}
+
         <div class="upload-card">
 
             <div class="upload-card-head">
@@ -78,6 +80,7 @@
                     <option value="mri">MRI</option>
                     <option value="ct_scan">CT Scan</option>
                     <option value="mammography">ماموگرافی</option>
+                    <option value="hse">گزارش HSE (طب کار)</option>
                     <option value="other">سایر</option>
                 </select>
 
@@ -87,11 +90,39 @@
                     <p id="file-label">یک یا چند فایل PDF/تصویر آزمایش را انتخاب کنید</p>
                 </label>
 
+                <label class="field-label" for="symptoms">شرح علائم یا سابقه پزشکی (اختیاری)</label>
+                <textarea id="symptoms" name="symptoms" rows="4" maxlength="1000" placeholder="مثلاً: چند هفته‌ای سردرد و خستگی دارم، سابقه فشار خون بالا..."></textarea>
+
                 <button type="submit">شروع تحلیل با AI</button>
 
             </form>
 
         </div>
+
+        {% else %}
+
+        <div class="upload-card cl-upload-locked">
+
+            <div class="upload-card-head">
+                <h2>آپلود آزمایش</h2>
+                <p>برای استفاده از تحلیل هوشمند آزمایش‌ها، ابتدا باید وارد حساب کاربری خود شوید</p>
+            </div>
+
+            <div class="cl-locked-body">
+                <span class="cl-locked-icon">🔒</span>
+                <p class="cl-locked-text">
+                    ثبت و تحلیل آزمایش‌ها، دسترسی به تاریخچه و روند نتایج شما، فقط برای کاربران وارد‌شده امکان‌پذیر است.
+                </p>
+                <a href="/login" class="btn btn-solid btn-lg">ورود به حساب کاربری</a>
+                <p class="cl-locked-register">
+                    حساب کاربری ندارید؟
+                    <a href="https://curalinkcare.com/choose-register/" target="_blank" rel="noopener">همین حالا ثبت‌نام کنید</a>
+                </p>
+            </div>
+
+        </div>
+
+        {% endif %}
 
     </div>
 </section>

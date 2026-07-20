@@ -67,6 +67,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     formData.append("exam_type", examType.value);
                 }
 
+                const symptoms = document.getElementById("symptoms");
+                if (symptoms) {
+                    formData.append("symptoms", symptoms.value);
+                }
+
                 if (fileInput && fileInput.files.length > 0) {
                     for (let i = 0; i < fileInput.files.length; i++) {
                         formData.append("files", fileInput.files[i]);
@@ -77,6 +82,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     method: "POST",
                     body: formData
                 });
+
+                if (res.status === 401) {
+                    window.location.href = "/login";
+                    return;
+                }
 
                 if (!res.ok) {
                     throw new Error("Upload failed");

@@ -19,7 +19,13 @@ templates = Jinja2Templates(directory="app/templates")
 service = ReportService()
 
 
-async def run_job(job_id: str, files: list[tuple[bytes, str]], exam_type: str, user_id: int | None):
+async def run_job(
+    job_id: str,
+    files: list[tuple[bytes, str]],
+    exam_type: str,
+    symptoms: str | None,
+    user_id: int | None,
+):
 
     def on_stage(stage: str):
         update_job(job_id, stage=stage)
@@ -27,8 +33,7 @@ async def run_job(job_id: str, files: list[tuple[bytes, str]], exam_type: str, u
     update_job(job_id, status="processing", stage="saving")
 
     try:
-        result = await service.process(files, exam_type=exam_type, on_stage=on_stage)
-        result["exam_type"] = exam_type
+        result = await service.process(files, exam_type=exam_type, symptoms=symptoms, on_stage=on_stage)
         update_job(job_id, status="done", stage="done", result=result)
 
         if user_id:
@@ -37,12 +42,13 @@ async def run_job(job_id: str, files: list[tuple[bytes, str]], exam_type: str, u
                 save_analysis(
                     db,
                     user_id=user_id,
-                    exam_type=exam_type,
+                    exam_type=result.get("exam_type", exam_type),
                     filename=result.get("filename"),
                     ocr_text=result.get("ocr", ""),
                     analysis_text=result.get("analysis", ""),
                     analysis_html=result.get("analysis_html", ""),
                     structured_results=result.get("structured_results", []),
+                    symptoms=symptoms,
                 )
                 print(f"[Analyze] Saved analysis to history for user_id={user_id}", flush=True)
             except Exception as e:
@@ -64,14 +70,25 @@ async def analyze(
     background_tasks: BackgroundTasks,
     files: list[UploadFile] = File(...),
     exam_type: str = Form(None),
+    symptoms: str = Form(None),
     db: Session = Depends(get_db),
 ):
 
+    current_user = get_current_user(request, db)
+
+    if not current_user:
+        print("[Analyze] Rejected: unauthenticated request", flush=True)
+        return JSONResponse(
+            {"error": "برای استفاده از تحلیل، ابتدا باید وارد حساب کاربری خود شوید.", "login_required": True},
+            status_code=401,
+        )
+
+    user_id = current_user.id
+
     print(f"[Analyze] exam_type received: {exam_type}", flush=True)
     print(f"[Analyze] file count received: {len(files)}", flush=True)
-
-    current_user = get_current_user(request, db)
-    user_id = current_user.id if current_user else None
+    print(f"[Analyze] symptoms provided: {bool(symptoms and symptoms.strip())}", flush=True)
+    print(f"[Analyze] user_id: {user_id}", flush=True)
 
     file_data = []
     for uploaded_file in files:
@@ -80,7 +97,7 @@ async def analyze(
 
     job_id = create_job(exam_type, user_id=user_id)
 
-    background_tasks.add_task(run_job, job_id, file_data, exam_type, user_id)
+    background_tasks.add_task(run_job, job_id, file_data, exam_type, symptoms, user_id)
 
     return JSONResponse({"job_id": job_id})
 

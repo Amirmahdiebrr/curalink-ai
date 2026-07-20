@@ -13,6 +13,21 @@
 
         <h1 class="result-title">نتیجه تحلیل آزمایش</h1>
 
+        {% if result.exam_type_mismatch %}
+        <div class="cl-auth-alert cl-auth-alert-error" style="text-align:right; margin-bottom:24px; line-height:2;">
+            ⚠️ شما نوع آزمایش را <strong>«{{ result.requested_exam_type_label }}»</strong> انتخاب کرده بودید،
+            اما سیستم تشخیص داد که این مدرک در واقع از نوع <strong>«{{ result.detected_exam_type_label }}»</strong> است.
+            تحلیل بر همین اساس (نوع تشخیص‌داده‌شده) انجام شده است.
+        </div>
+        {% endif %}
+
+        {% if result.symptoms %}
+        <div class="result-card">
+            <h2>شرح علائم و سابقه‌ی وارد‌شده توسط شما</h2>
+            <p style="margin:0; line-height:2;">{{ result.symptoms }}</p>
+        </div>
+        {% endif %}
+
         <div class="result-card">
             <h2>تحلیل پزشکی هوش مصنوعی</h2>
             <div class="analysis-content">

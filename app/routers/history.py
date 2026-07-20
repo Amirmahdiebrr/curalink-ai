@@ -12,24 +12,12 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.routers.auth import get_current_user
 from app.services.history_service import get_user_history, get_record_for_user
+from app.core.exam_types import EXAM_TYPE_LABELS
 
 
 router = APIRouter()
 
 templates = Jinja2Templates(directory="app/templates")
-
-
-EXAM_TYPE_LABELS = {
-    "blood": "آزمایش خون",
-    "urine": "آزمایش ادرار",
-    "biochemistry": "بیوشیمی",
-    "sonography": "سونوگرافی",
-    "radiology": "رادیولوژی",
-    "mri": "MRI",
-    "ct_scan": "CT Scan",
-    "mammography": "ماموگرافی",
-    "other": "سایر",
-}
 
 
 @router.get("/history")
@@ -73,6 +61,7 @@ async def history_detail(request: Request, record_id: int, db: Session = Depends
         "analysis": record.analysis_text,
         "analysis_html": record.analysis_html,
         "exam_type": record.exam_type,
+        "symptoms": record.symptoms,
     }
 
     return templates.TemplateResponse(

@@ -46,6 +46,7 @@ class AnalysisRecord(Base):
     ocr_text = Column(Text, nullable=True)
     analysis_text = Column(Text, nullable=True)
     analysis_html = Column(Text, nullable=True)
+    symptoms = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 

@@ -21,6 +21,7 @@ def save_analysis(
     analysis_text: str,
     analysis_html: str,
     structured_results: list | None = None,
+    symptoms: str | None = None,
 ) -> AnalysisRecord:
 
     record = AnalysisRecord(
@@ -30,6 +31,7 @@ def save_analysis(
         ocr_text=ocr_text,
         analysis_text=analysis_text,
         analysis_html=analysis_html,
+        symptoms=symptoms,
     )
 
     db.add(record)
