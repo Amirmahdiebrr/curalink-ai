@@ -1,84 +1,261 @@
-<!DOCTYPE html>
-<html lang="fa" dir="rtl">
+{% extends "base.html" %}
 
-<head>
+{% block title %}CuraLink AI | تحلیل هوشمند آزمایشات{% endblock %}
 
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% block content %}
 
-    <title>
-        {% block title %}CuraLink AI{% endblock %}
-    </title>
+<section class="hero">
+    <div class="container hero-grid">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+        <div class="hero-text">
 
-    <link rel="stylesheet" href="/static/css/style.css">
+            <p class="eyebrow">CuraLink AI | دستیار هوشمند سلامت شما</p>
 
-    {% block head %}{% endblock %}
+            <h1>
+                جواب آزمایشت رو
+                <span>راحت و بی‌دردسر تحلیل کن</span>
+            </h1>
 
-</head>
+            <p class="lead">
+                کافیه عکس یا PDF جواب آزمایش، سونوگرافی، MRI یا CT اسکنت رو بفرستی؛
+                هوش مصنوعی CuraLink در چند ثانیه همه‌ی اعداد و اصطلاحات پیچیده رو
+                برات به فارسی ساده و روان توضیح می‌ده، بدون نیاز به نوبت و مراجعه حضوری.
+            </p>
 
-<body>
-
-    <header class="navbar">
-        <div class="container navbar-inner">
-
-            <a href="/" class="logo">
-                <img src="/static/images/logo.png" alt="CuraLink AI">
-            </a>
-
-            <nav>
-                <a href="/" class="nav-active">خانه</a>
-                <a href="https://curalinkcare.com/about/" target="_blank" rel="noopener">درباره ما</a>
-                <a href="https://curalinkcare.com/our-services/" target="_blank" rel="noopener">خدمات ما</a>
-                {% if user %}
-                <a href="/history">تاریخچه</a>
-                <a href="/trends">روند آزمایش‌ها</a>
-                {% endif %}
-                <a href="https://curalinkcare.com/contact/" target="_blank" rel="noopener">تماس با ما</a>
-            </nav>
-
-            <div class="navbar-cta">
-                {% if user %}
-                    <a href="/profile" class="btn btn-outline">{{ user.display_name or user.nicename or 'پروفایل من' }}</a>
-                    <a href="/logout" class="btn btn-solid">خروج</a>
-                {% else %}
-                    <a href="/login" class="btn btn-outline">ورود به پنل</a>
-                    <a href="https://curalinkcare.com/choose-register/" target="_blank" rel="noopener" class="btn btn-solid">ثبت‌نام</a>
-                {% endif %}
+            <div class="hero-actions">
+                <a href="#upload" class="btn btn-solid btn-lg">شروع تحلیل آزمایش‌های شما</a>
+                <a href="#services" class="btn btn-ghost">خدمات ما را ببینید</a>
             </div>
 
         </div>
-    </header>
 
-    <main>
-        {% block content %}{% endblock %}
-    </main>
+        <div class="hero-media">
 
-    <footer class="footer">
-        <div class="container footer-inner">
+            <div class="cl-scan-ring">
+                <img class="hero-robot" src="/static/images/robot.png" alt="دستیار هوشمند CuraLink">
+            </div>
 
-            <img src="/static/images/logo.png" alt="CuraLink AI" class="footer-logo">
+            <div class="badge badge-top">
+                <span class="badge-icon">✓</span>
+                <div>
+                    <strong>دقت بالای OCR</strong>
+                    <small>استخراج هوشمند از PDF و تصویر</small>
+                </div>
+            </div>
 
-            <div class="footer-info">
-                <p class="footer-company">شرکت درمان پیوند ایرانیان &nbsp;|&nbsp; شناسه ثبتی: ۲۴۴۹۷</p>
-                <p class="footer-address">
-                    آدرس: ارومیه، گلشهر یک، کوی گلشن، کوی گلنار، مجتمع گلستان یک، بلوک یاس، واحد ۱/۲
+            <div class="badge badge-bottom">
+                <span class="badge-icon">🩺</span>
+                <div>
+                    <strong>تحلیل تخصصی AI</strong>
+                    <small>مبتنی بر داده‌های پزشکی معتبر</small>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+<section class="upload-section" id="upload">
+    <div class="container">
+
+        {% if user %}
+
+        <div class="upload-card">
+
+            <div class="upload-card-head">
+                <h2>آپلود آزمایش</h2>
+                <p>می‌توانید چند فایل (مثلاً چند صفحه یا چند عکس از یک آزمایش) را با هم انتخاب کنید</p>
+            </div>
+
+            <form action="/analyze" method="post" enctype="multipart/form-data" id="upload-form">
+
+                <label class="field-label" for="exam_type">نوع آزمایش را انتخاب کنید</label>
+
+                <select name="exam_type" id="exam_type" required>
+                    <option value="" disabled selected>— انتخاب کنید —</option>
+                    <option value="blood">آزمایش خون</option>
+                    <option value="urine">آزمایش ادرار</option>
+                    <option value="biochemistry">بیوشیمی</option>
+                    <option value="sonography">سونوگرافی</option>
+                    <option value="radiology">رادیولوژی (X-Ray)</option>
+                    <option value="mri">MRI</option>
+                    <option value="ct_scan">CT Scan</option>
+                    <option value="mammography">ماموگرافی</option>
+                    <option value="hse">گزارش HSE (طب کار)</option>
+                    <option value="other">سایر</option>
+                </select>
+
+                <label class="upload-area" id="dropzone" for="file">
+                    <input type="file" name="files" id="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif" multiple required>
+                    <span class="upload-icon">📄</span>
+                    <p id="file-label">یک یا چند فایل PDF/تصویر آزمایش را انتخاب کنید</p>
+                </label>
+
+                <label class="field-label" for="symptoms">شرح علائم یا سابقه پزشکی (اختیاری)</label>
+                <textarea id="symptoms" name="symptoms" rows="4" maxlength="1000" placeholder="مثلاً: چند هفته‌ای سردرد و خستگی دارم، سابقه فشار خون بالا..."></textarea>
+                <p class="cl-field-hint">نوشتن علائم یا سابقه‌ی پزشکی کاملاً اختیاری است، اما به هوش مصنوعی کمک می‌کند تحلیل دقیق‌تری متناسب با شرایط شما ارائه دهد.</p>
+
+                <button type="submit">شروع تحلیل با AI</button>
+
+            </form>
+
+        </div>
+
+        {% else %}
+
+        <div class="upload-card cl-upload-locked">
+
+            <div class="upload-card-head">
+                <h2>آپلود آزمایش</h2>
+                <p>برای استفاده از تحلیل هوشمند آزمایش‌ها، ابتدا باید وارد حساب کاربری خود شوید</p>
+            </div>
+
+            <div class="cl-locked-body">
+                <span class="cl-locked-icon">🔒</span>
+                <p class="cl-locked-text">
+                    ثبت و تحلیل آزمایش‌ها، دسترسی به تاریخچه و روند نتایج شما، فقط برای کاربران وارد‌شده امکان‌پذیر است.
                 </p>
-                <p class="footer-phone">
-                    تماس با ما: <a href="tel:02191694499">021-91694499</a>
+                <a href="/login" class="btn btn-solid btn-lg">ورود به حساب کاربری</a>
+                <p class="cl-locked-register">
+                    حساب کاربری ندارید؟
+                    <a href="https://curalinkcare.com/choose-register/" target="_blank" rel="noopener">همین حالا ثبت‌نام کنید</a>
                 </p>
             </div>
 
-            <p class="footer-copyright">© ۱۴۰۵ CuraLink AI — تحلیل هوشمند آزمایشات پزشکی</p>
+        </div>
+
+        {% endif %}
+
+    </div>
+</section>
+
+<section class="services" id="services">
+    <div class="container">
+
+        <div class="section-head">
+            <p class="eyebrow">خدمات ما</p>
+            <h2>تحلیل تخصصی برای هر نوع گزارش پزشکی</h2>
+            <p class="section-sub">
+                از آزمایش خون گرفته تا تصویربرداری‌های پیچیده و معاینات طب کار،
+                CuraLink برای هر نوع مدرک پزشکی، تحلیلی متناسب و تخصصی ارائه می‌دهد.
+            </p>
+        </div>
+
+        <div class="services-grid">
+
+            <div class="service-card">
+                <span class="service-icon">🧪</span>
+                <h3>آزمایش خون</h3>
+                <p>تفسیر کامل CBC، قند، چربی، آنزیم‌های کبدی و سایر شاخص‌های خونی به زبان ساده.</p>
+            </div>
+
+            <div class="service-card">
+                <span class="service-icon">💧</span>
+                <h3>آزمایش ادرار</h3>
+                <p>بررسی نتایج Urine Analysis و توضیح هر یک از موارد غیرطبیعی احتمالی.</p>
+            </div>
+
+            <div class="service-card">
+                <span class="service-icon">🔬</span>
+                <h3>بیوشیمی</h3>
+                <p>تحلیل تخصصی قند خون، چربی، کراتینین و سایر آزمایش‌های بیوشیمیایی.</p>
+            </div>
+
+            <div class="service-card">
+                <span class="service-icon">🩺</span>
+                <h3>سونوگرافی</h3>
+                <p>توضیح یافته‌های سونوگرافی شکم، لگن، تیروئید و کلیه به زبان قابل‌فهم.</p>
+            </div>
+
+            <div class="service-card">
+                <span class="service-icon">🦴</span>
+                <h3>رادیولوژی (X-Ray)</h3>
+                <p>تفسیر گزارش رادیولوژی و Impression پزشک به‌صورت ساده و روشن.</p>
+            </div>
+
+            <div class="service-card">
+                <span class="service-icon">🧠</span>
+                <h3>MRI</h3>
+                <p>تحلیل گزارش‌های MRI مغز، ستون فقرات، زانو و سایر نواحی بدن.</p>
+            </div>
+
+            <div class="service-card">
+                <span class="service-icon">🫁</span>
+                <h3>CT Scan</h3>
+                <p>بررسی گزارش‌های CT Scan ریه، شکم و سایر نواحی و توضیح یافته‌های مهم.</p>
+            </div>
+
+            <div class="service-card">
+                <span class="service-icon">🎗️</span>
+                <h3>ماموگرافی</h3>
+                <p>تفسیر گزارش ماموگرافی همراه با توضیح رده‌بندی BI-RADS در صورت وجود.</p>
+            </div>
+
+            <div class="service-card">
+                <span class="service-icon">🦺</span>
+                <h3>گزارش HSE (طب کار)</h3>
+                <p>تحلیل معاینات ادواری و پیش از استخدام شامل آزمایش، شنوایی، بینایی و ریه.</p>
+            </div>
 
         </div>
-    </footer>
 
-    <script src="/static/js/main.js"></script>
-    {% block scripts %}{% endblock %}
+    </div>
+</section>
 
-</body>
-</html>
+<section class="features" id="features">
+    <div class="container">
+
+        <div class="section-head">
+            <p class="eyebrow">چرا CuraLink AI؟</p>
+            <h2>یک تجربه‌ی هوشمند، دقیق و امن</h2>
+            <p class="section-sub">
+                هر آپلود شما با چند لایه هوش مصنوعی بررسی می‌شود تا تحلیلی دقیق،
+                شخصی‌سازی‌شده و قابل پیگیری در طول زمان دریافت کنید.
+            </p>
+        </div>
+
+        <div class="features-grid">
+
+            <div class="feature">
+                <span class="feature-icon">🔎</span>
+                <h3>OCR هوشمند</h3>
+                <p>استخراج دقیق متن از تصویر و PDF، حتی از عکس‌های کمی نامرتب یا کج گرفته‌شده.</p>
+            </div>
+
+            <div class="feature">
+                <span class="feature-icon">🎯</span>
+                <h3>تشخیص خودکار نوع گزارش</h3>
+                <p>اگر نوع آزمایش را اشتباه انتخاب کنید، سیستم خودش نوع واقعی را تشخیص داده و به شما اطلاع می‌دهد.</p>
+            </div>
+
+            <div class="feature">
+                <span class="feature-icon">📝</span>
+                <h3>تحلیل متناسب با شرایط شما</h3>
+                <p>با نوشتن علائم و سابقه پزشکی، تحلیل هوش مصنوعی دقیق‌تر و شخصی‌تر می‌شود.</p>
+            </div>
+
+            <div class="feature">
+                <span class="feature-icon">📋</span>
+                <h3>گزارش ساختاریافته و قابل فهم</h3>
+                <p>خلاصه وضعیت، موارد غیرطبیعی و توصیه‌های پیگیری، همه در یک گزارش منظم و خوانا.</p>
+            </div>
+
+            <div class="feature">
+                <span class="feature-icon">📈</span>
+                <h3>تاریخچه و روند آزمایش‌ها</h3>
+                <p>تمام تحلیل‌های قبلی شما ذخیره می‌شود و می‌توانید روند تغییر مقادیر را در طول زمان ببینید.</p>
+            </div>
+
+            <div class="feature">
+                <span class="feature-icon">💬</span>
+                <h3>پرسش و پاسخ هوشمند</h3>
+                <p>بعد از دریافت نتیجه، هر سوالی درباره‌ی گزارش خود دارید، مستقیم از دستیار هوش مصنوعی بپرسید.</p>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}
