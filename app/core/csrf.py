@@ -1,25 +1,34 @@
-from fastapi import APIRouter, Request, Depends
-from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
+"""
+app/core/csrf.py
 
-from app.database import get_db
-from app.routers.auth import get_current_user
-from app.core.csrf import get_or_create_csrf_token
+Lightweight session-based CSRF token generation and validation.
+"""
 
+import secrets
 
-router = APIRouter()
-
-templates = Jinja2Templates(directory="app/templates")
+from fastapi import Request
 
 
-@router.get("/")
-async def home(request: Request, db: Session = Depends(get_db)):
+CSRF_SESSION_KEY = "csrf_token"
 
-    user = get_current_user(request, db)
-    csrf_token = get_or_create_csrf_token(request)
 
-    return templates.TemplateResponse(
-        request,
-        "index.html",
-        {"request": request, "user": user, "csrf_token": csrf_token}
-    )
+def get_or_create_csrf_token(request: Request) -> str:
+    token = request.session.get(CSRF_SESSION_KEY)
+
+    if not token:
+        token = secrets.token_urlsafe(32)
+        request.session[CSRF_SESSION_KEY] = token
+
+    return token
+
+
+def is_valid_csrf(request: Request, token: str | None) -> bool:
+    if not token:
+        return False
+
+    session_token = request.session.get(CSRF_SESSION_KEY)
+
+    if not session_token:
+        return False
+
+    return secrets.compare_digest(session_token, token)

@@ -1,66 +1,60 @@
-print("=" * 50)
-print("RUNNING MAIN.PY")
-print("=" * 50)
+"""
+app/services/job_store.py
 
-import asyncio
+Simple in-memory job store for tracking background analysis jobs
+(status, stage, result, errors) keyed by job_id.
+"""
 
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from starlette.middleware.sessions import SessionMiddleware
+import uuid
+import time
+import threading
 
-from app.config import SESSION_SECRET_KEY
-from app.database import init_db
+_jobs: dict[str, dict] = {}
+_lock = threading.Lock()
 
-from app.routers.home import router as home_router
-from app.routers.analyze import router as analyze_router
-from app.routers.auth import router as auth_router
-from app.routers.history import router as history_router
-from app.routers.trends import router as trends_router
-from app.routers.chat import router as chat_router
-
-from app.services.job_store import purge_old_jobs
+JOB_MAX_AGE_SECONDS = 60 * 60 * 2  # ۲ ساعت
 
 
-JOB_CLEANUP_INTERVAL_SECONDS = 60 * 30  # هر ۳۰ دقیقه
+def create_job(exam_type: str | None, user_id: int | None = None) -> str:
+    job_id = uuid.uuid4().hex
+
+    with _lock:
+        _jobs[job_id] = {
+            "job_id": job_id,
+            "exam_type": exam_type,
+            "user_id": user_id,
+            "status": "pending",
+            "stage": "pending",
+            "result": None,
+            "error": None,
+            "created_at": time.time(),
+        }
+
+    return job_id
 
 
-app = FastAPI(
-    title="CuraLink AI",
-    version="1.0.0"
-)
-
-app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY)
-
-init_db()
-
-app.mount(
-    "/static",
-    StaticFiles(directory="app/static"),
-    name="static"
-)
-
-app.include_router(home_router)
-app.include_router(analyze_router)
-app.include_router(auth_router)
-app.include_router(history_router)
-app.include_router(trends_router)
-app.include_router(chat_router)
+def update_job(job_id: str, **kwargs):
+    with _lock:
+        job = _jobs.get(job_id)
+        if job is None:
+            return
+        job.update(kwargs)
 
 
-async def _job_cleanup_loop():
-    while True:
-        await asyncio.sleep(JOB_CLEANUP_INTERVAL_SECONDS)
-        try:
-            purge_old_jobs()
-        except Exception as e:
-            print(f"[JobStore] Cleanup loop error: {e}", flush=True)
+def get_job(job_id: str) -> dict | None:
+    with _lock:
+        return _jobs.get(job_id)
 
 
-@app.on_event("startup")
-async def start_job_cleanup_task():
-    asyncio.create_task(_job_cleanup_loop())
+def purge_old_jobs():
+    now = time.time()
+    with _lock:
+        expired = [
+            jid for jid, job in _jobs.items()
+            if now - job.get("created_at", now) > JOB_MAX_AGE_SECONDS
+        ]
+        for jid in expired:
+            del _jobs[jid]
 
-
-print("ROUTES:")
-for route in app.routes:
-    print(route)
+    if expired:
+        print(f"[JobStore] Purged {len(expired)} expired job(s)", flush=True)

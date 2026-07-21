@@ -28,6 +28,8 @@
 
             <form method="post" action="/login" class="cl-auth-fields">
 
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
                 <div class="cl-field">
                     <label for="username">نام کاربری یا آدرس ایمیل</label>
                     <input type="text" id="username" name="username" placeholder="نام کاربری یا ایمیل خود را وارد کنید" required>
