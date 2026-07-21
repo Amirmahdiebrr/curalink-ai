@@ -1,37 +1,66 @@
-"""
-app/services/job_store.py
+print("=" * 50)
+print("RUNNING MAIN.PY")
+print("=" * 50)
 
-Simple in-memory job store for tracking background analysis jobs.
-Not persistent across server restarts - fine for MVP/single-instance use.
-"""
+import asyncio
 
-import time
-import uuid
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 
+from app.config import SESSION_SECRET_KEY
+from app.database import init_db
 
-jobs: dict[str, dict] = {}
+from app.routers.home import router as home_router
+from app.routers.analyze import router as analyze_router
+from app.routers.auth import router as auth_router
+from app.routers.history import router as history_router
+from app.routers.trends import router as trends_router
+from app.routers.chat import router as chat_router
 
-
-def create_job(exam_type: str, user_id: int | None = None) -> str:
-    job_id = uuid.uuid4().hex
-
-    jobs[job_id] = {
-        "status": "pending",
-        "stage": "queued",
-        "exam_type": exam_type,
-        "user_id": user_id,
-        "result": None,
-        "error": None,
-        "created_at": time.time(),
-    }
-
-    return job_id
+from app.services.job_store import purge_old_jobs
 
 
-def update_job(job_id: str, **kwargs):
-    if job_id in jobs:
-        jobs[job_id].update(kwargs)
+JOB_CLEANUP_INTERVAL_SECONDS = 60 * 30  # هر ۳۰ دقیقه
 
 
-def get_job(job_id: str):
-    return jobs.get(job_id)
+app = FastAPI(
+    title="CuraLink AI",
+    version="1.0.0"
+)
+
+app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY)
+
+init_db()
+
+app.mount(
+    "/static",
+    StaticFiles(directory="app/static"),
+    name="static"
+)
+
+app.include_router(home_router)
+app.include_router(analyze_router)
+app.include_router(auth_router)
+app.include_router(history_router)
+app.include_router(trends_router)
+app.include_router(chat_router)
+
+
+async def _job_cleanup_loop():
+    while True:
+        await asyncio.sleep(JOB_CLEANUP_INTERVAL_SECONDS)
+        try:
+            purge_old_jobs()
+        except Exception as e:
+            print(f"[JobStore] Cleanup loop error: {e}", flush=True)
+
+
+@app.on_event("startup")
+async def start_job_cleanup_task():
+    asyncio.create_task(_job_cleanup_loop())
+
+
+print("ROUTES:")
+for route in app.routes:
+    print(route)

@@ -31,6 +31,14 @@ class WPAuthError(Exception):
     pass
 
 
+def _mask_token(token: str | None) -> str:
+    if not token:
+        return "<none>"
+    if len(token) <= 12:
+        return "***"
+    return f"{token[:6]}...{token[-4:]}"
+
+
 async def login_with_wordpress(username: str, password: str) -> dict:
 
     print("[WPAuth] Trying login for username:", username, flush=True)
@@ -50,7 +58,6 @@ async def login_with_wordpress(username: str, password: str) -> dict:
         raise WPAuthError("خطا در اتصال به سرور ورود") from e
 
     print("[WPAuth] Response status:", response.status_code, flush=True)
-    print("[WPAuth] Response body:", response.text[:500], flush=True)
 
     if response.status_code != 200:
         try:
@@ -58,12 +65,17 @@ async def login_with_wordpress(username: str, password: str) -> dict:
             message = data.get("message", DEFAULT_ERROR_MESSAGE)
         except Exception:
             message = DEFAULT_ERROR_MESSAGE
+        print("[WPAuth] Login failed:", message, flush=True)
         raise WPAuthError(message)
 
     data = response.json()
 
+    token = data.get("token")
+
+    print("[WPAuth] Login succeeded. Token:", _mask_token(token), flush=True)
+
     return {
-        "token": data.get("token"),
+        "token": token,
         "email": data.get("user_email"),
         "nicename": data.get("user_nicename"),
         "display_name": data.get("user_display_name"),

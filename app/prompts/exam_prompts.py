@@ -2,10 +2,12 @@
 app/prompts/exam_prompts.py
 
 Specialized prompt templates per exam_type. Each template must contain
-`{text}` (extracted document text) and `{symptoms}` (user-provided
-symptom/history context, or a placeholder note if empty) placeholders,
-and must end with the same JSON-block instructions so ReportService can
-extract structured numeric results consistently across all exam types.
+`{text}` (extracted document text), `{symptoms}` (user-provided
+symptom/history context, or a placeholder note if empty), and
+`{patient_profile}` (age/gender context, or a placeholder note if empty)
+placeholders, and must end with the same JSON-block instructions so
+ReportService can extract structured numeric results consistently
+across all exam types.
 """
 
 from app.prompts.lab_prompt import LAB_PROMPT
@@ -32,6 +34,24 @@ SYMPTOMS_NOTE = """
 اگر کاربر شرح علائم یا سابقه‌ی پزشکی وارد کرده باشد (در انتهای این پرامپت آمده)،
 آن را هنگام تفسیر یافته‌ها و ارائه‌ی توصیه‌ها در نظر بگیر، اما هرگز آن را عیناً در
 گزارش خروجی تکرار نکن.
+اگر سن و جنسیت بیمار مشخص شده باشد (نیز در انتهای این پرامپت آمده)، هنگام تفسیر
+یافته‌ها و اهمیت پزشکی آن‌ها در نظر بگیر (برخی یافته‌ها بسته به سن/جنسیت اهمیت
+متفاوتی دارند).
+"""
+
+
+PATIENT_CONTEXT_BLOCK = """
+اطلاعات سن و جنسیت بیمار (در صورت موجود بودن در پروفایل کاربر؛ اگر نامشخص است یعنی کاربر این اطلاعات را وارد نکرده):
+-----------------------
+{patient_profile}
+
+شرح علائم و سابقه‌ی بیمار (در صورت وارد شدن توسط کاربر؛ اگر خالی است یعنی کاربر شرحی ننوشته):
+-----------------------
+{symptoms}
+
+متن گزارش استخراج‌شده:
+-----------------------
+{text}
 """
 
 
@@ -57,15 +77,7 @@ SONOGRAPHY_PROMPT = """
 # اهمیت پزشکی یافته‌ها
 # توصیه‌های پیگیری
 
-""" + JSON_BLOCK_INSTRUCTIONS + """
-شرح علائم و سابقه‌ی بیمار (در صورت وارد شدن توسط کاربر؛ اگر خالی است یعنی کاربر شرحی ننوشته):
------------------------
-{symptoms}
-
-متن گزارش استخراج‌شده:
------------------------
-{text}
-"""
+""" + JSON_BLOCK_INSTRUCTIONS + PATIENT_CONTEXT_BLOCK
 
 
 RADIOLOGY_PROMPT = """
@@ -90,15 +102,7 @@ RADIOLOGY_PROMPT = """
 # اهمیت پزشکی یافته‌ها
 # توصیه‌های پیگیری
 
-""" + JSON_BLOCK_INSTRUCTIONS + """
-شرح علائم و سابقه‌ی بیمار (در صورت وارد شدن توسط کاربر؛ اگر خالی است یعنی کاربر شرحی ننوشته):
------------------------
-{symptoms}
-
-متن گزارش استخراج‌شده:
------------------------
-{text}
-"""
+""" + JSON_BLOCK_INSTRUCTIONS + PATIENT_CONTEXT_BLOCK
 
 
 MRI_PROMPT = """
@@ -123,15 +127,7 @@ MRI_PROMPT = """
 # اهمیت پزشکی یافته‌ها
 # توصیه‌های پیگیری
 
-""" + JSON_BLOCK_INSTRUCTIONS + """
-شرح علائم و سابقه‌ی بیمار (در صورت وارد شدن توسط کاربر؛ اگر خالی است یعنی کاربر شرحی ننوشته):
------------------------
-{symptoms}
-
-متن گزارش استخراج‌شده:
------------------------
-{text}
-"""
+""" + JSON_BLOCK_INSTRUCTIONS + PATIENT_CONTEXT_BLOCK
 
 
 CT_SCAN_PROMPT = """
@@ -156,15 +152,7 @@ CT_SCAN_PROMPT = """
 # اهمیت پزشکی یافته‌ها
 # توصیه‌های پیگیری
 
-""" + JSON_BLOCK_INSTRUCTIONS + """
-شرح علائم و سابقه‌ی بیمار (در صورت وارد شدن توسط کاربر؛ اگر خالی است یعنی کاربر شرحی ننوشته):
------------------------
-{symptoms}
-
-متن گزارش استخراج‌شده:
------------------------
-{text}
-"""
+""" + JSON_BLOCK_INSTRUCTIONS + PATIENT_CONTEXT_BLOCK
 
 
 MAMMOGRAPHY_PROMPT = """
@@ -190,15 +178,7 @@ MAMMOGRAPHY_PROMPT = """
 # اهمیت پزشکی یافته‌ها
 # توصیه‌های پیگیری
 
-""" + JSON_BLOCK_INSTRUCTIONS + """
-شرح علائم و سابقه‌ی بیمار (در صورت وارد شدن توسط کاربر؛ اگر خالی است یعنی کاربر شرحی ننوشته):
------------------------
-{symptoms}
-
-متن گزارش استخراج‌شده:
------------------------
-{text}
-"""
+""" + JSON_BLOCK_INSTRUCTIONS + PATIENT_CONTEXT_BLOCK
 
 
 HSE_PROMPT = """
@@ -236,15 +216,7 @@ HSE_PROMPT = """
 # جمع‌بندی نهایی و وضعیت صلاحیت شغلی
 # توصیه‌های پیگیری
 
-""" + JSON_BLOCK_INSTRUCTIONS + """
-شرح علائم و سابقه‌ی بیمار (در صورت وارد شدن توسط کاربر؛ اگر خالی است یعنی کاربر شرحی ننوشته):
------------------------
-{symptoms}
-
-متن گزارش استخراج‌شده:
------------------------
-{text}
-"""
+""" + JSON_BLOCK_INSTRUCTIONS + PATIENT_CONTEXT_BLOCK
 
 
 OTHER_PROMPT = """
@@ -268,15 +240,7 @@ OTHER_PROMPT = """
 # موارد غیرطبیعی (در صورت وجود)
 # توصیه‌های پیگیری
 
-""" + JSON_BLOCK_INSTRUCTIONS + """
-شرح علائم و سابقه‌ی بیمار (در صورت وارد شدن توسط کاربر؛ اگر خالی است یعنی کاربر شرحی ننوشته):
------------------------
-{symptoms}
-
-متن گزارش استخراج‌شده:
------------------------
-{text}
-"""
+""" + JSON_BLOCK_INSTRUCTIONS + PATIENT_CONTEXT_BLOCK
 
 
 EXAM_PROMPTS = {

@@ -41,7 +41,7 @@
         </details>
 
         {% if job_id or record_id %}
-        <div class="cl-chat-box" id="chat-box" data-job-id="{{ job_id or '' }}" data-record-id="{{ record_id or '' }}">
+        <div class="cl-chat-box" id="chat-box" data-job-id="{{ job_id or '' }}" data-record-id="{{ record_id or '' }}" data-csrf="{{ csrf_token }}">
 
             <div class="cl-chat-header">
                 <span class="cl-chat-header-icon">💬</span>
@@ -84,6 +84,7 @@
 
     const jobId = chatBox.getAttribute("data-job-id") || null;
     const recordId = chatBox.getAttribute("data-record-id") || null;
+    const csrfToken = chatBox.getAttribute("data-csrf") || "";
 
     const messagesEl = document.getElementById("chat-messages");
     const emptyEl = document.getElementById("chat-empty");
@@ -157,7 +158,10 @@
         try {
             const res = await fetch("/chat", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-Token": csrfToken,
+                },
                 body: JSON.stringify({
                     job_id: jobId,
                     record_id: recordId ? parseInt(recordId, 10) : null,

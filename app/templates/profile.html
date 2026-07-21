@@ -17,6 +17,10 @@
             </div>
         </div>
 
+        {% if error %}
+        <div class="cl-auth-alert cl-auth-alert-error">{{ error }}</div>
+        {% endif %}
+
         {% if saved %}
         <div class="cl-auth-alert cl-auth-alert-success">تغییرات با موفقیت ذخیره شد.</div>
         {% endif %}
@@ -29,6 +33,8 @@
                 <p class="cl-profile-card-sub">این اطلاعات صرفاً برای تحلیل دقیق‌تر آزمایشات شما استفاده می‌شود.</p>
 
                 <form method="post" action="/profile" class="cl-auth-fields">
+
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
                     <div class="cl-field-row">
                         <div class="cl-field">
@@ -48,7 +54,7 @@
 
                     <div class="cl-field">
                         <label for="national_id">کد ملی</label>
-                        <input type="text" id="national_id" name="national_id" value="{{ user.national_id or '' }}" placeholder="کد ملی خود را وارد کنید">
+                        <input type="text" id="national_id" name="national_id" value="{{ national_id_display or '' }}" placeholder="کد ملی خود را وارد کنید">
                     </div>
 
                     <div class="cl-field">

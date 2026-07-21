@@ -72,6 +72,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     formData.append("symptoms", symptoms.value);
                 }
 
+                const csrfInput = document.getElementById("csrf_token");
+                if (csrfInput) {
+                    formData.append("csrf_token", csrfInput.value);
+                }
+
                 if (fileInput && fileInput.files.length > 0) {
                     for (let i = 0; i < fileInput.files.length; i++) {
                         formData.append("files", fileInput.files[i]);
@@ -85,6 +90,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 if (res.status === 401) {
                     window.location.href = "/login";
+                    return;
+                }
+
+                if (res.status === 403) {
+                    alert("خطای اعتبارسنجی امنیتی. لطفاً صفحه را رفرش کرده و دوباره تلاش کنید.");
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = "شروع تحلیل با AI";
+                    }
                     return;
                 }
 

@@ -16,6 +16,7 @@ from app.services.job_store import get_job
 from app.services.history_service import get_record_for_user
 from app.services.chat_service import ChatService
 from app.services.deepseek import DeepSeekError
+from app.core.csrf import is_valid_csrf
 
 
 router = APIRouter()
@@ -38,6 +39,12 @@ class ChatRequest(BaseModel):
 @router.post("/chat")
 async def chat(request: Request, payload: ChatRequest, db: Session = Depends(get_db)):
 
+    csrf_header = request.headers.get("X-CSRF-Token")
+
+    if not is_valid_csrf(request, csrf_header):
+        print("[Chat] Rejected: invalid CSRF token", flush=True)
+        return JSONResponse({"error": "خطای اعتبارسنجی امنیتی. لطفاً صفحه را رفرش کنید."}, status_code=403)
+
     question = (payload.question or "").strip()
 
     if not question:
@@ -49,9 +56,14 @@ async def chat(request: Request, payload: ChatRequest, db: Session = Depends(get
     report_context = None
 
     if payload.job_id:
+        user = get_current_user(request, db)
+
+        if not user:
+            return JSONResponse({"error": "برای این بخش باید وارد حساب کاربری شوید."}, status_code=401)
+
         job = get_job(payload.job_id)
 
-        if not job or job.get("status") != "done" or not job.get("result"):
+        if not job or job.get("user_id") != user.id or job.get("status") != "done" or not job.get("result"):
             return JSONResponse({"error": "گزارش مرتبط پیدا نشد."}, status_code=404)
 
         result = job["result"]

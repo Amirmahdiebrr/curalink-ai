@@ -13,6 +13,7 @@ from app.database import get_db
 from app.routers.auth import get_current_user
 from app.services.history_service import get_user_history, get_record_for_user
 from app.core.exam_types import EXAM_TYPE_LABELS
+from app.core.csrf import get_or_create_csrf_token
 
 
 router = APIRouter()
@@ -64,8 +65,10 @@ async def history_detail(request: Request, record_id: int, db: Session = Depends
         "symptoms": record.symptoms,
     }
 
+    csrf_token = get_or_create_csrf_token(request)
+
     return templates.TemplateResponse(
         request,
         "result.html",
-        {"request": request, "result": result, "user": user, "job_id": None, "record_id": record.id}
+        {"request": request, "result": result, "user": user, "job_id": None, "record_id": record.id, "csrf_token": csrf_token}
     )

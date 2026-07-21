@@ -70,6 +70,8 @@
 
             <form action="/analyze" method="post" enctype="multipart/form-data" id="upload-form">
 
+                <input type="hidden" name="csrf_token" id="csrf_token" value="{{ csrf_token }}">
+
                 <label class="field-label" for="exam_type">نوع آزمایش را انتخاب کنید</label>
 
                 <select name="exam_type" id="exam_type" required>
