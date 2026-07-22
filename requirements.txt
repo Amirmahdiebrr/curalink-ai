@@ -16,3 +16,4 @@ PyPDF2
 bleach
 pillow-heif
 cryptography
+passlib[bcrypt]

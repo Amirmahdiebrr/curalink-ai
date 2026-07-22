@@ -63,11 +63,11 @@
 
             <div class="navbar-cta">
                 {% if user %}
-                    <a href="/profile" class="btn btn-outline">{{ user.display_name or user.nicename or 'پروفایل من' }}</a>
+                    <a href="/profile" class="btn btn-outline">{{ user.display_name or 'پروفایل من' }}</a>
                     <a href="/logout" class="btn btn-solid">خروج</a>
                 {% else %}
                     <a href="/login" class="btn btn-outline">ورود به پنل</a>
-                    <a href="https://curalinkcare.com/choose-register/" target="_blank" rel="noopener" class="btn btn-solid">ثبت‌نام</a>
+                    <a href="/register" class="btn btn-solid">ثبت‌نام</a>
                 {% endif %}
             </div>
 

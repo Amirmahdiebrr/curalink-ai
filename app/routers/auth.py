@@ -1,9 +1,7 @@
 """
 app/routers/auth.py
 
-Login (via WordPress JWT), logout, and local profile routes.
-Account creation/registration happens on the main WordPress site,
-not in this app.
+ثبت‌نام، ورود، خروج و پروفایل کاربر — کاملاً مستقل از وردپرس.
 """
 
 from fastapi import APIRouter, Request, Depends, Form
@@ -12,9 +10,13 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import LocalUser
-from app.services.auth_service import get_or_create_user
-from app.services.wp_auth_service import login_with_wordpress, WPAuthError
+from app.models import User
+from app.services.auth_service import (
+    register_patient,
+    authenticate,
+    AuthError,
+    get_user_by_id,
+)
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.crypto import encrypt_value, decrypt_value
 
@@ -25,11 +27,77 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 def get_current_user(request: Request, db: Session = Depends(get_db)):
-    user_id = request.session.get("local_user_id")
+    user_id = request.session.get("user_id")
     if not user_id:
         return None
-    return db.query(LocalUser).filter(LocalUser.id == user_id).first()
+    return get_user_by_id(db, user_id)
 
+
+# ==========================
+# ثبت‌نام
+# ==========================
+
+@router.get("/register")
+async def register_page(request: Request):
+    csrf_token = get_or_create_csrf_token(request)
+    return templates.TemplateResponse(
+        request,
+        "register.html",
+        {"request": request, "error": None, "csrf_token": csrf_token, "user": None}
+    )
+
+
+@router.post("/register")
+async def register_submit(
+    request: Request,
+    display_name: str = Form(...),
+    email: str = Form(...),
+    phone: str = Form(...),
+    password: str = Form(...),
+    password_confirm: str = Form(...),
+    csrf_token: str = Form(...),
+    db: Session = Depends(get_db),
+):
+
+    new_token = get_or_create_csrf_token(request)
+
+    if not is_valid_csrf(request, csrf_token):
+        return templates.TemplateResponse(
+            request,
+            "register.html",
+            {"request": request, "error": "خطای اعتبارسنجی امنیتی. لطفاً دوباره تلاش کنید.", "csrf_token": new_token, "user": None}
+        )
+
+    if password != password_confirm:
+        return templates.TemplateResponse(
+            request,
+            "register.html",
+            {"request": request, "error": "رمز عبور و تکرار آن یکسان نیستند.", "csrf_token": new_token, "user": None}
+        )
+
+    try:
+        user = register_patient(
+            db,
+            email=email,
+            phone=phone,
+            password=password,
+            display_name=display_name,
+        )
+    except AuthError as e:
+        return templates.TemplateResponse(
+            request,
+            "register.html",
+            {"request": request, "error": str(e), "csrf_token": new_token, "user": None}
+        )
+
+    request.session["user_id"] = user.id
+
+    return RedirectResponse(url="/", status_code=303)
+
+
+# ==========================
+# ورود
+# ==========================
 
 @router.get("/login")
 async def login_page(request: Request):
@@ -37,56 +105,56 @@ async def login_page(request: Request):
     return templates.TemplateResponse(
         request,
         "login.html",
-        {"request": request, "error": None, "csrf_token": csrf_token}
+        {"request": request, "error": None, "csrf_token": csrf_token, "user": None}
     )
 
 
 @router.post("/login")
 async def login_submit(
     request: Request,
-    username: str = Form(...),
+    email: str = Form(...),
     password: str = Form(...),
     csrf_token: str = Form(...),
     db: Session = Depends(get_db),
 ):
 
+    new_token = get_or_create_csrf_token(request)
+
     if not is_valid_csrf(request, csrf_token):
         print("[Auth] CSRF validation failed on /login", flush=True)
-        new_token = get_or_create_csrf_token(request)
         return templates.TemplateResponse(
             request,
             "login.html",
-            {"request": request, "error": "خطای اعتبارسنجی امنیتی. لطفاً دوباره تلاش کنید.", "csrf_token": new_token}
+            {"request": request, "error": "خطای اعتبارسنجی امنیتی. لطفاً دوباره تلاش کنید.", "csrf_token": new_token, "user": None}
         )
 
     try:
-        wp_data = await login_with_wordpress(username, password)
-    except WPAuthError as e:
-        csrf_token_new = get_or_create_csrf_token(request)
+        user = authenticate(db, email=email, password=password)
+    except AuthError as e:
         return templates.TemplateResponse(
             request,
             "login.html",
-            {"request": request, "error": str(e), "csrf_token": csrf_token_new}
+            {"request": request, "error": str(e), "csrf_token": new_token, "user": None}
         )
 
-    user = get_or_create_user(
-        db,
-        email=wp_data["email"],
-        nicename=wp_data["nicename"],
-        display_name=wp_data["display_name"],
-    )
-
-    request.session["local_user_id"] = user.id
-    request.session["wp_token"] = wp_data["token"]
+    request.session["user_id"] = user.id
 
     return RedirectResponse(url="/", status_code=303)
 
+
+# ==========================
+# خروج
+# ==========================
 
 @router.get("/logout")
 async def logout(request: Request):
     request.session.clear()
     return RedirectResponse(url="/", status_code=303)
 
+
+# ==========================
+# پروفایل
+# ==========================
 
 @router.get("/profile")
 async def profile_page(request: Request, db: Session = Depends(get_db)):
@@ -97,8 +165,6 @@ async def profile_page(request: Request, db: Session = Depends(get_db)):
 
     csrf_token = get_or_create_csrf_token(request)
 
-    # کد ملی در دیتابیس به‌صورت رمزنگاری‌شده ذخیره است؛
-    # فقط در لحظه‌ی نمایش به کاربر خودش رمزگشایی می‌شود.
     decrypted_national_id = decrypt_value(user.national_id)
 
     return templates.TemplateResponse(
@@ -118,6 +184,7 @@ async def profile_page(request: Request, db: Session = Depends(get_db)):
 @router.post("/profile")
 async def profile_update(
     request: Request,
+    display_name: str = Form(None),
     age: str = Form(None),
     gender: str = Form(None),
     national_id: str = Form(None),
@@ -131,9 +198,10 @@ async def profile_update(
     if not user:
         return RedirectResponse(url="/login", status_code=303)
 
+    new_token = get_or_create_csrf_token(request)
+
     if not is_valid_csrf(request, csrf_token):
         print("[Auth] CSRF validation failed on /profile", flush=True)
-        new_token = get_or_create_csrf_token(request)
         return templates.TemplateResponse(
             request,
             "profile.html",
@@ -147,16 +215,22 @@ async def profile_update(
             }
         )
 
+    if display_name and display_name.strip():
+        user.display_name = display_name.strip()
+
     user.age = int(age) if age and age.isdigit() else None
-    user.gender = gender
+    user.gender = gender or None
     user.national_id = encrypt_value(national_id.strip()) if national_id and national_id.strip() else None
-    user.address = address
-    user.phone = phone.strip() if phone and phone.strip() else None
+    user.address = address or None
+
+    if phone and phone.strip() and phone.strip() != user.phone:
+        user.phone = phone.strip()
+        user.phone_verified = False  # شماره جدید، تا وقتی OTP نشده تایید‌نشده است
 
     db.commit()
     db.refresh(user)
 
-    new_token = get_or_create_csrf_token(request)
+    new_token2 = get_or_create_csrf_token(request)
 
     return templates.TemplateResponse(
         request,
@@ -167,6 +241,6 @@ async def profile_update(
             "national_id_display": decrypt_value(user.national_id),
             "saved": True,
             "error": None,
-            "csrf_token": new_token,
+            "csrf_token": new_token2,
         }
     )

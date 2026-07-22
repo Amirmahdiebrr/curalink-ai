@@ -9,10 +9,10 @@
 
         <div class="cl-profile-header">
             <div class="cl-profile-avatar">
-                {{ (user.display_name or user.nicename or "?")[0] }}
+                {{ (user.display_name or "?")[0] }}
             </div>
             <div>
-                <h1>{{ user.display_name or user.nicename }}</h1>
+                <h1>{{ user.display_name }}</h1>
                 <p>{{ user.email }}</p>
             </div>
         </div>
@@ -36,6 +36,11 @@
 
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
+                    <div class="cl-field">
+                        <label for="display_name">نام و نام خانوادگی</label>
+                        <input type="text" id="display_name" name="display_name" value="{{ user.display_name or '' }}">
+                    </div>
+
                     <div class="cl-field-row">
                         <div class="cl-field">
                             <label for="age">سن</label>
@@ -55,6 +60,9 @@
                     <div class="cl-field">
                         <label for="phone">شماره موبایل (برای یادآوری پیامکی)</label>
                         <input type="text" id="phone" name="phone" value="{{ user.phone or '' }}" placeholder="مثلاً: 09121234567">
+                        {% if not user.phone_verified %}
+                        <p class="cl-field-hint">⚠️ این شماره هنوز تایید نشده است.</p>
+                        {% endif %}
                     </div>
 
                     <div class="cl-field">
@@ -78,22 +86,24 @@
                 <h3 class="cl-profile-card-title">حساب کاربری</h3>
 
                 <div class="cl-info-row">
-                    <span class="cl-info-label">نام کاربری</span>
-                    <span class="cl-info-value">{{ user.nicename }}</span>
+                    <span class="cl-info-label">ایمیل</span>
+                    <span class="cl-info-value">{{ user.email }}</span>
+                    <span class="cl-info-value">{% if user.email_verified %}✅ تایید‌شده{% else %}⚠️ تایید‌نشده{% endif %}</span>
                 </div>
 
                 <div class="cl-info-row">
-                    <span class="cl-info-label">ایمیل</span>
-                    <span class="cl-info-value">{{ user.email }}</span>
+                    <span class="cl-info-label">نقش کاربری</span>
+                    <span class="cl-info-value">
+                        {% if user.role == 'doctor' %}پزشک
+                        {% elif user.role == 'org_admin' %}مدیر سازمان
+                        {% elif user.role == 'platform_admin' %}ادمین پلتفرم
+                        {% else %}بیمار{% endif %}
+                    </span>
                 </div>
 
                 <div class="cl-info-note">
-                    برای ویرایش نام، ایمیل یا سایر اطلاعات حساب کاربری، به پنل کاربری سایت کیورالینک مراجعه کنید.
+                    برای تغییر ایمیل حساب کاربری با پشتیبانی تماس بگیرید.
                 </div>
-
-                <a href="https://curalinkcare.com/wp-admin/profile.php" target="_blank" rel="noopener" class="cl-profile-external-link">
-                    ویرایش در سایت کیورالینک ↗
-                </a>
 
             </div>
 
