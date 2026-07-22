@@ -2,13 +2,12 @@
 app/services/reminder_service.py
 
 Daily job (9.2): finds due test-followup reminders across all users
-and sends an SMS via the provider-agnostic SMS layer (9.1). Each
-TestResult is only reminded once (followup_reminder_sent flag).
+and sends an SMS via the provider-agnostic SMS layer (9.1).
 """
 
 from sqlalchemy.orm import Session
 
-from app.models import LocalUser
+from app.models import User
 from app.services.history_service import get_due_reminders_for_all_users
 from app.services.sms_service import SMSService
 
@@ -31,7 +30,7 @@ class ReminderService:
 
         for item in due_items:
 
-            user = db.query(LocalUser).filter(LocalUser.id == item.user_id).first()
+            user = db.query(User).filter(User.id == item.user_id).first()
 
             if not user or not user.phone:
                 print(f"[ReminderService] Skipped test_result_id={item.id}: no phone number on file", flush=True)

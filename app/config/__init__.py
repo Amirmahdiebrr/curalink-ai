@@ -54,3 +54,18 @@ else:
 # Set to a real provider key (e.g. "kavenegar") once a panel is purchased
 # and implemented in app/services/sms_service.py.
 SMS_PROVIDER = os.getenv("SMS_PROVIDER", "console")
+# ==========================
+# Email Settings
+# ==========================
+
+EMAIL_PROVIDER = os.getenv("EMAIL_PROVIDER", "console")
+
+# آدرس پایه‌ی سایت، برای ساخت لینک‌های تایید ایمیل / بازیابی رمز
+APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:8000")
+
+# ==========================
+# Doctor license uploads
+# ==========================
+
+DOCTOR_DOCS_MAX_SIZE_MB = 10
+DOCTOR_DOCS_ALLOWED_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg"]
