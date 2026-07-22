@@ -52,10 +52,20 @@
                             {% if item.bar %}
                             <div class="cl-organ-bar-wrap">
                                 <div class="cl-organ-bar-track">
+                                    <div class="cl-organ-bar-zone-low" style="right:0; width:{{ item.bar.range_start_pct }}%;"></div>
                                     <div class="cl-organ-bar-range" style="right:{{ 100 - item.bar.range_end_pct }}%; left:{{ item.bar.range_start_pct }}%;"></div>
-                                    <div class="cl-organ-bar-marker" style="right:{{ item.bar.value_pct }}%;"></div>
+                                    <div class="cl-organ-bar-zone-high" style="right:{{ item.bar.range_end_pct }}%; width:{{ 100 - item.bar.range_end_pct }}%;"></div>
+                                    <div class="cl-organ-bar-tick" style="right:{{ item.bar.range_start_pct }}%;"></div>
+                                    <div class="cl-organ-bar-tick" style="right:{{ item.bar.range_end_pct }}%;"></div>
+                                    <div class="cl-organ-bar-marker{% if item.bar.severity %} cl-organ-bar-marker-{{ item.bar.severity }}{% endif %}" style="right:{{ item.bar.value_pct }}%;">
+                                        <span class="cl-organ-bar-value-tag">{{ item.bar.value_label }}</span>
+                                    </div>
                                 </div>
-                                <span class="cl-organ-bar-range-label">بازه مرجع: {{ item.reference_range }}</span>
+                                <div class="cl-organ-bar-scale-labels">
+                                    <span class="cl-organ-bar-scale-edge">{{ item.bar.range_min_label }}</span>
+                                    <span class="cl-organ-bar-range-label">بازه مرجع: {{ item.reference_range }}</span>
+                                    <span class="cl-organ-bar-scale-edge">{{ item.bar.range_max_label }}</span>
+                                </div>
                             </div>
                             {% else %}
                             <span class="cl-organ-bar-range-label">بازه مرجع: {{ item.reference_range }}</span>

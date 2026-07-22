@@ -6,7 +6,7 @@ SQLAlchemy ORM models.
 
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, Float, String, DateTime, Text, ForeignKey
+from sqlalchemy import Column, Integer, Float, String, DateTime, Text, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -26,6 +26,7 @@ class LocalUser(Base):
     gender = Column(String, nullable=True)
     national_id = Column(String, nullable=True)
     address = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -97,6 +98,7 @@ class TestResult(Base):
     status = Column(String, nullable=True)  # normal / high / low
     recommended_followup_days = Column(Integer, nullable=True)
     organ_category = Column(String, nullable=True)
+    followup_reminder_sent = Column(Boolean, default=False, nullable=False)
 
     test_date = Column(DateTime, default=datetime.utcnow, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)

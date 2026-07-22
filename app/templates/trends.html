@@ -62,6 +62,13 @@
                     <canvas id="trend-chart"></canvas>
                 </div>
 
+                <div class="cl-trend-legend">
+                    <span class="cl-trend-legend-item"><i class="cl-trend-dot cl-trend-dot-normal"></i> طبیعی</span>
+                    <span class="cl-trend-legend-item"><i class="cl-trend-dot cl-trend-dot-high"></i> بالا</span>
+                    <span class="cl-trend-legend-item"><i class="cl-trend-dot cl-trend-dot-low"></i> پایین</span>
+                    <span class="cl-trend-legend-item"><i class="cl-trend-dot cl-trend-dot-band"></i> بازه مرجع</span>
+                </div>
+
                 <p class="cl-trends-note" id="trend-note"></p>
             </div>
 
@@ -92,6 +99,29 @@
 
     let chart = null;
 
+    const STATUS_COLORS = {
+        high: "#FF6B6B",
+        low: "#D97706",
+        normal: "#0FB6A8"
+    };
+
+    const STATUS_LABELS_FA = {
+        high: "بالا",
+        low: "پایین",
+        normal: "طبیعی"
+    };
+
+    function parseRange(rangeStr) {
+        if (!rangeStr) {
+            return null;
+        }
+        const match = String(rangeStr).trim().match(/^(-?\d+(?:\.\d+)?)\s*[-–]\s*(-?\d+(?:\.\d+)?)$/);
+        if (!match) {
+            return null;
+        }
+        return { min: parseFloat(match[1]), max: parseFloat(match[2]) };
+    }
+
     async function loadChart(testName) {
 
         try {
@@ -100,6 +130,16 @@
 
             const labels = data.points.map(p => p.date);
             const values = data.points.map(p => p.value);
+
+            const pointColors = data.points.map(p => STATUS_COLORS[p.status] || "#16345C");
+
+            let range = null;
+            for (let i = data.points.length - 1; i >= 0; i--) {
+                range = parseRange(data.points[i].reference_range);
+                if (range) {
+                    break;
+                }
+            }
 
             if (data.points.length < 2) {
                 noteEl.textContent = "برای نمایش روند، حداقل به دو آزمایش با این نام نیاز است.";
@@ -113,25 +153,66 @@
                 chart.destroy();
             }
 
+            const datasets = [];
+
+            if (range) {
+                datasets.push({
+                    label: "حداکثر بازه مرجع",
+                    data: labels.map(() => range.max),
+                    borderColor: "transparent",
+                    backgroundColor: "rgba(15, 182, 168, 0.10)",
+                    pointRadius: 0,
+                    fill: "+1",
+                    order: 3,
+                });
+                datasets.push({
+                    label: "حداقل بازه مرجع",
+                    data: labels.map(() => range.min),
+                    borderColor: "transparent",
+                    backgroundColor: "rgba(15, 182, 168, 0.10)",
+                    pointRadius: 0,
+                    fill: false,
+                    order: 3,
+                });
+            }
+
+            const mainIndex = datasets.length;
+
+            datasets.push({
+                label: testName,
+                data: values,
+                borderColor: "#2563EB",
+                backgroundColor: "rgba(37, 99, 235, 0.06)",
+                tension: 0.3,
+                fill: false,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                pointBackgroundColor: pointColors,
+                pointBorderColor: "#fff",
+                pointBorderWidth: 2,
+                borderWidth: 2,
+                order: 1,
+            });
+
             chart = new Chart(ctx, {
                 type: "line",
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: testName,
-                        data: values,
-                        borderColor: "#2563EB",
-                        backgroundColor: "rgba(37, 99, 235, 0.1)",
-                        tension: 0.3,
-                        fill: true,
-                        pointRadius: 5,
-                        pointBackgroundColor: "#16345C",
-                    }]
-                },
+                data: { labels, datasets },
                 options: {
                     responsive: true,
                     plugins: {
-                        legend: { display: false }
+                        legend: { display: false },
+                        tooltip: {
+                            filter: function (item) {
+                                return item.datasetIndex === mainIndex;
+                            },
+                            callbacks: {
+                                label: function (context) {
+                                    const point = data.points[context.dataIndex];
+                                    const statusText = STATUS_LABELS_FA[point.status] || "نامشخص";
+                                    return `${point.value} ${point.unit || ""} — وضعیت: ${statusText}`;
+                                }
+                            }
+                        }
                     },
                     scales: {
                         y: { beginAtZero: false }

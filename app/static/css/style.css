@@ -1972,3 +1972,136 @@ pre{
     color:#8CA0B3;
     font-family:var(--mono);
 }
+/* ===== Enhanced Range Bar (6.3) ===== */
+
+.cl-organ-bar-zone-low,
+.cl-organ-bar-zone-high{
+    position:absolute;
+    top:0;
+    bottom:0;
+    background:repeating-linear-gradient(
+        135deg,
+        rgba(217,119,6,.14),
+        rgba(217,119,6,.14) 4px,
+        rgba(217,119,6,.22) 4px,
+        rgba(217,119,6,.22) 8px
+    );
+    border-radius:999px;
+}
+
+.cl-organ-bar-tick{
+    position:absolute;
+    top:-3px;
+    width:2px;
+    height:16px;
+    background:var(--navy);
+    opacity:.25;
+    transform:translateX(50%);
+}
+
+.cl-organ-bar-marker{
+    z-index:2;
+}
+
+.cl-organ-bar-marker-mild{
+    background:#D97706 !important;
+}
+
+.cl-organ-bar-marker-severe{
+    background:var(--warn) !important;
+    box-shadow:0 0 0 4px rgba(255,107,107,.25) !important;
+}
+
+.cl-organ-bar-value-tag{
+    position:absolute;
+    bottom:22px;
+    right:50%;
+    transform:translateX(50%);
+    background:var(--navy);
+    color:var(--white);
+    font-family:var(--mono);
+    font-size:11.5px;
+    font-weight:700;
+    padding:3px 8px;
+    border-radius:8px;
+    white-space:nowrap;
+    box-shadow:0 4px 10px rgba(10,19,48,.25);
+}
+
+.cl-organ-bar-value-tag::after{
+    content:"";
+    position:absolute;
+    top:100%;
+    right:50%;
+    transform:translateX(50%);
+    border:5px solid transparent;
+    border-top-color:var(--navy);
+}
+
+.cl-organ-item-high .cl-organ-bar-value-tag,
+.cl-organ-item-high .cl-organ-bar-value-tag::after{
+    background:var(--warn);
+}
+
+.cl-organ-item-high .cl-organ-bar-value-tag::after{
+    border-top-color:var(--warn);
+}
+
+.cl-organ-item-low .cl-organ-bar-value-tag,
+.cl-organ-item-low .cl-organ-bar-value-tag::after{
+    background:#D97706;
+}
+
+.cl-organ-item-low .cl-organ-bar-value-tag::after{
+    border-top-color:#D97706;
+}
+
+.cl-organ-bar-scale-labels{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:10px;
+    gap:10px;
+}
+
+.cl-organ-bar-scale-edge{
+    font-size:11.5px;
+    color:#8CA0B3;
+    font-family:var(--mono);
+    flex-shrink:0;
+}
+
+.cl-organ-bar-scale-labels .cl-organ-bar-range-label{
+    text-align:center;
+    flex:1;
+}
+/* ===== Trend Chart Legend (6.4) ===== */
+
+.cl-trend-legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:16px;
+    margin-top:14px;
+    padding-top:14px;
+    border-top:1px solid var(--line);
+}
+
+.cl-trend-legend-item{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:12.5px;
+    color:#5B6B78;
+}
+
+.cl-trend-dot{
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    display:inline-block;
+}
+
+.cl-trend-dot-normal{ background:#0FB6A8; }
+.cl-trend-dot-high{ background:#FF6B6B; }
+.cl-trend-dot-low{ background:#D97706; }
+.cl-trend-dot-band{ background:rgba(15,182,168,.30); }

@@ -62,6 +62,7 @@ async def trends_data(request: Request, test_name: str, db: Session = Depends(ge
             "value": item.value_numeric,
             "unit": item.unit,
             "status": item.status,
+            "reference_range": item.reference_range,
         }
         for item in history
     ]

@@ -50,6 +50,10 @@ def _run_light_migrations():
     inspector = inspect(engine)
     table_names = inspector.get_table_names()
 
+    if "local_users" in table_names:
+        with engine.connect() as conn:
+            _add_column_if_missing(conn, "local_users", "phone", "TEXT")
+
     if "analysis_records" in table_names:
         with engine.connect() as conn:
             _add_column_if_missing(conn, "analysis_records", "symptoms", "TEXT")
@@ -60,6 +64,7 @@ def _run_light_migrations():
             _add_column_if_missing(conn, "test_results", "family_member_id", "INTEGER")
             _add_column_if_missing(conn, "test_results", "recommended_followup_days", "INTEGER")
             _add_column_if_missing(conn, "test_results", "organ_category", "TEXT")
+            _add_column_if_missing(conn, "test_results", "followup_reminder_sent", "BOOLEAN DEFAULT 0")
 
 
 def init_db():

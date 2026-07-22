@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import SESSION_SECRET_KEY
-from app.database import init_db
+from app.database import init_db, SessionLocal
 
 from app.routers.home import router as home_router
 from app.routers.analyze import router as analyze_router
@@ -22,9 +22,11 @@ from app.routers.diet import router as diet_router
 from app.routers.visit_prep import router as visit_prep_router
 
 from app.services.job_store import purge_old_jobs
+from app.services.reminder_service import ReminderService
 
 
 JOB_CLEANUP_INTERVAL_SECONDS = 60 * 30  # هر ۳۰ دقیقه
+REMINDER_CHECK_INTERVAL_SECONDS = 60 * 60 * 24  # هر ۲۴ ساعت
 
 
 app = FastAPI(
@@ -62,9 +64,26 @@ async def _job_cleanup_loop():
             print(f"[JobStore] Cleanup loop error: {e}", flush=True)
 
 
+async def _reminder_check_loop():
+    while True:
+        db = SessionLocal()
+        try:
+            await ReminderService().run(db)
+        except Exception as e:
+            print(f"[ReminderService] Check loop error: {e}", flush=True)
+        finally:
+            db.close()
+        await asyncio.sleep(REMINDER_CHECK_INTERVAL_SECONDS)
+
+
 @app.on_event("startup")
 async def start_job_cleanup_task():
     asyncio.create_task(_job_cleanup_loop())
+
+
+@app.on_event("startup")
+async def start_reminder_check_task():
+    asyncio.create_task(_reminder_check_loop())
 
 
 print("ROUTES:")

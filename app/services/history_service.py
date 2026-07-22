@@ -209,3 +209,39 @@ def get_due_followups(db: Session, user_id: int):
     due_items.sort(key=lambda item: item["due_date"])
 
     return due_items
+
+
+def get_due_reminders_for_all_users(db: Session):
+    """
+    Returns TestResult rows (across ALL users) whose recommended
+    follow-up date has arrived and for which a reminder has not been
+    sent yet. Used by the daily reminder scheduler (9.2). Only the
+    most recent result per (user, person, test_name) is considered.
+    """
+
+    rows = (
+        db.query(TestResult)
+        .filter(
+            TestResult.recommended_followup_days.isnot(None),
+            TestResult.followup_reminder_sent.is_(False),
+        )
+        .order_by(TestResult.test_date.desc())
+        .all()
+    )
+
+    latest_by_key = {}
+
+    for row in rows:
+        key = (row.user_id, row.family_member_id, row.test_name)
+        if key not in latest_by_key:
+            latest_by_key[key] = row
+
+    now = datetime.utcnow()
+    due_rows = []
+
+    for row in latest_by_key.values():
+        due_date = row.test_date + timedelta(days=row.recommended_followup_days)
+        if due_date <= now:
+            due_rows.append(row)
+
+    return due_rows

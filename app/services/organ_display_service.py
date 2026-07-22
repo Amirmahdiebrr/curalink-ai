@@ -54,6 +54,12 @@ def _parse_reference_range(range_str):
     return rmin, rmax
 
 
+def _format_num(v):
+    if v == int(v):
+        return str(int(v))
+    return f"{v:.2f}".rstrip("0").rstrip(".")
+
+
 def _compute_bar(value, reference_range):
     parsed = _parse_reference_range(reference_range)
 
@@ -74,10 +80,32 @@ def _compute_bar(value, reference_range):
         pct = (v - padded_min) / total * 100
         return max(0, min(100, pct))
 
+    range_start_pct = to_pct(rmin)
+    range_end_pct = to_pct(rmax)
+    value_pct = to_pct(value)
+
+    distance_from_range = 0
+    if value < rmin:
+        distance_from_range = rmin - value
+    elif value > rmax:
+        distance_from_range = value - rmax
+
+    severity = None
+    if distance_from_range > 0:
+        ratio = distance_from_range / span if span > 0 else 0
+        if ratio >= 0.5:
+            severity = "severe"
+        else:
+            severity = "mild"
+
     return {
-        "value_pct": to_pct(value),
-        "range_start_pct": to_pct(rmin),
-        "range_end_pct": to_pct(rmax),
+        "value_pct": value_pct,
+        "range_start_pct": range_start_pct,
+        "range_end_pct": range_end_pct,
+        "range_min_label": _format_num(rmin),
+        "range_max_label": _format_num(rmax),
+        "value_label": _format_num(value),
+        "severity": severity,
     }
 
 

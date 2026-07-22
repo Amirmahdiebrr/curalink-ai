@@ -122,6 +122,7 @@ async def profile_update(
     gender: str = Form(None),
     national_id: str = Form(None),
     address: str = Form(None),
+    phone: str = Form(None),
     csrf_token: str = Form(...),
     db: Session = Depends(get_db),
 ):
@@ -150,6 +151,7 @@ async def profile_update(
     user.gender = gender
     user.national_id = encrypt_value(national_id.strip()) if national_id and national_id.strip() else None
     user.address = address
+    user.phone = phone.strip() if phone and phone.strip() else None
 
     db.commit()
     db.refresh(user)

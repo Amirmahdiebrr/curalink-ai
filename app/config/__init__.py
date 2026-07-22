@@ -45,3 +45,12 @@ if not ENCRYPTION_KEY:
     )
 else:
     ENCRYPTION_KEY = ENCRYPTION_KEY.encode("utf-8")
+
+# ==========================
+# SMS Settings (9.1)
+# ==========================
+
+# "console" = no real panel yet, just logs the message.
+# Set to a real provider key (e.g. "kavenegar") once a panel is purchased
+# and implemented in app/services/sms_service.py.
+SMS_PROVIDER = os.getenv("SMS_PROVIDER", "console")

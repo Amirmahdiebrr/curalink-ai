@@ -30,7 +30,7 @@
             <div class="cl-profile-card">
 
                 <h3 class="cl-profile-card-title">اطلاعات تکمیلی</h3>
-                <p class="cl-profile-card-sub">این اطلاعات صرفاً برای تحلیل دقیق‌تر آزمایشات شما استفاده می‌شود.</p>
+                <p class="cl-profile-card-sub">این اطلاعات صرفاً برای تحلیل دقیق‌تر آزمایشات و یادآوری‌های شما استفاده می‌شود.</p>
 
                 <form method="post" action="/profile" class="cl-auth-fields">
 
@@ -50,6 +50,11 @@
                                 <option value="other" {% if user.gender == 'other' %}selected{% endif %}>سایر</option>
                             </select>
                         </div>
+                    </div>
+
+                    <div class="cl-field">
+                        <label for="phone">شماره موبایل (برای یادآوری پیامکی)</label>
+                        <input type="text" id="phone" name="phone" value="{{ user.phone or '' }}" placeholder="مثلاً: 09121234567">
                     </div>
 
                     <div class="cl-field">
