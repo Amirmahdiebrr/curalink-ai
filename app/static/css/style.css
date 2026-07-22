@@ -1761,3 +1761,214 @@ pre{
     font-size:44px;
     color:var(--warn);
 }
+
+/* ===== Followup Reminder Banner ===== */
+
+.cl-followup-banner{
+    padding:24px 0 0;
+}
+
+.cl-followup-card{
+    display:flex;
+    align-items:flex-start;
+    gap:16px;
+    background:#FEF3C7;
+    border:1px solid #FCD34D;
+    border-radius:var(--radius-md);
+    padding:20px 24px;
+}
+
+.cl-followup-icon{
+    font-size:26px;
+    flex-shrink:0;
+}
+
+.cl-followup-body h3{
+    margin:0 0 10px;
+    color:#92400E;
+    font-size:16px;
+    font-weight:800;
+}
+
+.cl-followup-body ul{
+    margin:0;
+    padding-right:20px;
+    color:#92400E;
+    font-size:14px;
+    line-height:2;
+}
+
+/* ===== FAQ Section ===== */
+
+.cl-faq{
+    padding:100px 0;
+}
+
+.cl-faq-list{
+    max-width:800px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+}
+
+.cl-faq-item{
+    background:var(--glass-strong);
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,.7);
+    border-radius:var(--radius-md);
+    padding:20px 24px;
+    box-shadow:var(--shadow-sm);
+}
+
+.cl-faq-item summary{
+    cursor:pointer;
+    font-weight:700;
+    color:var(--navy);
+    font-size:15.5px;
+    list-style:none;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.cl-faq-item summary::-webkit-details-marker{
+    display:none;
+}
+
+.cl-faq-item summary::after{
+    content:"+";
+    font-size:20px;
+    color:var(--accent);
+    margin-right:12px;
+    flex-shrink:0;
+}
+
+.cl-faq-item[open] summary::after{
+    content:"−";
+}
+
+.cl-faq-item p{
+    margin:14px 0 0;
+    color:var(--text);
+    font-size:14.5px;
+    line-height:1.9;
+}
+
+/* ===== Organ-based Result Groups ===== */
+
+.cl-organ-groups{
+    display:flex;
+    flex-direction:column;
+    gap:28px;
+}
+
+.cl-organ-group-title{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:16.5px;
+    font-weight:800;
+    color:var(--navy);
+    margin:0 0 14px;
+}
+
+.cl-organ-icon{
+    font-size:20px;
+}
+
+.cl-organ-items{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+}
+
+.cl-organ-item{
+    background:var(--sky);
+    border-radius:var(--radius-sm);
+    padding:16px 18px;
+    border-right:4px solid #B7CBE5;
+}
+
+.cl-organ-item-high{
+    border-right-color:var(--warn);
+}
+
+.cl-organ-item-low{
+    border-right-color:#D97706;
+}
+
+.cl-organ-item-normal{
+    border-right-color:var(--accent);
+}
+
+.cl-organ-item-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
+}
+
+.cl-organ-item-name{
+    font-weight:700;
+    color:var(--navy);
+    font-size:14.5px;
+}
+
+.cl-organ-item-value{
+    font-family:var(--mono);
+    font-size:14px;
+    color:var(--text);
+}
+
+.cl-organ-item-badge{
+    font-size:12px;
+    font-weight:700;
+    padding:4px 12px;
+    border-radius:999px;
+    background:var(--white);
+    color:var(--navy);
+}
+
+.cl-organ-bar-wrap{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+}
+
+.cl-organ-bar-track{
+    position:relative;
+    height:10px;
+    border-radius:999px;
+    background:rgba(10,19,48,.08);
+    overflow:visible;
+}
+
+.cl-organ-bar-range{
+    position:absolute;
+    top:0;
+    bottom:0;
+    border-radius:999px;
+    background:rgba(15,182,168,.35);
+}
+
+.cl-organ-bar-marker{
+    position:absolute;
+    top:50%;
+    width:14px;
+    height:14px;
+    border-radius:50%;
+    background:var(--navy);
+    border:2px solid var(--white);
+    box-shadow:0 2px 6px rgba(10,19,48,.35);
+    transform:translate(50%, -50%);
+}
+
+.cl-organ-bar-range-label{
+    font-size:12px;
+    color:#8CA0B3;
+    font-family:var(--mono);
+}

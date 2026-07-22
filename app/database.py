@@ -27,26 +27,39 @@ def get_db():
         db.close()
 
 
+def _add_column_if_missing(conn, table: str, column: str, ddl_type: str):
+    inspector = inspect(engine)
+    existing_columns = {col["name"] for col in inspector.get_columns(table)}
+
+    if column not in existing_columns:
+        print(f"[DB Migration] Adding missing column '{column}' to {table}...", flush=True)
+        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl_type}"))
+        conn.commit()
+        print(f"[DB Migration] Column '{column}' added successfully to {table}.", flush=True)
+
+
 def _run_light_migrations():
     """
     Adds newly-introduced columns to existing SQLite tables that were
     created before this project used a proper migration tool (Alembic).
     Safe to call every startup: it only adds a column if it's missing.
+    New tables are created automatically by Base.metadata.create_all()
+    before this function runs.
     """
 
     inspector = inspect(engine)
+    table_names = inspector.get_table_names()
 
-    if "analysis_records" not in inspector.get_table_names():
-        return
-
-    existing_columns = {col["name"] for col in inspector.get_columns("analysis_records")}
-
-    if "symptoms" not in existing_columns:
-        print("[DB Migration] Adding missing column 'symptoms' to analysis_records...", flush=True)
+    if "analysis_records" in table_names:
         with engine.connect() as conn:
-            conn.execute(text("ALTER TABLE analysis_records ADD COLUMN symptoms TEXT"))
-            conn.commit()
-        print("[DB Migration] Column 'symptoms' added successfully.", flush=True)
+            _add_column_if_missing(conn, "analysis_records", "symptoms", "TEXT")
+            _add_column_if_missing(conn, "analysis_records", "family_member_id", "INTEGER")
+
+    if "test_results" in table_names:
+        with engine.connect() as conn:
+            _add_column_if_missing(conn, "test_results", "family_member_id", "INTEGER")
+            _add_column_if_missing(conn, "test_results", "recommended_followup_days", "INTEGER")
+            _add_column_if_missing(conn, "test_results", "organ_category", "TEXT")
 
 
 def init_db():

@@ -1,11 +1,12 @@
 """
 app/services/history_service.py
 
-Persists analysis results tied to a logged-in user, and retrieves
-past analyses and structured test values for the history/trends pages.
+Persists analysis results tied to a logged-in user (or a family member
+of that user), and retrieves past analyses and structured test values
+for the history/trends/home pages.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -22,10 +23,12 @@ def save_analysis(
     analysis_html: str,
     structured_results: list | None = None,
     symptoms: str | None = None,
+    family_member_id: int | None = None,
 ) -> AnalysisRecord:
 
     record = AnalysisRecord(
         user_id=user_id,
+        family_member_id=family_member_id,
         exam_type=exam_type,
         filename=filename,
         ocr_text=ocr_text,
@@ -51,15 +54,26 @@ def save_analysis(
                 except (TypeError, ValueError):
                     value_numeric = None
 
+                followup_days = item.get("recommended_followup_days")
+                try:
+                    followup_days = int(followup_days) if followup_days is not None else None
+                except (TypeError, ValueError):
+                    followup_days = None
+
+                organ_category = item.get("organ_category")
+
                 test_result = TestResult(
                     user_id=user_id,
                     analysis_id=record.id,
+                    family_member_id=family_member_id,
                     test_name=name,
                     value_numeric=value_numeric,
                     value_text=str(item.get("value", "")),
                     unit=item.get("unit"),
                     reference_range=item.get("reference_range"),
                     status=item.get("status"),
+                    recommended_followup_days=followup_days,
+                    organ_category=organ_category,
                     test_date=record.created_at,
                 )
                 db.add(test_result)
@@ -89,18 +103,33 @@ def get_record_for_user(db: Session, record_id: int, user_id: int):
     )
 
 
-def get_latest_results_by_test(db: Session, user_id: int):
+def get_test_results_for_analysis(db: Session, analysis_id: int):
     """
-    Returns the most recent TestResult row for each distinct test_name
-    belonging to this user, ordered by test_date descending.
+    Returns all TestResult rows tied to a specific analysis record,
+    used to rebuild the organ-grouped view for a saved history record.
     """
-
-    all_results = (
+    return (
         db.query(TestResult)
-        .filter(TestResult.user_id == user_id, TestResult.value_numeric.isnot(None))
-        .order_by(TestResult.test_date.desc())
+        .filter(TestResult.analysis_id == analysis_id)
+        .order_by(TestResult.test_name)
         .all()
     )
+
+
+def get_latest_results_by_test(db: Session, user_id: int, family_member_id: int | None = None):
+    """
+    Returns the most recent TestResult row for each distinct test_name
+    belonging to this user (or a specific family member), ordered by
+    test_date descending.
+    """
+
+    query = db.query(TestResult).filter(
+        TestResult.user_id == user_id,
+        TestResult.value_numeric.isnot(None),
+        TestResult.family_member_id == family_member_id,
+    )
+
+    all_results = query.order_by(TestResult.test_date.desc()).all()
 
     latest_by_name = {}
 
@@ -111,25 +140,72 @@ def get_latest_results_by_test(db: Session, user_id: int):
     return list(latest_by_name.values())
 
 
-def get_test_history(db: Session, user_id: int, test_name: str):
+def get_test_history(db: Session, user_id: int, test_name: str, family_member_id: int | None = None):
     return (
         db.query(TestResult)
         .filter(
             TestResult.user_id == user_id,
             TestResult.test_name == test_name,
             TestResult.value_numeric.isnot(None),
+            TestResult.family_member_id == family_member_id,
         )
         .order_by(TestResult.test_date.asc())
         .all()
     )
 
 
-def get_distinct_test_names(db: Session, user_id: int):
+def get_distinct_test_names(db: Session, user_id: int, family_member_id: int | None = None):
     rows = (
         db.query(TestResult.test_name)
-        .filter(TestResult.user_id == user_id, TestResult.value_numeric.isnot(None))
+        .filter(
+            TestResult.user_id == user_id,
+            TestResult.value_numeric.isnot(None),
+            TestResult.family_member_id == family_member_id,
+        )
         .distinct()
         .order_by(TestResult.test_name)
         .all()
     )
     return [row[0] for row in rows]
+
+
+def get_due_followups(db: Session, user_id: int):
+    """
+    Returns test results (across the user and all their family members)
+    whose recommended follow-up date has already arrived. Only the most
+    recent result per (person, test_name) is considered, so an already
+    re-tested item won't keep showing up as due.
+    """
+
+    rows = (
+        db.query(TestResult)
+        .filter(
+            TestResult.user_id == user_id,
+            TestResult.recommended_followup_days.isnot(None),
+        )
+        .order_by(TestResult.test_date.desc())
+        .all()
+    )
+
+    latest_by_key = {}
+
+    for row in rows:
+        key = (row.family_member_id, row.test_name)
+        if key not in latest_by_key:
+            latest_by_key[key] = row
+
+    now = datetime.utcnow()
+    due_items = []
+
+    for row in latest_by_key.values():
+        due_date = row.test_date + timedelta(days=row.recommended_followup_days)
+        if due_date <= now:
+            due_items.append({
+                "test_name": row.test_name,
+                "due_date": due_date,
+                "person_name": row.family_member.name if row.family_member else None,
+            })
+
+    due_items.sort(key=lambda item: item["due_date"])
+
+    return due_items

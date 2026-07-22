@@ -28,6 +28,47 @@
         </div>
         {% endif %}
 
+        {% if organ_groups %}
+        <div class="result-card">
+            <h2>نمای بصری آزمایش‌ها بر اساس ارگان</h2>
+
+            <div class="cl-organ-groups">
+                {% for group in organ_groups %}
+                <div class="cl-organ-group">
+                    <h3 class="cl-organ-group-title">
+                        <span class="cl-organ-icon">{{ group.icon }}</span>
+                        {{ group.label }}
+                    </h3>
+
+                    <div class="cl-organ-items">
+                        {% for item in group.items %}
+                        <div class="cl-organ-item cl-organ-item-{{ item.status or 'normal' }}">
+                            <div class="cl-organ-item-head">
+                                <span class="cl-organ-item-name">{{ item.name }}</span>
+                                <span class="cl-organ-item-value">{{ item.value }} {{ item.unit }}</span>
+                                <span class="cl-organ-item-badge">{{ item.status_label }}</span>
+                            </div>
+
+                            {% if item.bar %}
+                            <div class="cl-organ-bar-wrap">
+                                <div class="cl-organ-bar-track">
+                                    <div class="cl-organ-bar-range" style="right:{{ 100 - item.bar.range_end_pct }}%; left:{{ item.bar.range_start_pct }}%;"></div>
+                                    <div class="cl-organ-bar-marker" style="right:{{ item.bar.value_pct }}%;"></div>
+                                </div>
+                                <span class="cl-organ-bar-range-label">بازه مرجع: {{ item.reference_range }}</span>
+                            </div>
+                            {% else %}
+                            <span class="cl-organ-bar-range-label">بازه مرجع: {{ item.reference_range }}</span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         <div class="result-card">
             <h2>تحلیل پزشکی هوش مصنوعی</h2>
             <div class="analysis-content">

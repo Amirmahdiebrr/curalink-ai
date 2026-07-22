@@ -60,8 +60,8 @@ RBC
 
 ```json
 [
-  {{"name": "HbA1c", "value": 6.1, "unit": "%", "reference_range": "4-5.6", "status": "high"}},
-  {{"name": "Hemoglobin", "value": 13.0, "unit": "g/dL", "reference_range": "11.9-15", "status": "normal"}}
+  {{"name": "HbA1c", "value": 6.1, "unit": "%", "reference_range": "4-5.6", "status": "high", "recommended_followup_days": 90, "organ_category": "metabolic"}},
+  {{"name": "Hemoglobin", "value": 13.0, "unit": "g/dL", "reference_range": "11.9-15", "status": "normal", "recommended_followup_days": null, "organ_category": "blood"}}
 ]
 ```
 
@@ -69,6 +69,8 @@ RBC
 - برای فیلد "name"، همیشه از نام استاندارد انگلیسی و مخفف رایج آزمایش استفاده کن (مثلاً HbA1c، WBC، RBC، Hemoglobin، Triglycerides، Glucose، Creatinine و...) تا در آزمایش‌های بعدی همان بیمار، نام‌ها یکسان و قابل مقایسه باشند.
 - فیلد "status" فقط یکی از این مقادیر باشد: normal، high، low
 - فیلد "value" باید عدد باشد، نه رشته متنی.
+- فیلد "recommended_followup_days" یعنی «بعد از چند روز پیشنهاد می‌شود این آزمایش خاص دوباره تکرار شود»؛ باید یک عدد صحیح (روز) باشد یا در صورت عدم نیاز، null.
+- فیلد "organ_category" باید دقیقاً یکی از این مقادیر باشد: blood (خون‌شناسی: CBC، WBC، RBC، پلاکت و مشابه)، liver (کبد: آنزیم‌های کبدی، بیلی‌روبین و مشابه)، kidney (کلیه: کراتینین، اوره، BUN و مشابه)، metabolic (متابولیک: قند خون، HbA1c، چربی خون، کلسترول، تری‌گلیسیرید و مشابه)، thyroid (تیروئید: TSH، T3، T4 و مشابه)، urine (ادرار)، cardiac (قلبی: تروپونین، CK-MB و مشابه)، vitamin_mineral (ویتامین‌ها و مواد معدنی: ویتامین D، آهن، فریتین، کلسیم و مشابه)، other (سایر موارد که در هیچ‌کدام از دسته‌های بالا جا نمی‌گیرند).
 - این بلوک باید تمام آزمایش‌های عددی موجود در متن را پوشش دهد، نه فقط چند مورد اول.
 - اگر هیچ آزمایش عددی معتبری پیدا نشد، آرایه خالی [] برگردان.
 

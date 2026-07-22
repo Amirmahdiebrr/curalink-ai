@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.routers.auth import get_current_user
-from app.services.history_service import get_user_history, get_record_for_user
+from app.services.history_service import get_user_history, get_record_for_user, get_test_results_for_analysis
+from app.services.organ_display_service import group_results_by_organ
 from app.core.exam_types import EXAM_TYPE_LABELS
 from app.core.csrf import get_or_create_csrf_token
 
@@ -65,10 +66,21 @@ async def history_detail(request: Request, record_id: int, db: Session = Depends
         "symptoms": record.symptoms,
     }
 
+    test_results = get_test_results_for_analysis(db, record.id)
+    organ_groups = group_results_by_organ(test_results)
+
     csrf_token = get_or_create_csrf_token(request)
 
     return templates.TemplateResponse(
         request,
         "result.html",
-        {"request": request, "result": result, "user": user, "job_id": None, "record_id": record.id, "csrf_token": csrf_token}
+        {
+            "request": request,
+            "result": result,
+            "user": user,
+            "job_id": None,
+            "record_id": record.id,
+            "csrf_token": csrf_token,
+            "organ_groups": organ_groups,
+        }
     )

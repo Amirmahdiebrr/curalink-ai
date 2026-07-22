@@ -18,7 +18,7 @@ JSON_BLOCK_INSTRUCTIONS = """
 
 ```json
 [
-  {{"name": "HbA1c", "value": 6.1, "unit": "%", "reference_range": "4-5.6", "status": "high"}}
+  {{"name": "HbA1c", "value": 6.1, "unit": "%", "reference_range": "4-5.6", "status": "high", "recommended_followup_days": 90, "organ_category": "metabolic"}}
 ]
 ```
 
@@ -26,6 +26,8 @@ JSON_BLOCK_INSTRUCTIONS = """
 - برای فیلد "name"، همیشه از نام استاندارد انگلیسی رایج استفاده کن.
 - فیلد "status" فقط یکی از این مقادیر باشد: normal، high، low
 - فیلد "value" باید عدد باشد، نه رشته متنی.
+- فیلد "recommended_followup_days" یعنی «بعد از چند روز پیشنهاد می‌شود این آزمایش خاص دوباره تکرار شود»؛ باید یک عدد صحیح (روز) باشد یا در صورت عدم نیاز، null.
+- فیلد "organ_category" باید دقیقاً یکی از این مقادیر باشد: blood، liver، kidney، metabolic، thyroid، urine، cardiac، vitamin_mineral، other.
 - اگر هیچ مقدار عددی معتبری پیدا نشد (مثلاً در گزارش‌های تصویربرداری که معمولاً مقدار عددی ندارند)، آرایه خالی [] برگردان.
 """
 

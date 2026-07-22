@@ -4,6 +4,28 @@
 
 {% block content %}
 
+{% if user and due_followups %}
+<section class="cl-followup-banner">
+    <div class="container">
+        <div class="cl-followup-card">
+            <div class="cl-followup-icon">⏰</div>
+            <div class="cl-followup-body">
+                <h3>یادآوری پیگیری آزمایش</h3>
+                <ul>
+                    {% for item in due_followups %}
+                    <li>
+                        زمان تکرار آزمایش <strong>{{ item.test_name }}</strong>
+                        {% if item.person_name %}برای <strong>{{ item.person_name }}</strong>{% endif %}
+                        فرا رسیده است.
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
 <section class="hero">
     <div class="container hero-grid">
 
@@ -11,9 +33,12 @@
 
             <p class="eyebrow">CuraLink AI | دستیار هوشمند سلامت شما</p>
 
-            <h1>
-                جواب آزمایشت رو
-                <span>به زبان خودت بفهم</span>
+           <h1>
+
+                آزمایش‌هایتان را
+
+                <span>به زبان ساده بخوانید</span>
+
             </h1>
 
             <p class="lead">
@@ -71,6 +96,19 @@
             <form action="/analyze" method="post" enctype="multipart/form-data" id="upload-form">
 
                 <input type="hidden" name="csrf_token" id="csrf_token" value="{{ csrf_token }}">
+
+                <label class="field-label" for="family_member_id">این آزمایش برای کیست؟</label>
+
+                <select name="family_member_id" id="family_member_id">
+                    <option value="self">خودم</option>
+                    {% for member in family_members %}
+                    <option value="{{ member.id }}">{{ member.name }}{% if member.relation %} ({{ member.relation }}){% endif %}</option>
+                    {% endfor %}
+                </select>
+
+                <p class="cl-field-hint">
+                    اگر عضو موردنظر در لیست نیست، ابتدا از <a href="/family">صفحه اعضای خانواده</a> اضافه‌اش کنید.
+                </p>
 
                 <label class="field-label" for="exam_type">نوع آزمایش را انتخاب کنید</label>
 
@@ -254,6 +292,51 @@
                 <h3>پرسش و پاسخ هوشمند</h3>
                 <p>بعد از دریافت نتیجه، هر سوالی درباره‌ی گزارش خود دارید، مستقیم از دستیار هوش مصنوعی بپرسید.</p>
             </div>
+
+        </div>
+
+    </div>
+</section>
+
+<section class="cl-faq" id="faq">
+    <div class="container">
+
+        <div class="section-head">
+            <p class="eyebrow">سوالات متداول</p>
+            <h2>پاسخ سوالات رایج شما</h2>
+        </div>
+
+        <div class="cl-faq-list">
+
+            <details class="cl-faq-item">
+                <summary>آیا این تحلیل جایگزین نظر پزشک است؟</summary>
+                <p>خیر. تحلیل CuraLink صرفاً برای کمک به فهم بهتر نتایج آزمایش شماست و جایگزین تشخیص، مشاوره یا نسخه پزشک متخصص نیست.</p>
+            </details>
+
+            <details class="cl-faq-item">
+                <summary>اطلاعات و فایل‌های آزمایش من چقدر امن هستند؟</summary>
+                <p>فایل‌های آپلودی پس از پردازش از سرور حذف می‌شوند و دسترسی به گزارش‌ها فقط برای خود شما و از طریق حساب کاربری‌تان امکان‌پذیر است.</p>
+            </details>
+
+            <details class="cl-faq-item">
+                <summary>چه نوع آزمایش‌هایی را می‌توانم آپلود کنم؟</summary>
+                <p>آزمایش خون، ادرار، بیوشیمی، سونوگرافی، رادیولوژی، MRI، CT Scan، ماموگرافی و گزارش‌های طب کار (HSE).</p>
+            </details>
+
+            <details class="cl-faq-item">
+                <summary>اگر نوع آزمایش را اشتباه انتخاب کنم چه می‌شود؟</summary>
+                <p>سیستم به‌صورت خودکار نوع واقعی مدرک را تشخیص می‌دهد و در صورت اختلاف، شما را مطلع کرده و تحلیل را بر اساس نوع درست انجام می‌دهد.</p>
+            </details>
+
+            <details class="cl-faq-item">
+                <summary>آیا می‌توانم روند تغییرات آزمایش‌هایم را در طول زمان ببینم؟</summary>
+                <p>بله، در بخش «روند آزمایش‌ها» می‌توانید مقادیر عددی آزمایش‌های قبلی خود را به‌صورت نمودار مقایسه کنید.</p>
+            </details>
+
+            <details class="cl-faq-item">
+                <summary>بعد از دریافت نتیجه، می‌توانم سوال بپرسم؟</summary>
+                <p>بله، زیر هر گزارش یک بخش پرسش و پاسخ هوشمند وجود دارد که می‌توانید سوالات مرتبط با آن آزمایش را از AI بپرسید.</p>
+            </details>
 
         </div>
 

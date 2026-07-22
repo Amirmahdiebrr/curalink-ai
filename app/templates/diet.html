@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}برنامه غذایی | CuraLink AI{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/chat.css">
+{% endblock %}
+
+{% block content %}
+
+<section class="cl-profile-section">
+    <div class="container">
+
+        <div class="cl-profile-header">
+            <div class="cl-profile-avatar">
+                {{ (user.display_name or user.nicename or "?")[0] }}
+            </div>
+            <div>
+                <h1>برنامه غذایی هوشمند</h1>
+                <p>پیشنهاد تغذیه بر اساس مجموع آزمایش‌های ثبت‌شده</p>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="cl-auth-alert cl-auth-alert-error">{{ error }}</div>
+        {% endif %}
+
+        <div class="cl-profile-card" style="margin-bottom:24px;">
+
+            <h3 class="cl-profile-card-title">برای چه کسی برنامه بسازیم؟</h3>
+
+            <form method="post" action="/diet" class="cl-auth-fields">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <div class="cl-field">
+                    <label for="family_member_id">انتخاب فرد</label>
+                    <select id="family_member_id" name="family_member_id">
+                        <option value="self">خودم</option>
+                        {% for member in family_members %}
+                        <option value="{{ member.id }}" {% if selected_family_member_id == member.id %}selected{% endif %}>
+                            {{ member.name }}{% if member.relation %} ({{ member.relation }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="cl-field">
+                    <label for="context">شرح وضعیت خاص (اختیاری)</label>
+                    <textarea id="context" name="context" rows="4" maxlength="800" placeholder="مثلاً: سابقه دیابت نوع ۲ دارم، یا: بدنساز هستم و سوخت‌وساز بالایی دارم، یا: به گلوتن حساسیت دارم و...">{{ context_value or '' }}</textarea>
+                    <p class="cl-field-hint">نوشتن بیماری خاص، هدف بدنی (لاغری/عضله‌سازی)، حساسیت غذایی یا سبک زندگی، به دقیق‌تر شدن برنامه کمک می‌کند.</p>
+                </div>
+
+                <button type="submit" class="cl-auth-submit">تولید برنامه غذایی</button>
+
+            </form>
+
+        </div>
+
+        <div class="result-actions" style="margin:0 0 24px;">
+            <a href="/diet/history" class="btn btn-outline">مشاهده تاریخچه برنامه‌های غذایی</a>
+        </div>
+
+        {% if diet_plan_html %}
+        <div class="result-card">
+            <h2>برنامه غذایی پیشنهادی</h2>
+            <div class="analysis-content">
+                {{ diet_plan_html | safe }}
+            </div>
+        </div>
+
+        <div class="cl-chat-box" id="diet-chat-box" data-csrf="{{ csrf_token }}">
+
+            <div class="cl-chat-header">
+                <span class="cl-chat-header-icon">💬</span>
+                <div>
+                    <strong>پرسش و پاسخ درباره‌ی این برنامه غذایی</strong>
+                    <small>سوالات مرتبط با همین برنامه را بپرسید</small>
+                </div>
+            </div>
+
+            <div class="cl-chat-messages" id="diet-chat-messages">
+                <div class="cl-chat-empty" id="diet-chat-empty">سوال خود را درباره‌ی این برنامه غذایی بپرسید...</div>
+            </div>
+
+            <form class="cl-chat-input-row" id="diet-chat-form">
+                <input type="text" id="diet-chat-input" class="cl-chat-input" placeholder="مثلاً: آیا می‌توانم شام را حذف کنم؟" autocomplete="off">
+                <button type="submit" class="cl-chat-send-btn">ارسال</button>
+            </form>
+
+        </div>
+
+        <textarea id="diet-plan-raw-store" style="display:none;">{{ diet_plan_raw or '' }}</textarea>
+
+        {% endif %}
+
+        <p class="cl-trends-disclaimer">
+            ⚠️ این برنامه غذایی صرفاً یک پیشنهاد کلی بر اساس نتایج آزمایش است و جایگزین ویزیت متخصص تغذیه یا پزشک نیست.
+        </p>
+
+    </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+
+    const chatBox = document.getElementById("diet-chat-box");
+
+    if (!chatBox) {
+        return;
+    }
+
+    const csrfToken = chatBox.getAttribute("data-csrf") || "";
+    const dietPlanText = document.getElementById("diet-plan-raw-store").value;
+
+    const messagesEl = document.getElementById("diet-chat-messages");
+    const emptyEl = document.getElementById("diet-chat-empty");
+    const form = document.getElementById("diet-chat-form");
+    const input = document.getElementById("diet-chat-input");
+    const sendBtn = form.querySelector("button[type='submit']");
+
+    let conversation = [];
+
+    function scrollToBottom() {
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function addMessage(role, text) {
+        if (emptyEl) {
+            emptyEl.remove();
+        }
+
+        const bubble = document.createElement("div");
+        bubble.className = "cl-chat-msg " + (role === "user" ? "cl-chat-msg-user" : "cl-chat-msg-ai");
+        bubble.textContent = text;
+
+        messagesEl.appendChild(bubble);
+        scrollToBottom();
+    }
+
+    function addError(text) {
+        const bubble = document.createElement("div");
+        bubble.className = "cl-chat-msg cl-chat-msg-error";
+        bubble.textContent = text;
+
+        messagesEl.appendChild(bubble);
+        scrollToBottom();
+    }
+
+    function addTyping() {
+        const typing = document.createElement("div");
+        typing.className = "cl-chat-typing";
+        typing.id = "diet-chat-typing";
+        typing.textContent = "در حال نوشتن پاسخ...";
+
+        messagesEl.appendChild(typing);
+        scrollToBottom();
+    }
+
+    function removeTyping() {
+        const typing = document.getElementById("diet-chat-typing");
+        if (typing) {
+            typing.remove();
+        }
+    }
+
+    form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const question = input.value.trim();
+
+        if (!question) {
+            return;
+        }
+
+        addMessage("user", question);
+        conversation.push({ role: "user", content: question });
+
+        input.value = "";
+        input.disabled = true;
+        sendBtn.disabled = true;
+
+        addTyping();
+
+        try {
+            const res = await fetch("/diet/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-Token": csrfToken,
+                },
+                body: JSON.stringify({
+                    diet_plan_text: dietPlanText,
+                    question: question,
+                    history: conversation,
+                })
+            });
+
+            const data = await res.json();
+
+            removeTyping();
+
+            if (!res.ok) {
+                addError(data.error || "خطایی رخ داد. لطفاً دوباره تلاش کنید.");
+            } else {
+                addMessage("ai", data.answer);
+                conversation.push({ role: "assistant", content: data.answer });
+            }
+
+        } catch (err) {
+            removeTyping();
+            addError("ارتباط با سرور برقرار نشد. لطفاً دوباره تلاش کنید.");
+        } finally {
+            input.disabled = false;
+            sendBtn.disabled = false;
+            input.focus();
+        }
+    });
+
+})();
+</script>
+{% endblock %}

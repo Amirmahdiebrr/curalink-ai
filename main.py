@@ -2,6 +2,7 @@ print("=" * 50)
 print("RUNNING MAIN.PY")
 print("=" * 50)
 
+import asyncio
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -16,6 +17,14 @@ from app.routers.auth import router as auth_router
 from app.routers.history import router as history_router
 from app.routers.trends import router as trends_router
 from app.routers.chat import router as chat_router
+from app.routers.family import router as family_router
+from app.routers.diet import router as diet_router
+from app.routers.visit_prep import router as visit_prep_router
+
+from app.services.job_store import purge_old_jobs
+
+
+JOB_CLEANUP_INTERVAL_SECONDS = 60 * 30  # هر ۳۰ دقیقه
 
 
 app = FastAPI(
@@ -39,6 +48,23 @@ app.include_router(auth_router)
 app.include_router(history_router)
 app.include_router(trends_router)
 app.include_router(chat_router)
+app.include_router(family_router)
+app.include_router(diet_router)
+app.include_router(visit_prep_router)
+
+
+async def _job_cleanup_loop():
+    while True:
+        await asyncio.sleep(JOB_CLEANUP_INTERVAL_SECONDS)
+        try:
+            purge_old_jobs()
+        except Exception as e:
+            print(f"[JobStore] Cleanup loop error: {e}", flush=True)
+
+
+@app.on_event("startup")
+async def start_job_cleanup_task():
+    asyncio.create_task(_job_cleanup_loop())
 
 
 print("ROUTES:")

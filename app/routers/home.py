@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.routers.auth import get_current_user
 from app.core.csrf import get_or_create_csrf_token
+from app.services.family_service import get_family_members
+from app.services.history_service import get_due_followups
 
 
 router = APIRouter()
@@ -18,8 +20,21 @@ async def home(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     csrf_token = get_or_create_csrf_token(request)
 
+    family_members = []
+    due_followups = []
+
+    if user:
+        family_members = get_family_members(db, user.id)
+        due_followups = get_due_followups(db, user.id)
+
     return templates.TemplateResponse(
         request,
         "index.html",
-        {"request": request, "user": user, "csrf_token": csrf_token}
+        {
+            "request": request,
+            "user": user,
+            "csrf_token": csrf_token,
+            "family_members": family_members,
+            "due_followups": due_followups,
+        }
     )

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}تاریخچه برنامه‌های غذایی | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="cl-profile-section">
+    <div class="container">
+
+        <div class="cl-profile-header">
+            <div class="cl-profile-avatar">
+                {{ (user.display_name or user.nicename or "?")[0] }}
+            </div>
+            <div>
+                <h1>تاریخچه برنامه‌های غذایی</h1>
+                <p>{{ records|length }} برنامه ثبت‌شده</p>
+            </div>
+        </div>
+
+        {% if records|length == 0 %}
+
+        <div class="cl-history-empty">
+            <p>هنوز هیچ برنامه غذایی تولید نکرده‌اید.</p>
+            <a href="/diet" class="btn btn-solid">تولید اولین برنامه غذایی</a>
+        </div>
+
+        {% else %}
+
+        <div class="cl-history-list">
+            {% for record in records %}
+            <a href="/diet/history/{{ record.id }}" class="cl-history-item">
+                <div class="cl-history-item-main">
+                    <span class="cl-history-badge">
+                        {% if record.family_member %}{{ record.family_member.name }}{% else %}خودم{% endif %}
+                    </span>
+                    <span class="cl-history-filename">
+                        {% if record.context %}{{ record.context[:60] }}{% else %}برنامه غذایی عمومی{% endif %}
+                    </span>
+                </div>
+                <span class="cl-history-date">{{ record.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
+            </a>
+            {% endfor %}
+        </div>
+
+        {% endif %}
+
+        <div class="result-actions">
+            <a href="/diet" class="btn btn-solid">تولید برنامه غذایی جدید</a>
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

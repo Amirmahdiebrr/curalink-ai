@@ -9,6 +9,8 @@ from app.database import get_db, SessionLocal
 from app.services.report_service import ReportService
 from app.services.job_store import create_job, update_job, get_job
 from app.services.history_service import save_analysis
+from app.services.family_service import get_family_member_for_user
+from app.services.organ_display_service import group_results_by_organ
 from app.routers.auth import get_current_user
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 
@@ -28,6 +30,7 @@ async def run_job(
     patient_age: int | None,
     patient_gender: str | None,
     user_id: int | None,
+    family_member_id: int | None,
 ):
 
     def on_stage(stage: str):
@@ -59,8 +62,9 @@ async def run_job(
                     analysis_html=result.get("analysis_html", ""),
                     structured_results=result.get("structured_results", []),
                     symptoms=symptoms,
+                    family_member_id=family_member_id,
                 )
-                print(f"[Analyze] Saved analysis to history for user_id={user_id}", flush=True)
+                print(f"[Analyze] Saved analysis to history for user_id={user_id}, family_member_id={family_member_id}", flush=True)
             except Exception as e:
                 print(f"[Analyze] Failed to save history: {e}", flush=True)
             finally:
@@ -87,6 +91,7 @@ async def analyze(
     files: list[UploadFile] = File(...),
     exam_type: str = Form(None),
     symptoms: str = Form(None),
+    family_member_id: str = Form(None),
     csrf_token: str = Form(None),
     db: Session = Depends(get_db),
 ):
@@ -111,11 +116,29 @@ async def analyze(
     patient_age = current_user.age
     patient_gender = current_user.gender
 
+    resolved_family_member_id = None
+
+    if family_member_id and family_member_id.strip() and family_member_id.strip() != "self":
+        try:
+            fm_id = int(family_member_id.strip())
+        except ValueError:
+            fm_id = None
+
+        if fm_id:
+            member = get_family_member_for_user(db, fm_id, user_id)
+            if member:
+                resolved_family_member_id = member.id
+                patient_age = member.age
+                patient_gender = member.gender
+            else:
+                print(f"[Analyze] family_member_id={fm_id} not found for user_id={user_id}, ignoring", flush=True)
+
     print(f"[Analyze] exam_type received: {exam_type}", flush=True)
     print(f"[Analyze] file count received: {len(files)}", flush=True)
     print(f"[Analyze] symptoms provided: {bool(symptoms and symptoms.strip())}", flush=True)
     print(f"[Analyze] user_id: {user_id}", flush=True)
-    print(f"[Analyze] patient_age/gender from profile: {patient_age} / {patient_gender}", flush=True)
+    print(f"[Analyze] family_member_id resolved: {resolved_family_member_id}", flush=True)
+    print(f"[Analyze] patient_age/gender used: {patient_age} / {patient_gender}", flush=True)
 
     file_data = []
     for uploaded_file in files:
@@ -125,7 +148,7 @@ async def analyze(
     job_id = create_job(exam_type, user_id=user_id)
 
     background_tasks.add_task(
-        run_job, job_id, file_data, exam_type, symptoms, patient_age, patient_gender, user_id
+        run_job, job_id, file_data, exam_type, symptoms, patient_age, patient_gender, user_id, resolved_family_member_id
     )
 
     return JSONResponse({"job_id": job_id})
@@ -169,10 +192,19 @@ async def processing_page(request: Request, job_id: str, db: Session = Depends(g
 
     if job["status"] == "done":
         csrf_token = get_or_create_csrf_token(request)
+        organ_groups = group_results_by_organ(job["result"].get("structured_results", []))
         return templates.TemplateResponse(
             request,
             "result.html",
-            {"request": request, "result": job["result"], "user": user, "job_id": job_id, "record_id": None, "csrf_token": csrf_token}
+            {
+                "request": request,
+                "result": job["result"],
+                "user": user,
+                "job_id": job_id,
+                "record_id": None,
+                "csrf_token": csrf_token,
+                "organ_groups": organ_groups,
+            }
         )
 
     return templates.TemplateResponse(
@@ -205,9 +237,18 @@ async def result_page(request: Request, job_id: str, db: Session = Depends(get_d
         )
 
     csrf_token = get_or_create_csrf_token(request)
+    organ_groups = group_results_by_organ(job["result"].get("structured_results", []))
 
     return templates.TemplateResponse(
         request,
         "result.html",
-        {"request": request, "result": job["result"], "user": user, "job_id": job_id, "record_id": None, "csrf_token": csrf_token}
+        {
+            "request": request,
+            "result": job["result"],
+            "user": user,
+            "job_id": job_id,
+            "record_id": None,
+            "csrf_token": csrf_token,
+            "organ_groups": organ_groups,
+        }
     )
