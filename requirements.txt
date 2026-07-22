@@ -17,4 +17,5 @@ bleach
 pillow-heif
 cryptography
 passlib[bcrypt]
+bcrypt==4.0.1
 slowapi

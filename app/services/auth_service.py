@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.models import (
     User, DoctorProfile, VerificationCode,
     ROLE_PATIENT, ROLE_DOCTOR,
-    VERIFICATION_PENDING,
+    VERIFICATION_PENDING, VERIFICATION_APPROVED, VERIFICATION_REJECTED,
 )
 from app.core.security import (
     hash_password, verify_password, validate_password_strength,
@@ -219,3 +219,61 @@ def complete_password_reset(db: Session, user: User, submitted_token: str, new_p
 
     user.password_hash = hash_password(new_password)
     db.commit()
+def get_pending_doctors(db: Session):
+    return (
+        db.query(User)
+        .filter(User.role == ROLE_DOCTOR, User.verification_status == VERIFICATION_PENDING)
+        .order_by(User.created_at.desc())
+        .all()
+    )
+
+
+def get_reviewed_doctors(db: Session):
+    return (
+        db.query(User)
+        .filter(
+            User.role == ROLE_DOCTOR,
+            User.verification_status.in_([VERIFICATION_APPROVED, VERIFICATION_REJECTED]),
+        )
+        .order_by(User.created_at.desc())
+        .all()
+    )
+
+
+def approve_doctor(db: Session, doctor_id: int, admin_id: int) -> User:
+    doctor = db.query(User).filter(User.id == doctor_id, User.role == ROLE_DOCTOR).first()
+
+    if not doctor:
+        raise AuthError("پزشک مورد نظر پیدا نشد.")
+
+    doctor.verification_status = VERIFICATION_APPROVED
+    doctor.is_active = True
+
+    if doctor.doctor_profile:
+        doctor.doctor_profile.reviewed_at = datetime.utcnow()
+        doctor.doctor_profile.reviewed_by_user_id = admin_id
+
+    db.commit()
+    db.refresh(doctor)
+
+    return doctor
+
+
+def reject_doctor(db: Session, doctor_id: int, admin_id: int, note: str | None = None) -> User:
+    doctor = db.query(User).filter(User.id == doctor_id, User.role == ROLE_DOCTOR).first()
+
+    if not doctor:
+        raise AuthError("پزشک مورد نظر پیدا نشد.")
+
+    doctor.verification_status = VERIFICATION_REJECTED
+    doctor.is_active = False
+    doctor.verification_note = note
+
+    if doctor.doctor_profile:
+        doctor.doctor_profile.reviewed_at = datetime.utcnow()
+        doctor.doctor_profile.reviewed_by_user_id = admin_id
+
+    db.commit()
+    db.refresh(doctor)
+
+    return doctor

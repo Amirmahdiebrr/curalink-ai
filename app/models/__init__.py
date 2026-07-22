@@ -62,13 +62,23 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     last_login_at = Column(DateTime, nullable=True)
 
-    analyses = relationship("AnalysisRecord", back_populates="user", order_by="AnalysisRecord.created_at.desc()")
+    analyses = relationship(
+    "AnalysisRecord",
+    back_populates="user",
+    order_by="AnalysisRecord.created_at.desc()",
+    foreign_keys="AnalysisRecord.user_id",
+)
     test_results = relationship("TestResult", back_populates="user", order_by="TestResult.test_date.desc()")
     family_members = relationship("FamilyMember", back_populates="user", order_by="FamilyMember.created_at")
     diet_plans = relationship("DietPlanRecord", back_populates="user", order_by="DietPlanRecord.created_at.desc()")
     visit_preps = relationship("VisitPrepRecord", back_populates="user", order_by="VisitPrepRecord.created_at.desc()")
 
-    doctor_profile = relationship("DoctorProfile", back_populates="user", uselist=False)
+    doctor_profile = relationship(
+    "DoctorProfile",
+    back_populates="user",
+    uselist=False,
+    foreign_keys="DoctorProfile.user_id",
+)
     organization_profile = relationship("OrganizationProfile", back_populates="user", uselist=False)
 
 

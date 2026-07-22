@@ -1,103 +1,101 @@
 """
-app/routers/chat.py
+app/routers/history.py
 
-Endpoint for the medical Q&A chat attached to a result page
-(either a fresh job result, or a saved history record).
+Displays a logged-in user's past analyses: a list view (/history)
+and a detail view (/history/{record_id}) that reuses the same
+result.html template used for a fresh analysis result.
 """
 
 from fastapi import APIRouter, Request, Depends
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.routers.auth import get_current_user
-from app.services.job_store import get_job
-from app.services.history_service import get_record_for_user
-from app.services.chat_service import ChatService
-from app.services.deepseek import DeepSeekError
-from app.core.csrf import is_valid_csrf
-from app.core.limiter import limiter
+from app.core.csrf import get_or_create_csrf_token
+from app.core.exam_types import EXAM_TYPE_LABELS
+from app.services.history_service import (
+    get_user_history,
+    get_record_for_user,
+    get_test_results_for_analysis,
+)
+from app.services.organ_display_service import group_results_by_organ
 
 
 router = APIRouter()
 
-chat_service = ChatService()
+templates = Jinja2Templates(directory="app/templates")
 
 
-class ChatTurn(BaseModel):
-    role: str
-    content: str
+@router.get("/history")
+async def history_page(request: Request, db: Session = Depends(get_db)):
+
+    user = get_current_user(request, db)
+
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    records = get_user_history(db, user.id)
+
+    return templates.TemplateResponse(
+        request,
+        "history.html",
+        {
+            "request": request,
+            "user": user,
+            "records": records,
+            "exam_type_labels": EXAM_TYPE_LABELS,
+        }
+    )
 
 
-class ChatRequest(BaseModel):
-    job_id: str | None = None
-    record_id: int | None = None
-    question: str
-    history: list[ChatTurn] = []
+@router.get("/history/{record_id}")
+async def history_detail(request: Request, record_id: int, db: Session = Depends(get_db)):
 
+    user = get_current_user(request, db)
 
-@router.post("/chat")
-@limiter.limit("15/minute")
-async def chat(request: Request, payload: ChatRequest, db: Session = Depends(get_db)):
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
 
-    csrf_header = request.headers.get("X-CSRF-Token")
+    record = get_record_for_user(db, record_id, user.id)
 
-    if not is_valid_csrf(request, csrf_header):
-        print("[Chat] Rejected: invalid CSRF token", flush=True)
-        return JSONResponse({"error": "خطای اعتبارسنجی امنیتی. لطفاً صفحه را رفرش کنید."}, status_code=403)
-
-    question = (payload.question or "").strip()
-
-    if not question:
-        return JSONResponse({"error": "سوال خالی است."}, status_code=400)
-
-    if len(question) > 1000:
-        return JSONResponse({"error": "سوال بیش از حد طولانی است."}, status_code=400)
-
-    report_context = None
-
-    if payload.job_id:
-        user = get_current_user(request, db)
-
-        if not user:
-            return JSONResponse({"error": "برای این بخش باید وارد حساب کاربری شوید."}, status_code=401)
-
-        job = get_job(payload.job_id)
-
-        if not job or job.get("user_id") != user.id or job.get("status") != "done" or not job.get("result"):
-            return JSONResponse({"error": "گزارش مرتبط پیدا نشد."}, status_code=404)
-
-        result = job["result"]
-        report_context = (result.get("analysis") or "") + "\n\n" + (result.get("ocr") or "")
-
-    elif payload.record_id:
-        user = get_current_user(request, db)
-
-        if not user:
-            return JSONResponse({"error": "برای این بخش باید وارد حساب کاربری شوید."}, status_code=401)
-
-        record = get_record_for_user(db, payload.record_id, user.id)
-
-        if not record:
-            return JSONResponse({"error": "گزارش مرتبط پیدا نشد."}, status_code=404)
-
-        report_context = (record.analysis_text or "") + "\n\n" + (record.ocr_text or "")
-
-    else:
-        return JSONResponse({"error": "شناسه‌ی گزارش ارسال نشده است."}, status_code=400)
-
-    history_data = [turn.model_dump() for turn in payload.history]
-
-    try:
-        answer = await chat_service.ask(report_context, history_data, question)
-    except DeepSeekError:
-        return JSONResponse(
-            {"error": "اتصال به سرویس هوش مصنوعی برقرار نشد. لطفاً از فعال بودن اتصال (VPN) سرور مطمئن شوید و دوباره تلاش کنید."},
-            status_code=503
+    if not record:
+        return templates.TemplateResponse(
+            request,
+            "error.html",
+            {"request": request, "message": "این گزارش پیدا نشد یا به شما تعلق ندارد.", "user": user},
+            status_code=404,
         )
-    except Exception as e:
-        print(f"[Chat] Unexpected error: {e}", flush=True)
-        return JSONResponse({"error": "پاسخ‌گویی با خطا مواجه شد. لطفاً دوباره تلاش کنید."}, status_code=500)
 
-    return JSONResponse({"answer": answer})
+    test_results = get_test_results_for_analysis(db, record.id)
+    organ_groups = group_results_by_organ(test_results)
+
+    result = {
+        "exam_type": record.exam_type,
+        "filename": record.filename,
+        "ocr": record.ocr_text,
+        "analysis": record.analysis_text,
+        "analysis_html": record.analysis_html,
+        "symptoms": record.symptoms,
+        "exam_type_mismatch": False,
+        "requested_exam_type_label": None,
+        "detected_exam_type_label": None,
+        "ocr_warning": None,
+    }
+
+    csrf_token = get_or_create_csrf_token(request)
+
+    return templates.TemplateResponse(
+        request,
+        "result.html",
+        {
+            "request": request,
+            "result": result,
+            "user": user,
+            "job_id": None,
+            "record_id": record.id,
+            "csrf_token": csrf_token,
+            "organ_groups": organ_groups,
+        }
+    )

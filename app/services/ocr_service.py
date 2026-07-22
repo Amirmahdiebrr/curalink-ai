@@ -1,103 +1,113 @@
-import asyncio
-import time
-import httpx
+"""
+app/services/ocr_service.py
 
-from app.config import NVIDIA_API_KEY, AI_MODEL
+Text extraction (OCR) service. Extracts raw text from uploaded
+medical document files (PDF or image: PNG/JPG/HEIC/HEIF) so the
+extracted text can be passed to the AI for medical interpretation.
+"""
+
+from pathlib import Path
+
+import pytesseract
+from PIL import Image
+import pillow_heif
+from PyPDF2 import PdfReader
+import fitz
+
+from app.core.constants import MAX_PDF_PAGES
+
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+
+pillow_heif.register_heif_opener()
 
 
-NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
-
-MAX_TOKENS = 8192
-
-
-class DeepSeekError(Exception):
+class OCRServiceError(Exception):
     pass
 
 
-async def ask_ai(prompt: str) -> str:
+class OCRService:
+    """
+    Extracts raw text from an uploaded medical document file,
+    regardless of exam type. PDFs are first tried as text-based
+    (fast path); if no text layer exists (scanned document), pages
+    are rasterized and run through image OCR instead.
+    """
 
-    headers = {
-        "Authorization": f"Bearer {NVIDIA_API_KEY}",
-        "Content-Type": "application/json",
-    }
+    async def extract(self, filepath: Path) -> str:
+        extension = filepath.suffix.lower()
 
-    payload = {
-        "model": AI_MODEL,
-        "messages": [
-            {"role": "user", "content": prompt}
-        ],
-        "temperature": 0.2,
-        "max_tokens": MAX_TOKENS,
-    }
+        if extension == ".pdf":
+            return await self._extract_from_pdf(filepath)
 
-    timeout = httpx.Timeout(connect=15, read=280, write=15, pool=15)
+        return await self._extract_from_image(filepath)
 
-    max_attempts = 2
+    async def _extract_from_pdf(self, filepath: Path) -> str:
+        try:
+            reader = PdfReader(str(filepath))
+            pages_text = []
 
-    async with httpx.AsyncClient(timeout=timeout) as client:
+            for page in reader.pages[:MAX_PDF_PAGES]:
+                text = page.extract_text()
+                if text:
+                    pages_text.append(text.strip())
 
-        for attempt in range(1, max_attempts + 1):
+            extracted = "\n\n".join(pages_text).strip()
 
-            attempt_start = time.perf_counter()
+            if extracted:
+                return extracted
 
-            print(f"[DeepSeek] Attempt {attempt}/{max_attempts}", flush=True)
+        except Exception as e:
+            print(f"[OCRService] PyPDF2 text extraction failed for {filepath}: {e}", flush=True)
 
-            try:
-                response = await client.post(
-                    NVIDIA_URL,
-                    headers=headers,
-                    json=payload
-                )
+        # اگر PDF متن قابل استخراج نداشت (یعنی اسکن‌شده است)، صفحات را
+        # به تصویر تبدیل و روی هرکدام OCR تصویری اجرا می‌کنیم.
+        return await self._ocr_scanned_pdf(filepath)
 
-            except (httpx.TimeoutException, httpx.ReadError, httpx.ConnectError) as e:
-                elapsed = time.perf_counter() - attempt_start
-                wait = 5
-                print(f"[DeepSeek] Network error on attempt {attempt}: {repr(e)}  [{elapsed:.2f}s] -> waiting {wait}s", flush=True)
-                if attempt == max_attempts:
-                    raise DeepSeekError("درخواست به NVIDIA API با تایم‌اوت مواجه شد. سرویس احتمالاً موقتاً کند است، لطفاً چند دقیقه دیگر دوباره امتحان کنید.")
-                await asyncio.sleep(wait)
-                continue
+    async def _ocr_scanned_pdf(self, filepath: Path) -> str:
+        try:
+            doc = fitz.open(str(filepath))
+        except Exception as e:
+            raise OCRServiceError(f"باز کردن PDF برای OCR تصویری ناموفق بود: {e}")
 
-            except Exception as e:
-                print(f"[DeepSeek] Unexpected request error: {repr(e)}", flush=True)
-                raise DeepSeekError(str(e))
+        pages_text = []
 
-            elapsed = time.perf_counter() - attempt_start
+        try:
+            page_count = min(len(doc), MAX_PDF_PAGES)
 
-            print(f"[DeepSeek] Response status: {response.status_code}  [{elapsed:.2f}s]", flush=True)
+            for page_index in range(page_count):
+                page = doc.load_page(page_index)
+                pix = page.get_pixmap(dpi=200)
+                image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
 
-            if response.status_code == 200:
-                data = response.json()
-                choice = data["choices"][0]
-                finish_reason = choice.get("finish_reason")
-                content = choice["message"]["content"]
+                page_text = pytesseract.image_to_string(image, lang="fas+eng")
 
-                if finish_reason == "length":
-                    print(
-                        f"[DeepSeek] WARNING: response cut off due to max_tokens={MAX_TOKENS}. "
-                        f"Attempt {attempt}/{max_attempts}. Content length so far: {len(content)}",
-                        flush=True
-                    )
+                if page_text and page_text.strip():
+                    pages_text.append(page_text.strip())
+        finally:
+            doc.close()
 
-                    if attempt == max_attempts:
-                        print("[DeepSeek] Returning truncated content after final attempt.", flush=True)
-                        return content
+        extracted = "\n\n".join(pages_text).strip()
 
-                    print("[DeepSeek] Retrying once in hope of a complete response...", flush=True)
-                    await asyncio.sleep(2)
-                    continue
+        if not extracted:
+            raise OCRServiceError("هیچ متنی از این PDF (حتی به‌صورت اسکن‌شده) استخراج نشد.")
 
-                return content
+        return extracted
 
-            if response.status_code in (503, 429):
-                wait = 10
-                print(f"[DeepSeek] NVIDIA busy ({response.status_code}): {response.text[:300]} -> waiting {wait}s", flush=True)
-                if attempt == max_attempts:
-                    raise DeepSeekError("سرویس NVIDIA در حال حاضر شلوغ است (ظرفیت پر شده). لطفاً چند دقیقه دیگر دوباره امتحان کنید.")
-                await asyncio.sleep(wait)
-                continue
+    async def _extract_from_image(self, filepath: Path) -> str:
+        try:
+            image = Image.open(filepath)
+            image = image.convert("RGB")
+        except Exception as e:
+            raise OCRServiceError(f"باز کردن فایل تصویر ناموفق بود: {e}")
 
-            print(f"[DeepSeek] Error response {response.status_code}: {response.text[:500]}", flush=True)
-            raise DeepSeekError(f"خطای {response.status_code}: {response.text[:300]}")
+        try:
+            text = pytesseract.image_to_string(image, lang="fas+eng")
+        except Exception as e:
+            raise OCRServiceError(f"OCR روی تصویر ناموفق بود: {e}")
 
-    raise DeepSeekError("سرویس هوش مصنوعی در دسترس نیست (پس از چند تلاش).")
+        cleaned = (text or "").strip()
+
+        if not cleaned:
+            raise OCRServiceError("هیچ متنی از این تصویر استخراج نشد.")
+
+        return cleaned

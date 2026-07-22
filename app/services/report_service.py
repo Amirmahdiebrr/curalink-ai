@@ -233,4 +233,128 @@ class ReportService:
         print("=" * 50)
 
         requested_label = EXAM_TYPE_LABELS.get(exam_type, exam_type)
-        symptoms_display =
+
+        # ==========================
+        # 1) Save + validate files to disk (OCR needs a filepath)
+        # ==========================
+        self._notify(on_stage, "saving")
+
+        saved_paths = []
+        original_names = []
+
+        for content, original_filename in files:
+            try:
+                filepath = self.file_service.save_bytes(original_filename, content)
+            except Exception as e:
+                print(f"[ReportService] File validation/save failed for {original_filename}: {e}", flush=True)
+                continue
+
+            saved_paths.append(filepath)
+            original_names.append(original_filename)
+
+        if not saved_paths:
+            raise Exception("هیچ‌کدام از فایل‌های ارسالی معتبر نبودند یا ذخیره نشدند.")
+
+        # ==========================
+        # 2) OCR every saved file (concurrently)
+        # ==========================
+        self._notify(on_stage, "ocr")
+
+        ocr_tasks = [
+            self._ocr_single_file(filepath, filename, index + 1)
+            for index, (filepath, filename) in enumerate(zip(saved_paths, original_names))
+        ]
+
+        ocr_results = await asyncio.gather(*ocr_tasks)
+
+        self._cleanup_files(saved_paths)
+
+        combined_parts = []
+        full_ocr_parts = []
+        failed_filenames = []
+
+        for part_text, failed_filename in ocr_results:
+            if part_text:
+                combined_parts.append(part_text)
+                full_ocr_parts.append(part_text)
+            if failed_filename:
+                failed_filenames.append(failed_filename)
+
+        if not combined_parts:
+            raise Exception("استخراج متن از هیچ‌یک از فایل‌های ارسالی موفق نبود.")
+
+        full_ocr_text = "\n\n".join(full_ocr_parts)
+        limited_text = self._build_limited_text(combined_parts)
+
+        ocr_warning = self._notify_ocr_failures(failed_filenames)
+
+        # ==========================
+        # 3) Detect the *actual* exam type from the OCR text,
+        #    independent of what the user selected in the upload form.
+        # ==========================
+        detected_exam_type = await self._detect_exam_type(limited_text)
+
+        final_exam_type = exam_type
+        exam_type_mismatch = False
+
+        if detected_exam_type and exam_type and detected_exam_type != exam_type:
+            exam_type_mismatch = True
+            final_exam_type = detected_exam_type
+            print(
+                f"[ReportService] Exam type mismatch: requested={exam_type}, detected={detected_exam_type}",
+                flush=True
+            )
+        elif detected_exam_type and not exam_type:
+            final_exam_type = detected_exam_type
+
+        # ==========================
+        # 4) Build the specialized prompt for the final exam type and call the AI
+        # ==========================
+        self._notify(on_stage, "ai")
+
+        symptoms_display = self._prepare_symptoms(symptoms)
+        patient_profile = self._prepare_patient_profile(patient_age, patient_gender)
+
+        prompt_template = get_prompt_template(final_exam_type)
+
+        prompt = prompt_template.format(
+            text=limited_text,
+            symptoms=symptoms_display,
+            patient_profile=patient_profile,
+        )
+
+        raw_analysis = await self.ai.analyze(prompt)
+
+        narrative_text, structured_results = self._extract_structured_results(raw_analysis)
+
+        analysis_html = self._to_html(narrative_text)
+
+        total_elapsed = time.perf_counter() - total_start
+
+        print(
+            f"[ReportService] Finished in {total_elapsed:.2f}s, "
+            f"structured_results: {len(structured_results)}",
+            flush=True
+        )
+
+        if len(original_names) == 1:
+            filename_display = original_names[0]
+        else:
+            filename_display = f"{original_names[0]} و {len(original_names) - 1} فایل دیگر"
+
+        return {
+            "exam_type": final_exam_type,
+            "filename": filename_display,
+            "ocr": full_ocr_text,
+            "analysis": narrative_text,
+            "analysis_html": analysis_html,
+            "structured_results": structured_results,
+            "symptoms": (symptoms or "").strip() or None,
+            "exam_type_mismatch": exam_type_mismatch,
+            "requested_exam_type_label": requested_label if exam_type_mismatch else None,
+            "detected_exam_type_label": (
+                EXAM_TYPE_LABELS.get(detected_exam_type, detected_exam_type)
+                if exam_type_mismatch else None
+            ),
+            "ocr_warning": ocr_warning,
+        }
