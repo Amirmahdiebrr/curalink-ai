@@ -58,6 +58,9 @@
                 <a href="/diet">برنامه غذایی</a>
                 <a href="/visit-prep">آماده‌سازی ویزیت</a>
                 {% endif %}
+                {% if user and user.role == 'platform_admin' %}
+                <a href="/admin/doctors">تایید پزشکان</a>
+                {% endif %}
                 <a href="https://curalinkcare.com/contact/" target="_blank" rel="noopener">تماس با ما</a>
             </nav>
 

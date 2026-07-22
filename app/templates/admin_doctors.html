@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}تایید پزشکان | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="cl-profile-section">
+    <div class="container">
+
+        <div class="cl-profile-header">
+            <div class="cl-profile-avatar">{{ (user.display_name or "?")[0] }}</div>
+            <div>
+                <h1>تایید حساب پزشکان</h1>
+                <p>{{ pending|length }} درخواست در انتظار بررسی</p>
+            </div>
+        </div>
+
+        <div class="cl-profile-card" style="margin-bottom:24px;">
+            <h3 class="cl-profile-card-title">درخواست‌های در انتظار بررسی</h3>
+
+            {% if pending|length == 0 %}
+            <p class="cl-profile-card-sub">در حال حاضر درخواست جدیدی برای بررسی وجود ندارد.</p>
+            {% else %}
+
+            <div class="cl-history-list">
+                {% for doctor in pending %}
+                <div class="cl-history-item" style="align-items:flex-start; flex-wrap:wrap; gap:14px;">
+                    <div class="cl-history-item-main" style="flex-direction:column; align-items:flex-start; gap:6px;">
+                        <span class="cl-history-filename">{{ doctor.display_name }}</span>
+                        <span class="cl-history-date">{{ doctor.email }} — {{ doctor.phone }}</span>
+                        {% if doctor.doctor_profile %}
+                        <span class="cl-history-date">
+                            تخصص: {{ doctor.doctor_profile.specialty or "—" }} |
+                            شماره نظام پزشکی: {{ doctor.doctor_profile.medical_council_no or "—" }}
+                            {% if doctor.doctor_profile.clinic_name %} | مطب: {{ doctor.doctor_profile.clinic_name }}{% endif %}
+                        </span>
+                        {% if doctor.doctor_profile.license_document_path %}
+                        <span class="cl-history-date">مدرک: {{ doctor.doctor_profile.license_document_path }}</span>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <form method="post" action="/admin/doctors/{{ doctor.id }}/approve" onsubmit="return confirm('این پزشک تایید شود؟');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-solid" style="height:38px; padding:0 16px; font-size:13px;">تایید</button>
+                        </form>
+                        <form method="post" action="/admin/doctors/{{ doctor.id }}/reject" onsubmit="return confirm('این درخواست رد شود؟');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-outline" style="height:38px; padding:0 16px; font-size:13px;">رد کردن</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% endif %}
+        </div>
+
+        <div class="cl-profile-card">
+            <h3 class="cl-profile-card-title">تاریخچه بررسی‌شده</h3>
+
+            {% if reviewed|length == 0 %}
+            <p class="cl-profile-card-sub">هنوز هیچ پزشکی بررسی نشده است.</p>
+            {% else %}
+
+            <div class="cl-history-list">
+                {% for doctor in reviewed %}
+                <div class="cl-history-item">
+                    <div class="cl-history-item-main">
+                        <span class="cl-history-badge">
+                            {% if doctor.verification_status == 'approved' %}تایید‌شده{% else %}رد‌شده{% endif %}
+                        </span>
+                        <span class="cl-history-filename">{{ doctor.display_name }} — {{ doctor.email }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% endif %}
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

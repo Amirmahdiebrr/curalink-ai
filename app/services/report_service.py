@@ -44,6 +44,12 @@ GENDER_LABELS = {
 
 NO_PROFILE_TEXT = "اطلاعاتی از سن/جنسیت کاربر در دسترس نیست."
 
+# سقف کل متن ارسالی به AI و سهم هر فایل از این سقف، برای اطمینان از
+# این‌که در آنالیزهای چندفایلی، فایل‌های بعدی هم واقعاً به مدل می‌رسند
+# (نه این‌که فقط فایل اول کل بودجه‌ی کاراکتر را مصرف کند).
+TOTAL_TEXT_BUDGET = 20000
+CLASSIFY_TEXT_BUDGET = 6000
+
 
 class ReportService:
 
@@ -79,10 +85,6 @@ class ReportService:
         return cleaned[:MAX_SYMPTOMS_LENGTH]
 
     def _prepare_patient_profile(self, age: int | None, gender: str | None) -> str:
-        """
-        سن و جنسیت کاربر را به یک خط قابل‌فهم برای مدل تبدیل می‌کند تا
-        در تفسیر بازه‌های مرجع (که بسته به سن/جنسیت فرق می‌کنند) دقیق‌تر عمل کند.
-        """
         parts = []
 
         if age is not None:
@@ -156,15 +158,39 @@ class ReportService:
             file_text = await self.ocr.extract(filepath)
         except Exception as e:
             print(f"[ReportService] OCR error on {filepath}: {e}", flush=True)
-            return None
+            return None, filename
 
         if not file_text.strip():
+            return None, filename
+
+        return f"--- بخش {index} از فایل: {filename} ---\n{file_text.strip()}", None
+
+    def _build_limited_text(self, combined_parts: list[str]) -> str:
+        """
+        به‌جای برش کورکورانه‌ی متن ترکیب‌شده (که می‌تواند فایل‌های بعدی را
+        کاملاً حذف کند)، سهم هر فایل از سقف کل کاراکتر را جداگانه محاسبه
+        می‌کند تا هر فایل حداقل بخشی از متنش به مدل برسد.
+        """
+        if not combined_parts:
+            return ""
+
+        per_file_budget = max(TOTAL_TEXT_BUDGET // len(combined_parts), 1500)
+
+        trimmed_parts = [part[:per_file_budget] for part in combined_parts]
+
+        limited = "\n\n".join(trimmed_parts)
+
+        return limited[:TOTAL_TEXT_BUDGET]
+
+    def _notify_ocr_failures(self, failed_filenames: list[str]) -> str | None:
+        if not failed_filenames:
             return None
 
-        return f"--- بخش {index} از فایل: {filename} ---\n{file_text.strip()}"
+        names = "، ".join(failed_filenames)
+        return f"⚠️ استخراج متن از {len(failed_filenames)} فایل ({names}) ناموفق بود و این فایل(ها) در تحلیل نهایی لحاظ نشده‌اند."
 
     async def _detect_exam_type(self, limited_text: str) -> str | None:
-        classify_prompt = CLASSIFY_PROMPT_TEMPLATE.format(limited_text[:4000])
+        classify_prompt = CLASSIFY_PROMPT_TEMPLATE.format(limited_text[:CLASSIFY_TEXT_BUDGET])
 
         try:
             raw = await self.ai.analyze(classify_prompt)
@@ -207,127 +233,4 @@ class ReportService:
         print("=" * 50)
 
         requested_label = EXAM_TYPE_LABELS.get(exam_type, exam_type)
-        symptoms_display = self._prepare_symptoms(symptoms)
-        patient_profile_display = self._prepare_patient_profile(patient_age, patient_gender)
-
-        self._notify(on_stage, "saving")
-
-        saved_paths = []
-        original_names = []
-
-        step_start = time.perf_counter()
-
-        try:
-            for content, filename in files:
-                filepath = self.file_service.save_bytes(filename, content)
-                saved_paths.append(filepath)
-                original_names.append(filename)
-                print(f"FILE SAVED: {filepath}", flush=True)
-
-            print(f"ALL FILES SAVED  [{time.perf_counter() - step_start:.2f}s]", flush=True)
-
-            self._notify(on_stage, "ocr")
-
-            step_start = time.perf_counter()
-
-            ocr_tasks = [
-                self._ocr_single_file(filepath, original_names[i], i + 1)
-                for i, filepath in enumerate(saved_paths)
-            ]
-
-            ocr_results = await asyncio.gather(*ocr_tasks)
-
-            combined_text_parts = [part for part in ocr_results if part]
-
-            ocr_duration = time.perf_counter() - step_start
-            text = "\n\n".join(combined_text_parts)
-
-            print(f"OCR DONE FOR ALL FILES (parallel)  [{ocr_duration:.2f}s]", flush=True)
-            print(f"COMBINED OCR LENGTH: {len(text)}", flush=True)
-
-            if len(original_names) == 1:
-                display_filename = original_names[0]
-            else:
-                display_filename = f"{original_names[0]} + {len(original_names) - 1} فایل دیگر"
-
-            if not text.strip():
-                print("[ReportService] OCR returned empty text for all files", flush=True)
-                error_html = self._to_html(
-                    "متنی از فایل(ها) استخراج نشد. لطفاً تصاویر واضح‌تری آپلود کنید."
-                )
-                return {
-                    "filename": display_filename,
-                    "ocr": text,
-                    "analysis": "",
-                    "analysis_html": error_html,
-                    "structured_results": [],
-                    "exam_type": exam_type,
-                    "requested_exam_type": exam_type,
-                    "requested_exam_type_label": requested_label,
-                    "exam_type_mismatch": False,
-                    "detected_exam_type": None,
-                    "detected_exam_type_label": None,
-                }
-
-            limited_text = text[:12000]
-
-            self._notify(on_stage, "ai")
-
-            step_start = time.perf_counter()
-            detected_type = await self._detect_exam_type(limited_text)
-            detect_duration = time.perf_counter() - step_start
-            print(f"[ReportService] Detected exam_type: {detected_type} (requested: {exam_type})  [{detect_duration:.2f}s]", flush=True)
-
-            exam_type_mismatch = False
-            final_exam_type = exam_type
-            detected_label = None
-
-            if detected_type and exam_type and detected_type != exam_type:
-                exam_type_mismatch = True
-                final_exam_type = detected_type
-                detected_label = EXAM_TYPE_LABELS.get(detected_type, detected_type)
-                print(f"[ReportService] MISMATCH: user selected '{exam_type}' but detected '{detected_type}' -> using detected type", flush=True)
-
-            prompt_template = get_prompt_template(final_exam_type)
-            prompt = prompt_template.format(
-                text=limited_text,
-                symptoms=symptoms_display,
-                patient_profile=patient_profile_display,
-            )
-
-            print(f"PROMPT LENGTH: {len(prompt)}", flush=True)
-
-            step_start = time.perf_counter()
-            raw_analysis = await self.ai.analyze(prompt)
-            ai_duration = time.perf_counter() - step_start
-            print(f"AI DONE  [{ai_duration:.2f}s]", flush=True)
-
-            narrative_text, structured_results = self._extract_structured_results(raw_analysis)
-
-            print(f"[ReportService] Extracted {len(structured_results)} structured test result(s)", flush=True)
-
-            analysis_html = self._to_html(narrative_text)
-
-            total_duration = time.perf_counter() - total_start
-            print("=" * 50)
-            print(f"TOTAL TIME: {total_duration:.2f}s  (OCR: {ocr_duration:.2f}s | Detect: {detect_duration:.2f}s | AI: {ai_duration:.2f}s)")
-            print("=" * 50)
-
-            self._notify(on_stage, "done")
-
-            return {
-                "filename": display_filename,
-                "ocr": text,
-                "analysis": narrative_text,
-                "analysis_html": analysis_html,
-                "structured_results": structured_results,
-                "exam_type": final_exam_type,
-                "requested_exam_type": exam_type,
-                "requested_exam_type_label": requested_label,
-                "exam_type_mismatch": exam_type_mismatch,
-                "detected_exam_type": detected_type,
-                "detected_exam_type_label": detected_label,
-            }
-
-        finally:
-            self._cleanup_files(saved_paths)
+        symptoms_display =

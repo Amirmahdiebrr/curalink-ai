@@ -13,6 +13,8 @@ from app.services.family_service import get_family_member_for_user
 from app.services.organ_display_service import group_results_by_organ
 from app.routers.auth import get_current_user
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
+from app.core.limiter import limiter
+from app.core.constants import MAX_FILES_PER_REQUEST, MAX_TOTAL_UPLOAD_SIZE_MB
 
 
 router = APIRouter()
@@ -85,6 +87,7 @@ def _job_belongs_to_user(job: dict, user_id: int | None) -> bool:
 
 
 @router.post("/analyze")
+@limiter.limit("10/hour")
 async def analyze(
     request: Request,
     background_tasks: BackgroundTasks,
@@ -110,6 +113,12 @@ async def analyze(
         return JSONResponse(
             {"error": "خطای اعتبارسنجی امنیتی. لطفاً صفحه را رفرش کرده و دوباره تلاش کنید."},
             status_code=403,
+        )
+
+    if len(files) > MAX_FILES_PER_REQUEST:
+        return JSONResponse(
+            {"error": f"حداکثر {MAX_FILES_PER_REQUEST} فایل در هر درخواست مجاز است."},
+            status_code=400,
         )
 
     user_id = current_user.id
@@ -141,8 +150,18 @@ async def analyze(
     print(f"[Analyze] patient_age/gender used: {patient_age} / {patient_gender}", flush=True)
 
     file_data = []
+    total_size_mb = 0.0
+
     for uploaded_file in files:
         content = await uploaded_file.read()
+        total_size_mb += len(content) / (1024 * 1024)
+
+        if total_size_mb > MAX_TOTAL_UPLOAD_SIZE_MB:
+            return JSONResponse(
+                {"error": f"حجم کل فایل‌های ارسالی نباید بیشتر از {MAX_TOTAL_UPLOAD_SIZE_MB} مگابایت باشد."},
+                status_code=400,
+            )
+
         file_data.append((content, uploaded_file.filename))
 
     job_id = create_job(exam_type, user_id=user_id)

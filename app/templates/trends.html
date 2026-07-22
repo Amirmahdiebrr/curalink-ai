@@ -17,10 +17,22 @@
             </div>
         </div>
 
+        <form method="get" action="/trends" class="cl-field" style="max-width:320px; margin-bottom:26px;">
+            <label for="family_member_id">نمایش برای:</label>
+            <select id="family_member_id" name="family_member_id" onchange="this.form.submit()">
+                <option value="self" {% if not selected_family_member_id %}selected{% endif %}>خودم</option>
+                {% for member in family_members %}
+                <option value="{{ member.id }}" {% if selected_family_member_id == member.id %}selected{% endif %}>
+                    {{ member.name }}{% if member.relation %} ({{ member.relation }}){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+
         {% if latest_results|length == 0 %}
 
         <div class="cl-history-empty">
-            <p>هنوز هیچ مقدار عددی از آزمایش‌های شما ثبت نشده است.</p>
+            <p>هنوز هیچ مقدار عددی از آزمایش‌های این فرد ثبت نشده است.</p>
             <a href="/#upload" class="btn btn-solid">شروع اولین تحلیل</a>
         </div>
 
@@ -92,6 +104,7 @@
 
     const select = document.getElementById("test-select");
     const noteEl = document.getElementById("trend-note");
+    const familyMemberId = "{{ selected_family_member_id or '' }}";
 
     if (!select) {
         return;
@@ -125,7 +138,8 @@
     async function loadChart(testName) {
 
         try {
-            const res = await fetch(`/trends/data/${encodeURIComponent(testName)}`);
+            const url = `/trends/data/${encodeURIComponent(testName)}` + (familyMemberId ? `?family_member_id=${encodeURIComponent(familyMemberId)}` : "");
+            const res = await fetch(url);
             const data = await res.json();
 
             const labels = data.points.map(p => p.date);

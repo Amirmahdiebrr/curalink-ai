@@ -1,197 +1,103 @@
-"""
-app/services/ocr_service.py
-
-OCR service for extracting text from medical documents using
-NVIDIA's hosted Nemotron OCR v1 model (cloud-based, GPU-accelerated).
-"""
-
-from __future__ import annotations
-
-import base64
-import io
+import asyncio
 import time
-from pathlib import Path
-
 import httpx
-import fitz  # PyMuPDF
 
-from PIL import Image, ImageOps
-import pillow_heif
-
-from app.config import NVIDIA_API_KEY
+from app.config import NVIDIA_API_KEY, AI_MODEL
 
 
-pillow_heif.register_heif_opener()
+NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
+
+MAX_TOKENS = 8192
 
 
-NEMOTRON_OCR_URL = "https://ai.api.nvidia.com/v1/cv/nvidia/nemotron-ocr-v1"
-
-REQUEST_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept": "application/json",
-    "Content-Type": "application/json",
-}
-
-# حداکثر ضلع بزرگ تصویر بعد از تبدیل، برای جلوگیری از فایل‌های حجیم آیفون
-MAX_IMAGE_DIMENSION = 2200
-JPEG_QUALITY = 85
-
-
-class OCRExtractionError(Exception):
+class DeepSeekError(Exception):
     pass
 
 
-class OCRService:
+async def ask_ai(prompt: str) -> str:
 
-    @classmethod
-    def _pdf_to_image_bytes(cls, pdf_path: Path) -> list[bytes]:
-        images = []
-        doc = fitz.open(str(pdf_path))
-        try:
-            for page in doc:
-                matrix = fitz.Matrix(2.5, 2.5)
-                pix = page.get_pixmap(matrix=matrix)
-                images.append(pix.tobytes("png"))
-        finally:
-            doc.close()
-        return images
+    headers = {
+        "Authorization": f"Bearer {NVIDIA_API_KEY}",
+        "Content-Type": "application/json",
+    }
 
-    @classmethod
-    def _resize_if_needed(cls, image: Image.Image) -> Image.Image:
-        width, height = image.size
-        largest_side = max(width, height)
+    payload = {
+        "model": AI_MODEL,
+        "messages": [
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.2,
+        "max_tokens": MAX_TOKENS,
+    }
 
-        if largest_side <= MAX_IMAGE_DIMENSION:
-            return image
+    timeout = httpx.Timeout(connect=15, read=280, write=15, pool=15)
 
-        scale = MAX_IMAGE_DIMENSION / largest_side
-        new_size = (int(width * scale), int(height * scale))
+    max_attempts = 2
 
-        return image.resize(new_size, Image.LANCZOS)
+    async with httpx.AsyncClient(timeout=timeout) as client:
 
-    @classmethod
-    def _heic_to_jpeg_bytes(cls, file_path: Path) -> bytes:
-        image = Image.open(file_path)
+        for attempt in range(1, max_attempts + 1):
 
-        # اصلاح چرخش عکس بر اساس اطلاعات EXIF گوشی
-        image = ImageOps.exif_transpose(image)
+            attempt_start = time.perf_counter()
 
-        if image.mode != "RGB":
-            image = image.convert("RGB")
+            print(f"[DeepSeek] Attempt {attempt}/{max_attempts}", flush=True)
 
-        image = cls._resize_if_needed(image)
-
-        buffer = io.BytesIO()
-        image.save(buffer, format="JPEG", quality=JPEG_QUALITY, optimize=True)
-        return buffer.getvalue()
-
-    @classmethod
-    def _build_data_url(cls, image_bytes: bytes, media_type: str) -> str:
-        b64 = base64.b64encode(image_bytes).decode("utf-8")
-        return f"data:image/{media_type};base64,{b64}"
-
-    @classmethod
-    async def extract(cls, file_path: Path) -> str:
-        return await cls.extract_text(file_path)
-
-    @classmethod
-    async def extract_text(cls, file_path: Path) -> str:
-
-        if not file_path.exists():
-            raise OCRExtractionError(f"File not found: {file_path}")
-
-        extension = file_path.suffix.lower()
-
-        image_payloads = []
-
-        if extension == ".pdf":
-            print("[OCR] PDF detected, converting pages to images...", flush=True)
-            t0 = time.perf_counter()
-            page_images = cls._pdf_to_image_bytes(file_path)
-            print(f"[OCR] {len(page_images)} page(s) extracted from PDF  [{time.perf_counter() - t0:.2f}s]", flush=True)
-
-            for img_bytes in page_images:
-                image_payloads.append({
-                    "type": "image_url",
-                    "url": cls._build_data_url(img_bytes, "png")
-                })
-
-        elif extension in (".heic", ".heif"):
-            print("[OCR] HEIC/HEIF detected, converting to compressed JPEG...", flush=True)
-            t0 = time.perf_counter()
             try:
-                jpeg_bytes = cls._heic_to_jpeg_bytes(file_path)
+                response = await client.post(
+                    NVIDIA_URL,
+                    headers=headers,
+                    json=payload
+                )
+
+            except (httpx.TimeoutException, httpx.ReadError, httpx.ConnectError) as e:
+                elapsed = time.perf_counter() - attempt_start
+                wait = 5
+                print(f"[DeepSeek] Network error on attempt {attempt}: {repr(e)}  [{elapsed:.2f}s] -> waiting {wait}s", flush=True)
+                if attempt == max_attempts:
+                    raise DeepSeekError("درخواست به NVIDIA API با تایم‌اوت مواجه شد. سرویس احتمالاً موقتاً کند است، لطفاً چند دقیقه دیگر دوباره امتحان کنید.")
+                await asyncio.sleep(wait)
+                continue
+
             except Exception as e:
-                raise OCRExtractionError(f"خطا در تبدیل فایل HEIC: {e}") from e
-            print(f"[OCR] HEIC converted to JPEG ({len(jpeg_bytes) / 1024:.0f} KB)  [{time.perf_counter() - t0:.2f}s]", flush=True)
+                print(f"[DeepSeek] Unexpected request error: {repr(e)}", flush=True)
+                raise DeepSeekError(str(e))
 
-            image_payloads.append({
-                "type": "image_url",
-                "url": cls._build_data_url(jpeg_bytes, "jpeg")
-            })
+            elapsed = time.perf_counter() - attempt_start
 
-        elif extension in (".jpg", ".jpeg", ".png"):
-            media_type = "jpeg" if extension in (".jpg", ".jpeg") else "png"
-            with open(file_path, "rb") as f:
-                img_bytes = f.read()
-            image_payloads.append({
-                "type": "image_url",
-                "url": cls._build_data_url(img_bytes, media_type)
-            })
+            print(f"[DeepSeek] Response status: {response.status_code}  [{elapsed:.2f}s]", flush=True)
 
-        else:
-            raise OCRExtractionError(f"Unsupported file type: {extension}")
+            if response.status_code == 200:
+                data = response.json()
+                choice = data["choices"][0]
+                finish_reason = choice.get("finish_reason")
+                content = choice["message"]["content"]
 
-        payload = {
-            "input": image_payloads,
-            "merge_levels": ["paragraph"] * len(image_payloads)
-        }
+                if finish_reason == "length":
+                    print(
+                        f"[DeepSeek] WARNING: response cut off due to max_tokens={MAX_TOKENS}. "
+                        f"Attempt {attempt}/{max_attempts}. Content length so far: {len(content)}",
+                        flush=True
+                    )
 
-        headers = dict(REQUEST_HEADERS)
-        headers["Authorization"] = "Bearer " + NVIDIA_API_KEY
+                    if attempt == max_attempts:
+                        print("[DeepSeek] Returning truncated content after final attempt.", flush=True)
+                        return content
 
-        print(f"[OCR] Sending {len(image_payloads)} image(s) to Nemotron OCR...", flush=True)
+                    print("[DeepSeek] Retrying once in hope of a complete response...", flush=True)
+                    await asyncio.sleep(2)
+                    continue
 
-        t0 = time.perf_counter()
+                return content
 
-        try:
-            async with httpx.AsyncClient(timeout=90) as client:
-                response = await client.post(NEMOTRON_OCR_URL, headers=headers, json=payload)
-        except httpx.TimeoutException as e:
-            raise OCRExtractionError(f"درخواست OCR با تایم‌اوت مواجه شد: {e}") from e
-        except Exception as e:
-            raise OCRExtractionError(f"درخواست OCR با خطا مواجه شد: {e}") from e
+            if response.status_code in (503, 429):
+                wait = 10
+                print(f"[DeepSeek] NVIDIA busy ({response.status_code}): {response.text[:300]} -> waiting {wait}s", flush=True)
+                if attempt == max_attempts:
+                    raise DeepSeekError("سرویس NVIDIA در حال حاضر شلوغ است (ظرفیت پر شده). لطفاً چند دقیقه دیگر دوباره امتحان کنید.")
+                await asyncio.sleep(wait)
+                continue
 
-        elapsed = time.perf_counter() - t0
+            print(f"[DeepSeek] Error response {response.status_code}: {response.text[:500]}", flush=True)
+            raise DeepSeekError(f"خطای {response.status_code}: {response.text[:300]}")
 
-        print(f"[OCR] Nemotron OCR response status: {response.status_code}  [{elapsed:.2f}s]", flush=True)
-
-        if response.status_code != 200:
-            raise OCRExtractionError(f"خطای OCR API {response.status_code}: {response.text[:300]}")
-
-        try:
-            data = response.json()
-        except Exception as e:
-            raise OCRExtractionError(f"خطا در خواندن پاسخ OCR: {e}") from e
-
-        pages = sorted(data.get("data", []), key=lambda p: p.get("index", 0))
-
-        all_pages_text = []
-
-        for page in pages:
-            detections = page.get("text_detections", [])
-            texts = [
-                det["text_prediction"]["text"]
-                for det in detections
-                if det.get("text_prediction", {}).get("text")
-            ]
-            all_pages_text.append("\n".join(texts))
-
-        full_text = "\n".join(all_pages_text).strip()
-
-        if not full_text:
-            raise OCRExtractionError("متنی از تصویر تشخیص داده نشد.")
-
-        print(f"[OCR] Extracted {len(full_text)} characters total", flush=True)
-
-        return full_text
+    raise DeepSeekError("سرویس هوش مصنوعی در دسترس نیست (پس از چند تلاش).")

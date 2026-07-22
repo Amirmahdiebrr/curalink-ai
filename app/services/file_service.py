@@ -68,6 +68,18 @@ _SIGNATURE_CHECKS = {
 }
 
 
+def signature_matches_extension(extension: str, content: bytes) -> bool:
+    """
+    بررسی می‌کند آیا بایت‌های ابتدایی فایل با پسوند اعلام‌شده مطابقت دارد.
+    اگر پسوند در جدول امضاها شناخته‌شده نباشد، مطابقت فرض می‌شود (fail-open
+    فقط برای فرمت‌های ناشناخته که کالر باید خودش تصمیم بگیرد رد شوند یا نه).
+    """
+    check = _SIGNATURE_CHECKS.get(extension.lower())
+    if not check:
+        return False
+    return check(content)
+
+
 class FileService:
     """
     Handles uploaded medical files.
@@ -92,9 +104,7 @@ class FileService:
         if file_size_mb > MAX_UPLOAD_SIZE_MB:
             raise FileValidationError("File size is too large.")
 
-        signature_check = _SIGNATURE_CHECKS.get(extension)
-
-        if signature_check and not signature_check(content):
+        if not signature_matches_extension(extension, content):
             raise FileValidationError(
                 "File content does not match its extension."
             )

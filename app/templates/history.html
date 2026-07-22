@@ -31,6 +31,9 @@
             <a href="/history/{{ record.id }}" class="cl-history-item">
                 <div class="cl-history-item-main">
                     <span class="cl-history-badge">{{ exam_type_labels.get(record.exam_type, "آزمایش") }}</span>
+                    <span class="cl-history-badge" style="background:linear-gradient(135deg, rgba(108,92,231,.16), rgba(15,182,168,.16));">
+                        {% if record.family_member %}{{ record.family_member.name }}{% else %}خودم{% endif %}
+                    </span>
                     <span class="cl-history-filename">{{ record.filename }}</span>
                 </div>
                 <span class="cl-history-date">{{ record.created_at.strftime("%Y-%m-%d %H:%M") }}</span>

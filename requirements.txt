@@ -17,3 +17,4 @@ bleach
 pillow-heif
 cryptography
 passlib[bcrypt]
+slowapi

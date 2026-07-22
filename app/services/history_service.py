@@ -4,6 +4,10 @@ app/services/history_service.py
 Persists analysis results tied to a logged-in user (or a family member
 of that user), and retrieves past analyses and structured test values
 for the history/trends/home pages.
+
+Sensitive free-text fields (ocr_text, analysis_text, analysis_html,
+symptoms) are encrypted at rest using the same Fernet key used for
+national_id, since they can contain detailed personal medical data.
 """
 
 from datetime import datetime, timedelta
@@ -11,6 +15,17 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
 from app.models import AnalysisRecord, TestResult
+from app.core.crypto import encrypt_value, decrypt_value
+
+
+def _decrypt_record(record: AnalysisRecord) -> AnalysisRecord:
+    if record is None:
+        return record
+    record.ocr_text = decrypt_value(record.ocr_text)
+    record.analysis_text = decrypt_value(record.analysis_text)
+    record.analysis_html = decrypt_value(record.analysis_html)
+    record.symptoms = decrypt_value(record.symptoms)
+    return record
 
 
 def save_analysis(
@@ -31,10 +46,10 @@ def save_analysis(
         family_member_id=family_member_id,
         exam_type=exam_type,
         filename=filename,
-        ocr_text=ocr_text,
-        analysis_text=analysis_text,
-        analysis_html=analysis_html,
-        symptoms=symptoms,
+        ocr_text=encrypt_value(ocr_text),
+        analysis_text=encrypt_value(analysis_text),
+        analysis_html=encrypt_value(analysis_html),
+        symptoms=encrypt_value(symptoms),
     )
 
     db.add(record)
@@ -96,11 +111,12 @@ def get_user_history(db: Session, user_id: int):
 
 
 def get_record_for_user(db: Session, record_id: int, user_id: int):
-    return (
+    record = (
         db.query(AnalysisRecord)
         .filter(AnalysisRecord.id == record_id, AnalysisRecord.user_id == user_id)
         .first()
     )
+    return _decrypt_record(record)
 
 
 def get_test_results_for_analysis(db: Session, analysis_id: int):

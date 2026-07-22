@@ -31,8 +31,10 @@ from app.services.auth_service import (
 )
 from app.services.email_service import EmailService
 from app.services.sms_service import SMSService
+from app.services.file_service import signature_matches_extension
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.crypto import encrypt_value, decrypt_value
+from app.core.limiter import limiter
 from app.config import DOCTOR_DOCS_MAX_SIZE_MB, DOCTOR_DOCS_ALLOWED_EXTENSIONS
 
 
@@ -57,7 +59,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
 def _save_doctor_document(content: bytes, filename: str) -> str:
     """
     اعتبارسنجی و ذخیره‌ی فایل مدرک نظام پزشکی روی دیسک.
-    در صورت نامعتبر بودن فرمت/حجم، AuthError پرتاب می‌کند.
+    در صورت نامعتبر بودن فرمت/حجم/محتوا، AuthError پرتاب می‌کند.
     """
     if not filename or not content:
         raise AuthError("فایل مدرک نظام پزشکی ارسال نشده است.")
@@ -71,6 +73,9 @@ def _save_doctor_document(content: bytes, filename: str) -> str:
 
     if size_mb > DOCTOR_DOCS_MAX_SIZE_MB:
         raise AuthError(f"حجم فایل مدرک نباید بیشتر از {DOCTOR_DOCS_MAX_SIZE_MB} مگابایت باشد.")
+
+    if not signature_matches_extension(extension, content):
+        raise AuthError("محتوای فایل با پسوند اعلام‌شده مطابقت ندارد.")
 
     unique_name = f"{uuid.uuid4().hex}{extension}"
     filepath = DOCTOR_DOCS_DIR / unique_name
@@ -96,6 +101,7 @@ async def register_page(request: Request):
 
 
 @router.post("/register")
+@limiter.limit("5/hour")
 async def register_submit(
     request: Request,
     background_tasks: BackgroundTasks,
@@ -256,6 +262,7 @@ async def login_page(request: Request):
 
 
 @router.post("/login")
+@limiter.limit("10/minute")
 async def login_submit(
     request: Request,
     email: str = Form(...),
@@ -378,6 +385,7 @@ async def verify_phone_page(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/verify-phone/send")
+@limiter.limit("5/hour")
 async def verify_phone_send(
     request: Request,
     csrf_token: str = Form(...),
@@ -412,6 +420,7 @@ async def verify_phone_send(
 
 
 @router.post("/verify-phone/verify")
+@limiter.limit("10/hour")
 async def verify_phone_verify(
     request: Request,
     code: str = Form(...),
@@ -460,6 +469,7 @@ async def forgot_password_page(request: Request):
 
 
 @router.post("/forgot-password")
+@limiter.limit("5/hour")
 async def forgot_password_submit(
     request: Request,
     background_tasks: BackgroundTasks,
@@ -615,13 +625,50 @@ async def profile_update(
     if display_name and display_name.strip():
         user.display_name = display_name.strip()
 
-    user.age = int(age) if age and age.isdigit() else None
+    if age and age.isdigit():
+        age_value = int(age)
+        if 0 <= age_value <= 120:
+            user.age = age_value
+        else:
+            return templates.TemplateResponse(
+                request,
+                "profile.html",
+                {
+                    "request": request,
+                    "user": user,
+                    "national_id_display": decrypt_value(user.national_id),
+                    "saved": False,
+                    "error": "سن وارد شده معتبر نیست.",
+                    "csrf_token": new_token,
+                }
+            )
+    else:
+        user.age = None
+
     user.gender = gender or None
     user.national_id = encrypt_value(national_id.strip()) if national_id and national_id.strip() else None
     user.address = address or None
 
     if phone and phone.strip() and phone.strip() != user.phone:
-        user.phone = phone.strip()
+        new_phone = phone.strip()
+
+        existing = db.query(User).filter(User.phone == new_phone, User.id != user.id).first()
+
+        if existing:
+            return templates.TemplateResponse(
+                request,
+                "profile.html",
+                {
+                    "request": request,
+                    "user": user,
+                    "national_id_display": decrypt_value(user.national_id),
+                    "saved": False,
+                    "error": "این شماره موبایل قبلاً توسط حساب دیگری ثبت شده است.",
+                    "csrf_token": new_token,
+                }
+            )
+
+        user.phone = new_phone
         user.phone_verified = False  # شماره جدید، تا وقتی OTP نشده تایید‌نشده است
 
     db.commit()

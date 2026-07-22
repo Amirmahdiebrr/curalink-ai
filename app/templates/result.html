@@ -21,6 +21,12 @@
         </div>
         {% endif %}
 
+        {% if result.ocr_warning %}
+        <div class="cl-auth-alert cl-auth-alert-error" style="text-align:right; margin-bottom:24px; line-height:2;">
+            {{ result.ocr_warning }}
+        </div>
+        {% endif %}
+
         {% if result.symptoms %}
         <div class="result-card">
             <h2>شرح علائم و سابقه‌ی وارد‌شده توسط شما</h2>

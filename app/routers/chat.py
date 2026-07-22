@@ -17,6 +17,7 @@ from app.services.history_service import get_record_for_user
 from app.services.chat_service import ChatService
 from app.services.deepseek import DeepSeekError
 from app.core.csrf import is_valid_csrf
+from app.core.limiter import limiter
 
 
 router = APIRouter()
@@ -37,6 +38,7 @@ class ChatRequest(BaseModel):
 
 
 @router.post("/chat")
+@limiter.limit("15/minute")
 async def chat(request: Request, payload: ChatRequest, db: Session = Depends(get_db)):
 
     csrf_header = request.headers.get("X-CSRF-Token")

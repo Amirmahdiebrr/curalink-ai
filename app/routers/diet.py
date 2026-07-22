@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.routers.auth import get_current_user
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
+from app.core.limiter import limiter
 from app.services.family_service import get_family_members, get_family_member_for_user
 from app.services.diet_service import DietService
 from app.services.diet_history_service import (
@@ -76,6 +77,7 @@ async def diet_page(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/diet")
+@limiter.limit("15/hour")
 async def diet_generate(
     request: Request,
     family_member_id: str = Form("self"),
@@ -251,6 +253,7 @@ class DietChatRequest(BaseModel):
 
 
 @router.post("/diet/chat")
+@limiter.limit("15/minute")
 async def diet_chat(request: Request, payload: DietChatRequest, db: Session = Depends(get_db)):
 
     csrf_header = request.headers.get("X-CSRF-Token")
