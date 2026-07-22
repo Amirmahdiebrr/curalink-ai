@@ -43,8 +43,8 @@ class EmailService:
     def __init__(self):
         self.provider = get_email_provider()
 
-    async def send_email_verification(self, to: str, token: str) -> bool:
-        link = f"{APP_BASE_URL}/verify-email?token={token}"
+    async def send_email_verification(self, to: str, user_id: int, token: str) -> bool:
+        link = f"{APP_BASE_URL}/verify-email?uid={user_id}&token={token}"
         html = f"""
         <div dir="rtl" style="font-family:Tahoma">
             <p>برای تایید ایمیل خود روی لینک زیر کلیک کنید:</p>
@@ -54,8 +54,8 @@ class EmailService:
         """
         return await self.provider.send(to, "تایید ایمیل - CuraLink AI", html)
 
-    async def send_password_reset(self, to: str, token: str) -> bool:
-        link = f"{APP_BASE_URL}/reset-password?token={token}"
+    async def send_password_reset(self, to: str, user_id: int, token: str) -> bool:
+        link = f"{APP_BASE_URL}/reset-password?uid={user_id}&token={token}"
         html = f"""
         <div dir="rtl" style="font-family:Tahoma">
             <p>برای تنظیم رمز عبور جدید روی لینک زیر کلیک کنید:</p>

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}تایید شماره موبایل | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="cl-profile-section">
+    <div class="container">
+
+        <div class="cl-profile-header">
+            <div class="cl-profile-avatar">{{ (user.display_name or "?")[0] }}</div>
+            <div>
+                <h1>تایید شماره موبایل</h1>
+                <p>{{ user.phone }}</p>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="cl-auth-alert cl-auth-alert-error">{{ error }}</div>
+        {% endif %}
+
+        <div class="cl-profile-card" style="max-width:480px;">
+
+            {% if not sent %}
+
+            <p class="cl-profile-card-sub">برای دریافت کد تایید روی دکمه زیر بزنید.</p>
+
+            <form method="post" action="/verify-phone/send">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="cl-auth-submit">ارسال کد تایید</button>
+            </form>
+
+            {% else %}
+
+            <p class="cl-profile-card-sub">کد ۶ رقمی ارسال‌شده به {{ user.phone }} را وارد کنید.</p>
+
+            <form method="post" action="/verify-phone/verify" class="cl-auth-fields">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="cl-field">
+                    <label for="code">کد تایید</label>
+                    <input type="text" id="code" name="code" maxlength="6" required>
+                </div>
+                <button type="submit" class="cl-auth-submit">تایید کد</button>
+            </form>
+
+            <form method="post" action="/verify-phone/send" style="margin-top:14px;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-outline" style="width:100%;">ارسال مجدد کد</button>
+            </form>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

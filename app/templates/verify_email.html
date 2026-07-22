@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}تایید ایمیل | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<div class="container py-5 text-center">
+
+    {% if success %}
+    <i class="fa-solid fa-circle-check" style="font-size:44px;color:var(--accent);"></i>
+    {% else %}
+    <i class="fa-solid fa-circle-exclamation error-icon"></i>
+    {% endif %}
+
+    <h2 class="mt-4">{{ message }}</h2>
+
+    <a href="/" class="btn btn-primary">بازگشت به خانه</a>
+
+</div>
+
+{% endblock %}
