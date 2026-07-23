@@ -288,3 +288,7 @@ async def visit_prep_history_detail(request: Request, record_id: int, db: Sessio
             "summary_raw": record.summary_text,
             "record_id": record.id,
             "error": None,
+            "selected_family_member_id": record.family_member_id,
+            "reason_value": record.visit_reason or "",
+        }
+    )

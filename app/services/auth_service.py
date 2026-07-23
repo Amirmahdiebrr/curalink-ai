@@ -1,7 +1,7 @@
 """
 app/services/auth_service.py
 
-سرویس مستقل احراز هویت: ثبت‌نام بیمار/پزشک، ورود، OTP موبایل،
+سرویس مستقل احراز هویت: ثبت‌نام بیمار/پزشک/سازمان، ورود، OTP موبایل،
 تایید ایمیل، بازیابی رمز عبور.
 """
 
@@ -10,8 +10,8 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.models import (
-    User, DoctorProfile, VerificationCode,
-    ROLE_PATIENT, ROLE_DOCTOR,
+    User, DoctorProfile, OrganizationProfile, VerificationCode,
+    ROLE_PATIENT, ROLE_DOCTOR, ROLE_ORG_ADMIN,
     VERIFICATION_PENDING, VERIFICATION_APPROVED, VERIFICATION_REJECTED,
 )
 from app.core.security import (
@@ -103,6 +103,29 @@ def register_doctor(
         medical_council_no=medical_council_no,
         license_document_path=license_document_path,
         clinic_name=clinic_name,
+    )
+    db.add(profile)
+    db.commit()
+    db.refresh(user)
+
+    return user
+
+
+def register_org(
+    db: Session, email: str, phone: str, password: str, display_name: str,
+    org_name: str, org_type: str | None = None,
+) -> User:
+    """
+    ثبت‌نام مدیر سازمان (کلینیک/آزمایشگاه/بیمارستان). برخلاف پزشک،
+    نیازی به تایید ادمین ندارد و بلافاصله فعال است، چون اشتراک سازمانی
+    خودش هزینه‌ی بالایی دارد و از طریق درگاه پرداخت احراز می‌شود.
+    """
+    user = _register_common(db, email=email, phone=phone, password=password, display_name=display_name, role=ROLE_ORG_ADMIN)
+
+    profile = OrganizationProfile(
+        user_id=user.id,
+        org_name=org_name,
+        org_type=org_type,
     )
     db.add(profile)
     db.commit()
@@ -219,6 +242,8 @@ def complete_password_reset(db: Session, user: User, submitted_token: str, new_p
 
     user.password_hash = hash_password(new_password)
     db.commit()
+
+
 def get_pending_doctors(db: Session):
     return (
         db.query(User)

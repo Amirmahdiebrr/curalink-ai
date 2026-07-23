@@ -12,7 +12,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-from app.config import SESSION_SECRET_KEY, APP_BASE_URL
+from app.config import SESSION_SECRET_KEY, APP_BASE_URL, IS_PRODUCTION
 from app.database import init_db, SessionLocal
 from app.core.limiter import limiter
 
@@ -35,8 +35,6 @@ from app.routers.payment import router as payment_router
 
 JOB_CLEANUP_INTERVAL_SECONDS = 60 * 30  # هر ۳۰ دقیقه
 REMINDER_CHECK_INTERVAL_SECONDS = 60 * 60 * 24  # هر ۲۴ ساعت
-
-IS_PRODUCTION = APP_BASE_URL.startswith("https://")
 
 
 app = FastAPI(

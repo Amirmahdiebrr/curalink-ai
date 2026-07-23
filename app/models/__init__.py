@@ -412,3 +412,55 @@ class OrganizationMember(Base):
 
     organization = relationship("User", foreign_keys=[organization_user_id])
     member = relationship("User", foreign_keys=[member_user_id])
+
+
+# ==========================
+# Job / Pending-Action persistence (جایگزین دیکشنری‌های در-حافظه)
+#
+# قبلاً job_store و pending_action_store دیکشنری در حافظه‌ی پروسه
+# بودند. با چند worker یا ری‌استارت سرور، این داده از دست می‌رفت و
+# کاربر یا 404 می‌گرفت یا "پول داده، نتیجه نگرفته" می‌شد. حالا هر دو
+# در همین دیتابیس ذخیره می‌شوند و بین همه‌ی worker ها مشترک هستند.
+# ==========================
+
+class JobRecord(Base):
+    """
+    وضعیت یک job تحلیل آزمایش در پس‌زمینه. result_json شامل کل دیکشنری
+    نتیجه (تحلیل، OCR، مقادیر ساختاریافته و...) به‌صورت JSON است.
+    """
+    __tablename__ = "jobs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    job_id = Column(String, unique=True, nullable=False, index=True)
+
+    exam_type = Column(String, nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+
+    status = Column(String, nullable=False, default="pending")
+    stage = Column(String, nullable=False, default="pending")
+
+    result_json = Column(Text, nullable=True)
+    error = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class PendingActionRecord(Base):
+    """
+    داده‌ی لازم برای اجرای واقعی یک اکشن pay-per-use (تحلیل آزمایش/
+    برنامه غذایی/آماده‌سازی ویزیت) بعد از برگشت موفق از درگاه پرداخت.
+    کلید = payment_id. data_json شامل بایت فایل‌ها به‌صورت base64 است
+    (نه بایت خام)، تا قابل ذخیره در ستون متنی باشد.
+    """
+    __tablename__ = "pending_actions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    payment_id = Column(Integer, ForeignKey("payments.id"), unique=True, nullable=False, index=True)
+
+    data_json = Column(Text, nullable=False)
+    result_type = Column(String, nullable=True)
+    result_id = Column(Integer, nullable=True)
+    error = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)

@@ -1,8 +1,8 @@
 """
 app/routers/auth.py
 
-ثبت‌نام، ورود، خروج، پروفایل، تایید ایمیل، تایید موبایل (OTP)،
-فراموشی رمز عبور و ثبت‌نام پزشک — کاملاً مستقل از وردپرس.
+ثبت‌نام (انتخاب نوع حساب + بیمار/پزشک/سازمان)، ورود، خروج، پروفایل،
+تایید ایمیل، تایید موبایل (OTP)، فراموشی رمز عبور — کاملاً مستقل از وردپرس.
 """
 
 import uuid
@@ -18,6 +18,7 @@ from app.models import User
 from app.services.auth_service import (
     register_patient,
     register_doctor,
+    register_org,
     authenticate,
     AuthError,
     get_user_by_id,
@@ -87,11 +88,24 @@ def _save_doctor_document(content: bytes, filename: str) -> str:
 
 
 # ==========================
-# ثبت‌نام (بیمار)
+# انتخاب نوع حساب (اولین قدم ثبت‌نام)
 # ==========================
 
 @router.get("/register")
-async def register_page(request: Request):
+async def register_choose_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "register_choose.html",
+        {"request": request, "user": None}
+    )
+
+
+# ==========================
+# ثبت‌نام (بیمار)
+# ==========================
+
+@router.get("/register/patient")
+async def register_patient_page(request: Request):
     csrf_token = get_or_create_csrf_token(request)
     return templates.TemplateResponse(
         request,
@@ -100,9 +114,9 @@ async def register_page(request: Request):
     )
 
 
-@router.post("/register")
+@router.post("/register/patient")
 @limiter.limit("5/hour")
-async def register_submit(
+async def register_patient_submit(
     request: Request,
     background_tasks: BackgroundTasks,
     display_name: str = Form(...),
@@ -154,7 +168,7 @@ async def register_submit(
 
     request.session["user_id"] = user.id
 
-    return RedirectResponse(url="/", status_code=303)
+    return RedirectResponse(url="/billing/plans", status_code=303)
 
 
 # ==========================
@@ -245,6 +259,87 @@ async def register_doctor_submit(
         "register_doctor_pending.html",
         {"request": request, "user": None}
     )
+
+
+# ==========================
+# ثبت‌نام (سازمان: کلینیک/آزمایشگاه/بیمارستان)
+# ==========================
+
+@router.get("/register/org")
+async def register_org_page(request: Request):
+    csrf_token = get_or_create_csrf_token(request)
+    return templates.TemplateResponse(
+        request,
+        "register_org.html",
+        {"request": request, "error": None, "csrf_token": csrf_token, "user": None}
+    )
+
+
+@router.post("/register/org")
+@limiter.limit("5/hour")
+async def register_org_submit(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    display_name: str = Form(...),
+    email: str = Form(...),
+    phone: str = Form(...),
+    password: str = Form(...),
+    password_confirm: str = Form(...),
+    org_name: str = Form(...),
+    org_type: str = Form(None),
+    csrf_token: str = Form(...),
+    db: Session = Depends(get_db),
+):
+
+    new_token = get_or_create_csrf_token(request)
+
+    if not is_valid_csrf(request, csrf_token):
+        return templates.TemplateResponse(
+            request,
+            "register_org.html",
+            {"request": request, "error": "خطای اعتبارسنجی امنیتی. لطفاً دوباره تلاش کنید.", "csrf_token": new_token, "user": None}
+        )
+
+    if password != password_confirm:
+        return templates.TemplateResponse(
+            request,
+            "register_org.html",
+            {"request": request, "error": "رمز عبور و تکرار آن یکسان نیستند.", "csrf_token": new_token, "user": None}
+        )
+
+    if not org_name or not org_name.strip():
+        return templates.TemplateResponse(
+            request,
+            "register_org.html",
+            {"request": request, "error": "نام سازمان الزامی است.", "csrf_token": new_token, "user": None}
+        )
+
+    try:
+        user = register_org(
+            db,
+            email=email,
+            phone=phone,
+            password=password,
+            display_name=display_name,
+            org_name=org_name.strip(),
+            org_type=org_type or None,
+        )
+    except AuthError as e:
+        return templates.TemplateResponse(
+            request,
+            "register_org.html",
+            {"request": request, "error": str(e), "csrf_token": new_token, "user": None}
+        )
+
+    try:
+        verify_token = start_email_verification(db, user)
+        background_tasks.add_task(email_service.send_email_verification, user.email, user.id, verify_token)
+    except Exception as e:
+        print(f"[Auth] Failed to queue verification email (org): {e}", flush=True)
+
+    request.session["user_id"] = user.id
+
+    return RedirectResponse(url="/billing/plans", status_code=303)
 
 
 # ==========================

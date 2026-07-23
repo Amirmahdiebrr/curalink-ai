@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}ثبت‌نام سازمان | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="cl-auth-split">
+
+    <div class="cl-auth-brand">
+        <div class="cl-auth-brand-inner">
+            <img src="/static/images/robot.png" alt="CuraLink AI" class="cl-auth-robot">
+            <h2>ثبت‌نام سازمانی</h2>
+            <p>برای کلینیک‌ها، آزمایشگاه‌ها و بیمارستان‌هایی که می‌خواهند از تحلیل هوشمند CuraLink برای حجم بالای بیماران استفاده کنند.</p>
+        </div>
+    </div>
+
+    <div class="cl-auth-form-side">
+        <div class="cl-auth-box">
+
+            <img src="/static/images/logo.png" alt="CuraLink AI" class="cl-auth-logo">
+            <h1 class="cl-auth-heading">ثبت‌نام سازمان</h1>
+            <p class="cl-auth-desc">اطلاعات زیر را برای ثبت‌نام تکمیل کنید</p>
+
+            {% if error %}
+            <div class="cl-auth-alert cl-auth-alert-error">{{ error }}</div>
+            {% endif %}
+
+            <form method="post" action="/register/org" class="cl-auth-fields">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <div class="cl-field">
+                    <label for="org_name">نام سازمان</label>
+                    <input type="text" id="org_name" name="org_name" placeholder="مثلاً: آزمایشگاه پاستور" required>
+                </div>
+
+                <div class="cl-field">
+                    <label for="org_type">نوع سازمان</label>
+                    <select id="org_type" name="org_type">
+                        <option value="" selected>— انتخاب کنید —</option>
+                        <option value="clinic">مطب / کلینیک</option>
+                        <option value="lab">آزمایشگاه</option>
+                        <option value="hospital">بیمارستان</option>
+                        <option value="other">سایر</option>
+                    </select>
+                </div>
+
+                <div class="cl-field">
+                    <label for="display_name">نام مسئول / مدیر</label>
+                    <input type="text" id="display_name" name="display_name" placeholder="نام و نام خانوادگی مدیر" required>
+                </div>
+
+                <div class="cl-field">
+                    <label for="email">ایمیل سازمانی</label>
+                    <input type="email" id="email" name="email" placeholder="example@clinic.com" required>
+                </div>
+
+                <div class="cl-field">
+                    <label for="phone">شماره موبایل مدیر</label>
+                    <input type="text" id="phone" name="phone" placeholder="مثلاً: 09121234567" required>
+                </div>
+
+                <div class="cl-field">
+                    <label for="password">رمز عبور</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+
+                <div class="cl-field">
+                    <label for="password_confirm">تکرار رمز عبور</label>
+                    <input type="password" id="password_confirm" name="password_confirm" required>
+                </div>
+
+                <button type="submit" class="cl-auth-submit">ثبت‌نام سازمان</button>
+
+            </form>
+
+            <p class="cl-auth-footer-link">
+                حساب کاربری دارید؟ <a href="/login">وارد شوید</a>
+            </p>
+
+            <p class="cl-auth-footer-link">
+                <a href="/register">بازگشت به انتخاب نوع حساب</a>
+            </p>
+
+        </div>
+    </div>
+
+</section>
+
+{% endblock %}

@@ -1,8 +1,9 @@
 """
 app/routers/payment.py
 
-خرید اشتراک، پرداخت pay-per-use (از طریق سایر روترها آغاز می‌شود)، و
-هندل کردن callback زرین‌پال برای هر دو نوع پرداخت.
+خرید اشتراک، نمایش پلن‌های متناسب با نقش کاربر، پرداخت pay-per-use
+(از طریق سایر روترها آغاز می‌شود)، و هندل کردن callback زرین‌پال برای
+هر دو نوع پرداخت.
 """
 
 from fastapi import APIRouter, Request, Depends
@@ -12,10 +13,11 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.routers.auth import get_current_user
-from app.core.csrf import is_valid_csrf
+from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.limiter import limiter
-from app.models import PURPOSE_SUBSCRIPTION, PURPOSE_EXAM_ANALYSIS, PURPOSE_DIET_PLAN, PURPOSE_VISIT_PREP
+from app.models import Plan, PURPOSE_SUBSCRIPTION, PURPOSE_EXAM_ANALYSIS, PURPOSE_DIET_PLAN, PURPOSE_VISIT_PREP
 from app.services import pending_action_store
+from app.services.billing_service import get_active_subscription
 from app.services.payment_service import (
     start_subscription_purchase,
     finalize_payment,
@@ -26,6 +28,37 @@ from app.services.payment_service import (
 router = APIRouter()
 
 templates = Jinja2Templates(directory="app/templates")
+
+
+@router.get("/billing/plans")
+async def billing_plans_page(request: Request, db: Session = Depends(get_db)):
+
+    user = get_current_user(request, db)
+
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    plans = (
+        db.query(Plan)
+        .filter(Plan.role == user.role, Plan.is_active.is_(True))
+        .order_by(Plan.price)
+        .all()
+    )
+
+    active_subscription = get_active_subscription(db, user.id)
+    csrf_token = get_or_create_csrf_token(request)
+
+    return templates.TemplateResponse(
+        request,
+        "billing_plans.html",
+        {
+            "request": request,
+            "user": user,
+            "plans": plans,
+            "active_subscription": active_subscription,
+            "csrf_token": csrf_token,
+        }
+    )
 
 
 @router.post("/billing/subscribe/{plan_code}")

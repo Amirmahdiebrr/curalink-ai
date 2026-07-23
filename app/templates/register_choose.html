@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}انتخاب نوع حساب | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="cl-auth-split">
+
+    <div class="cl-auth-brand">
+        <div class="cl-auth-brand-inner">
+            <img src="/static/images/robot.png" alt="CuraLink AI" class="cl-auth-robot">
+            <h2>تحلیل هوشمند آزمایشات پزشکی</h2>
+            <p>ابتدا نوع حساب کاربری خود را انتخاب کنید تا بتوانیم امکانات و پلن‌های مناسب شما را نمایش دهیم.</p>
+        </div>
+    </div>
+
+    <div class="cl-auth-form-side">
+        <div class="cl-auth-box">
+
+            <img src="/static/images/logo.png" alt="CuraLink AI" class="cl-auth-logo">
+
+            <h1 class="cl-auth-heading">نوع حساب کاربری خود را انتخاب کنید</h1>
+            <p class="cl-auth-desc">بسته به نوع حساب، فرم ثبت‌نام و پلن‌های اختصاصی متفاوتی به شما نمایش داده می‌شود</p>
+
+            <div class="cl-auth-fields">
+
+                <a href="/register/patient" class="btn btn-solid" style="width:100%; height:64px; font-size:16px;">
+                    👤 بیمار (استفاده‌ی شخصی و خانواده)
+                </a>
+
+                <a href="/register/doctor" class="btn btn-outline" style="width:100%; height:64px; font-size:16px;">
+                    🩺 پزشک
+                </a>
+
+                <a href="/register/org" class="btn btn-outline" style="width:100%; height:64px; font-size:16px;">
+                    🏥 سازمان (کلینیک / آزمایشگاه / بیمارستان)
+                </a>
+
+            </div>
+
+            <p class="cl-auth-footer-link">
+                حساب کاربری دارید؟
+                <a href="/login">وارد شوید</a>
+            </p>
+
+        </div>
+    </div>
+
+</section>
+
+{% endblock %}

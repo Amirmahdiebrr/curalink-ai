@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}پلن‌های اشتراک | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="cl-profile-section">
+    <div class="container">
+
+        <div class="cl-profile-header">
+            <div class="cl-profile-avatar">{{ (user.display_name or "?")[0] }}</div>
+            <div>
+                <h1>پلن‌های اشتراک</h1>
+                <p>
+                    {% if user.role == 'patient' %}پلن‌های ویژه‌ی بیماران
+                    {% elif user.role == 'doctor' %}پلن‌های ویژه‌ی پزشکان
+                    {% elif user.role == 'org_admin' %}پلن‌های ویژه‌ی سازمان‌ها
+                    {% else %}پلن‌های موجود
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        {% if active_subscription %}
+        <div class="cl-auth-alert cl-auth-alert-success" style="text-align:right; line-height:2;">
+            ✅ شما هم‌اکنون یک اشتراک فعال (<strong>{{ active_subscription.plan.name_fa }}</strong>) دارید
+            که تا تاریخ {{ active_subscription.expires_at.strftime("%Y-%m-%d") }} معتبر است.
+        </div>
+        {% endif %}
+
+        {% if plans|length == 0 %}
+
+        <div class="cl-history-empty">
+            <p>در حال حاضر پلنی برای نوع حساب شما تعریف نشده است.</p>
+        </div>
+
+        {% else %}
+
+        <div class="cl-trends-grid">
+            {% for plan in plans %}
+            <div class="cl-profile-card">
+                <h3 class="cl-profile-card-title">{{ plan.name_fa }}</h3>
+                <p class="cl-profile-card-sub">
+                    {{ "{:,}".format(plan.price) }} تومان
+                    /
+                    {% if plan.billing_period_days == 7 %}هفتگی{% elif plan.billing_period_days == 30 %}ماهانه{% else %}{{ plan.billing_period_days }} روزه{% endif %}
+                </p>
+
+                {% if plan.usage_limit %}
+                <p class="cl-info-note">سقف استفاده: {{ plan.usage_limit }} تحلیل در دوره</p>
+                {% else %}
+                <p class="cl-info-note">استفاده نامحدود در دوره</p>
+                {% endif %}
+
+                <form method="post" action="/billing/subscribe/{{ plan.code }}" style="margin-top:18px;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="cl-auth-submit">خرید این پلن</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% endif %}
+
+    </div>
+</section>
+
+{% endblock %}

@@ -1,60 +1,107 @@
 """
 app/services/job_store.py
 
-Simple in-memory job store for tracking background analysis jobs
-(status, stage, result, errors) keyed by job_id.
+Persistent (DB-backed) job tracking برای job های تحلیل آزمایش در
+پس‌زمینه (status، stage، result، error)، کلید = job_id.
+
+قبلاً این یک دیکشنری در-حافظه‌ی پروسه بود؛ با چند worker یا ری‌استارت
+سرور، وقتی کاربر /status/{job_id} را poll می‌کرد به یک worker دیگر
+می‌رسید که اصلاً این job را نداشت و 404 می‌گرفت. حالا در جدول jobs
+دیتابیس ذخیره می‌شود که بین همه‌ی worker ها مشترک است.
 """
 
-import uuid
-import time
-import threading
+import json
+from datetime import datetime, timedelta
 
-_jobs: dict[str, dict] = {}
-_lock = threading.Lock()
+from app.database import SessionLocal
+from app.models import JobRecord
 
 JOB_MAX_AGE_SECONDS = 60 * 60 * 2  # ۲ ساعت
 
 
 def create_job(exam_type: str | None, user_id: int | None = None) -> str:
+    import uuid
     job_id = uuid.uuid4().hex
 
-    with _lock:
-        _jobs[job_id] = {
-            "job_id": job_id,
-            "exam_type": exam_type,
-            "user_id": user_id,
-            "status": "pending",
-            "stage": "pending",
-            "result": None,
-            "error": None,
-            "created_at": time.time(),
-        }
+    db = SessionLocal()
+    try:
+        record = JobRecord(
+            job_id=job_id,
+            exam_type=exam_type,
+            user_id=user_id,
+            status="pending",
+            stage="pending",
+            result_json=None,
+            error=None,
+        )
+        db.add(record)
+        db.commit()
+    finally:
+        db.close()
 
     return job_id
 
 
 def update_job(job_id: str, **kwargs):
-    with _lock:
-        job = _jobs.get(job_id)
-        if job is None:
+    db = SessionLocal()
+    try:
+        record = db.query(JobRecord).filter(JobRecord.job_id == job_id).first()
+
+        if record is None:
             return
-        job.update(kwargs)
+
+        if "result" in kwargs:
+            result_value = kwargs.pop("result")
+            record.result_json = (
+                json.dumps(result_value, ensure_ascii=False) if result_value is not None else None
+            )
+
+        for key, value in kwargs.items():
+            setattr(record, key, value)
+
+        record.updated_at = datetime.utcnow()
+
+        db.commit()
+    finally:
+        db.close()
 
 
 def get_job(job_id: str) -> dict | None:
-    with _lock:
-        return _jobs.get(job_id)
+    db = SessionLocal()
+    try:
+        record = db.query(JobRecord).filter(JobRecord.job_id == job_id).first()
+
+        if record is None:
+            return None
+
+        return {
+            "job_id": record.job_id,
+            "exam_type": record.exam_type,
+            "user_id": record.user_id,
+            "status": record.status,
+            "stage": record.stage,
+            "result": json.loads(record.result_json) if record.result_json else None,
+            "error": record.error,
+        }
+    finally:
+        db.close()
 
 
 def purge_old_jobs():
-    now = time.time()
-    with _lock:
-        expired = [
-            jid for jid, job in _jobs.items()
-            if now - job.get("created_at", now) > JOB_MAX_AGE_SECONDS
-        ]
-        for jid in expired:
-            del _jobs[jid]
+    cutoff = datetime.utcnow() - timedelta(seconds=JOB_MAX_AGE_SECONDS)
 
-    if expired:
-        print(f"[JobStore] Purged {len(expired)} expired job(s)", flush=True)
+    db = SessionLocal()
+    count = 0
+    try:
+        expired = db.query(JobRecord).filter(JobRecord.created_at < cutoff).all()
+        count = len(expired)
+
+        for record in expired:
+            db.delete(record)
+
+        db.commit()
+    finally:
+        db.close()
+
+    if count:
+        print(f"[JobStore] Purged {count} expired job(s)", flush=True)

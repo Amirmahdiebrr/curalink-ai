@@ -3,6 +3,7 @@ app/routers/analyze.py
 """
 
 import asyncio
+import base64
 import traceback
 
 from fastapi import APIRouter, UploadFile, File, Form, Request, Depends
@@ -31,6 +32,19 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 service = ReportService()
+
+
+def _encode_file_data(file_data: list[tuple[bytes, str]]) -> list[list[str]]:
+    """
+    بایت خام فایل‌ها را به base64 تبدیل می‌کند تا payload به‌صورت
+    JSON-safe باشد؛ چه برای job در حال اجرا، چه برای صف انتظار
+    پرداخت که در دیتابیس پرسیست می‌شود.
+    """
+    return [[base64.b64encode(content).decode("ascii"), filename] for content, filename in file_data]
+
+
+def _decode_file_data(encoded_file_data: list) -> list[tuple[bytes, str]]:
+    return [(base64.b64decode(item[0]), item[1]) for item in encoded_file_data]
 
 
 async def run_job(
@@ -94,12 +108,18 @@ async def start_background_job(payload: dict) -> str:
     یک job جدید می‌سازد و پردازش را به‌صورت asyncio task شروع می‌کند.
     هم از روت /analyze (مسیر رایگان) و هم از payment_service (بعد از
     پرداخت موفق pay-per-use) صدا زده می‌شود.
+
+    payload["file_data"] همیشه لیستی از [base64_string, filename] است
+    (نه بایت خام)، چون ممکن است این payload از pending_action_store
+    (که در دیتابیس ذخیره می‌شود) بازخوانی شده باشد.
     """
     job_id = create_job(payload.get("exam_type"), user_id=payload.get("user_id"))
 
+    decoded_file_data = _decode_file_data(payload["file_data"])
+
     asyncio.create_task(run_job(
         job_id,
-        payload["file_data"],
+        decoded_file_data,
         payload.get("exam_type"),
         payload.get("symptoms"),
         payload.get("patient_age"),
@@ -194,6 +214,8 @@ async def analyze(
 
         file_data.append((content, uploaded_file.filename))
 
+    encoded_file_data = _encode_file_data(file_data)
+
     pricing_exam_type = exam_type if exam_type in VALID_EXAM_TYPES else "other"
 
     try:
@@ -202,7 +224,7 @@ async def analyze(
         return JSONResponse({"error": str(e)}, status_code=500)
 
     payload = {
-        "file_data": file_data,
+        "file_data": encoded_file_data,
         "exam_type": exam_type,
         "symptoms": symptoms,
         "patient_age": patient_age,

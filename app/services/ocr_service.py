@@ -6,6 +6,8 @@ medical document files (PDF or image: PNG/JPG/HEIC/HEIF) so the
 extracted text can be passed to the AI for medical interpretation.
 """
 
+import os
+import shutil
 from pathlib import Path
 
 import pytesseract
@@ -16,7 +18,36 @@ import fitz
 
 from app.core.constants import MAX_PDF_PAGES
 
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# ==========================
+# مسیر Tesseract
+#
+# قبلاً این مسیر هاردکد شده بود روی ویندوز:
+#   pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# که باعث می‌شد روی لینوکس/Docker (production) کل OCR بشکنه.
+#
+# منطق جدید:
+# 1) اگه TESSERACT_CMD در .env ست شده بود، همون استفاده می‌شه (برای
+#    هر سیستم‌عاملی، از جمله ویندوز در محیط توسعه).
+# 2) در غیر این صورت، مسیر پیش‌فرض سیستم (PATH) استفاده می‌شه که
+#    روی لینوکس/Docker معمولاً همون "tesseract" کافیه.
+# ==========================
+
+_TESSERACT_CMD_OVERRIDE = os.getenv("TESSERACT_CMD")
+
+if _TESSERACT_CMD_OVERRIDE:
+    pytesseract.pytesseract.tesseract_cmd = _TESSERACT_CMD_OVERRIDE
+    print(f"[OCRService] Using TESSERACT_CMD from env: {_TESSERACT_CMD_OVERRIDE}", flush=True)
+elif shutil.which("tesseract"):
+    # از PATH پیدا شد (حالت معمول در لینوکس/Docker)
+    print("[OCRService] Using system 'tesseract' found in PATH.", flush=True)
+else:
+    print(
+        "⚠️  [OCRService] دستور 'tesseract' در PATH سیستم پیدا نشد و "
+        "TESSERACT_CMD هم در .env تنظیم نشده است. OCR تصویری (برای "
+        "تصاویر یا PDFهای اسکن‌شده) کار نخواهد کرد تا زمانی که "
+        "Tesseract نصب شود یا مسیر آن در .env مشخص شود.",
+        flush=True
+    )
 
 pillow_heif.register_heif_opener()
 
@@ -83,6 +114,8 @@ class OCRService:
 
                 if page_text and page_text.strip():
                     pages_text.append(page_text.strip())
+        except Exception as e:
+            raise OCRServiceError(f"OCR تصویری روی PDF ناموفق بود (Tesseract نصب/در دسترس است؟): {e}")
         finally:
             doc.close()
 
@@ -103,7 +136,7 @@ class OCRService:
         try:
             text = pytesseract.image_to_string(image, lang="fas+eng")
         except Exception as e:
-            raise OCRServiceError(f"OCR روی تصویر ناموفق بود: {e}")
+            raise OCRServiceError(f"OCR روی تصویر ناموفق بود (Tesseract نصب/در دسترس است؟): {e}")
 
         cleaned = (text or "").strip()
 

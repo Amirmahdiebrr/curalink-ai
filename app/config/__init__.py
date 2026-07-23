@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 import os
+import sys
 import secrets
 from pathlib import Path
 
@@ -28,21 +29,75 @@ if NVIDIA_API_KEY:
 else:
     print("❌ NVIDIA API KEY missing")
 
+# ==========================
+# آدرس پایه سایت - باید قبل از چک production تعریف بشه
+# ==========================
+
+APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:8000")
+
+IS_PRODUCTION = APP_BASE_URL.startswith("https://")
+
+# ==========================
+# SESSION_SECRET_KEY و ENCRYPTION_KEY
+#
+# در production (یعنی APP_BASE_URL با https شروع بشه) این دو کلید
+# باید حتماً در .env ست شده باشن. اگه ست نشده باشن و چند worker
+# یا ری‌استارت داشته باشی:
+#   - SESSION_SECRET_KEY رندوم -> همه‌ی کاربرها logout می‌شن /
+#     بین worker های مختلف سشن معتبر نیست
+#   - ENCRYPTION_KEY رندوم -> داده‌های رمزنگاری‌شده‌ی قبلی
+#     (ocr_text, analysis_text, national_id و...) غیرقابل‌بازیابی
+#     و به‌صورت متن نامفهوم به کاربر نمایش داده می‌شن
+#
+# بنابراین در production این دو رو اجباری می‌کنیم (fail-fast) تا
+# اپ اصلاً بالا نیاد به‌جای اینکه بی‌سروصدا دیتا خراب کنه.
+# در حالت development (localhost) همچنان کلید موقت تولید می‌شه
+# تا کار توسعه راحت بمونه.
+# ==========================
+
 SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY")
 
 if not SESSION_SECRET_KEY:
-    SESSION_SECRET_KEY = secrets.token_hex(32)
-    print("⚠️  SESSION_SECRET_KEY not set in .env — using a temporary random key (sessions will reset on restart).")
+    if IS_PRODUCTION:
+        print(
+            "❌ FATAL: SESSION_SECRET_KEY در .env تنظیم نشده است. "
+            "در محیط Production این مقدار اجباری است چون در نبود آن، "
+            "با هر ری‌استارت یا هر worker جدید، سشن کاربران نامعتبر "
+            "می‌شود. اپلیکیشن متوقف شد.",
+            flush=True
+        )
+        sys.exit(1)
+    else:
+        SESSION_SECRET_KEY = secrets.token_hex(32)
+        print(
+            "⚠️  SESSION_SECRET_KEY تنظیم نشده — از یک کلید موقت تصادفی "
+            "استفاده می‌شود (فقط برای محیط توسعه). سشن‌ها با ری‌استارت "
+            "سرور از بین می‌روند.",
+            flush=True
+        )
 
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
 
 if not ENCRYPTION_KEY:
-    ENCRYPTION_KEY = Fernet.generate_key().decode("utf-8")
-    print(
-        "⚠️  ENCRYPTION_KEY not set in .env — using a temporary random key. "
-        "Previously-encrypted fields (like national_id) will become UNREADABLE after restart. "
-        "Set a persistent ENCRYPTION_KEY in .env for production."
-    )
+    if IS_PRODUCTION:
+        print(
+            "❌ FATAL: ENCRYPTION_KEY در .env تنظیم نشده است. "
+            "در محیط Production این مقدار اجباری است چون در نبود آن، "
+            "با هر ری‌استارت، تمام داده‌های رمزنگاری‌شده‌ی قبلی "
+            "(نتایج آزمایش، کد ملی و...) غیرقابل‌بازیابی می‌شوند و "
+            "به‌صورت متن نامفهوم به کاربر نمایش داده می‌شوند. "
+            "اپلیکیشن متوقف شد.",
+            flush=True
+        )
+        sys.exit(1)
+    else:
+        ENCRYPTION_KEY = Fernet.generate_key().decode("utf-8")
+        print(
+            "⚠️  ENCRYPTION_KEY تنظیم نشده — از یک کلید موقت تصادفی "
+            "استفاده می‌شود (فقط برای محیط توسعه). داده‌های رمزنگاری‌شده "
+            "با ری‌استارت سرور غیرقابل‌بازیابی می‌شوند.",
+            flush=True
+        )
 else:
     ENCRYPTION_KEY = ENCRYPTION_KEY.encode("utf-8")
 
@@ -54,14 +109,12 @@ else:
 # Set to a real provider key (e.g. "kavenegar") once a panel is purchased
 # and implemented in app/services/sms_service.py.
 SMS_PROVIDER = os.getenv("SMS_PROVIDER", "console")
+
 # ==========================
 # Email Settings
 # ==========================
 
 EMAIL_PROVIDER = os.getenv("EMAIL_PROVIDER", "console")
-
-# آدرس پایه‌ی سایت، برای ساخت لینک‌های تایید ایمیل / بازیابی رمز
-APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:8000")
 
 # ==========================
 # Doctor license uploads
@@ -69,6 +122,7 @@ APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:8000")
 
 DOCTOR_DOCS_MAX_SIZE_MB = 10
 DOCTOR_DOCS_ALLOWED_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg"]
+
 # ==========================
 # Zarinpal payment gateway
 # ==========================
