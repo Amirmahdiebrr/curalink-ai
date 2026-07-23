@@ -1,10 +1,11 @@
 """
 app/services/payment_service.py
 
-Bridges billing_service (what things cost, subscription state) and
-zarinpal_service (the actual gateway calls) with the Payment table.
-Handles creating a pending payment + redirect URL, and finalizing a
-payment after the user returns from the gateway.
+Bridges billing_service + zarinpal_service با جدول Payment. علاوه بر
+خرید اشتراک، پرداخت pay-per-use برای تحلیل آزمایش/برنامه‌غذایی/
+آماده‌سازی ویزیت را هم مدیریت می‌کند: قبل از ریدایرکت به درگاه، داده‌ی
+لازم برای انجام واقعی کار در pending_action_store ذخیره می‌شود و بعد
+از verify موفق، همان کار واقعاً اجرا می‌شود.
 """
 
 from datetime import datetime
@@ -14,9 +15,10 @@ from sqlalchemy.orm import Session
 from app.models import (
     Payment, Plan, User,
     PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_FAILED,
-    PURPOSE_SUBSCRIPTION,
+    PURPOSE_SUBSCRIPTION, PURPOSE_EXAM_ANALYSIS, PURPOSE_DIET_PLAN, PURPOSE_VISIT_PREP,
 )
 from app.services import zarinpal_service
+from app.services import pending_action_store
 from app.services.zarinpal_service import ZarinpalError
 from app.services.billing_service import create_subscription, get_plan_by_code
 from app.config import APP_BASE_URL
@@ -34,13 +36,6 @@ async def start_payment(
     description: str,
     reference_id: int | None = None,
 ) -> dict:
-    """
-    یک رکورد Payment در وضعیت pending می‌سازد و از زرین‌پال لینک
-    پرداخت می‌گیرد. reference_id بسته به purpose معنا دارد (مثلاً
-    برای PURPOSE_SUBSCRIPTION، شناسه‌ی Plan است).
-
-    Returns: {"payment_id": int, "payment_url": str}
-    """
 
     payment = Payment(
         user_id=user.id,
@@ -75,9 +70,6 @@ async def start_payment(
 
 
 async def start_subscription_purchase(db: Session, user: User, plan_code: str) -> dict:
-    """
-    خرید یک پلن اشتراکی (بیمار/پزشک/سازمان) را آغاز می‌کند.
-    """
     plan = get_plan_by_code(db, plan_code)
 
     if not plan:
@@ -96,13 +88,25 @@ async def start_subscription_purchase(db: Session, user: User, plan_code: str) -
     )
 
 
+async def start_service_payment(
+    db: Session,
+    user: User,
+    purpose: str,
+    amount: int,
+    description: str,
+    pending_data: dict,
+) -> dict:
+    """
+    شروع پرداخت pay-per-use. pending_data باید دقیقاً همان کلیدهایی را
+    داشته باشد که تابع اجرای واقعی آن سرویس (start_background_job /
+    generate_and_save_diet_plan / generate_and_save_visit_prep) انتظار دارد.
+    """
+    result = await start_payment(db, user=user, purpose=purpose, amount=amount, description=description)
+    pending_action_store.save(result["payment_id"], pending_data)
+    return result
+
+
 async def finalize_payment(db: Session, payment_id: int, authority: str) -> Payment:
-    """
-    بعد از برگشت کاربر از درگاه، پرداخت را verify می‌کند و در صورت
-    موفقیت، اکشن مناسب (مثلاً فعال‌سازی اشتراک) را انجام می‌دهد.
-    این تابع idempotent است: اگر پرداخت قبلاً paid شده باشد، دوباره
-    اکشن تکراری انجام نمی‌دهد.
-    """
 
     payment = db.query(Payment).filter(Payment.id == payment_id).first()
 
@@ -113,7 +117,6 @@ async def finalize_payment(db: Session, payment_id: int, authority: str) -> Paym
         raise PaymentError("Authority ارسال‌شده با پرداخت مطابقت ندارد.")
 
     if payment.status == PAYMENT_PAID:
-        # قبلاً پردازش شده (مثلاً کاربر صفحه را رفرش کرده)؛ کاری نکن.
         return payment
 
     try:
@@ -136,18 +139,12 @@ async def finalize_payment(db: Session, payment_id: int, authority: str) -> Paym
     payment.paid_at = datetime.utcnow()
     db.commit()
 
-    _apply_payment_effect(db, payment)
+    await _apply_payment_effect(db, payment)
 
     return payment
 
 
-def _apply_payment_effect(db: Session, payment: Payment) -> None:
-    """
-    بر اساس purpose پرداخت، اکشن نهایی را انجام می‌دهد. فعلاً فقط
-    PURPOSE_SUBSCRIPTION پیاده‌سازی شده؛ purpose های دیگر (تحلیل
-    آزمایش/برنامه‌غذایی/ویزیت‌پرپ/بررسی پزشک) در گام بعدی که این
-    سرویس را به روترهای مربوطه وصل می‌کنیم اضافه می‌شوند.
-    """
+async def _apply_payment_effect(db: Session, payment: Payment) -> None:
 
     if payment.purpose == PURPOSE_SUBSCRIPTION:
         plan = db.query(Plan).filter(Plan.id == payment.reference_id).first()
@@ -156,6 +153,36 @@ def _apply_payment_effect(db: Session, payment: Payment) -> None:
             print(f"[Payment] Subscription activated: user_id={payment.user_id}, plan={plan.code}", flush=True)
         else:
             print(f"[Payment] WARNING: plan not found for payment_id={payment.id}", flush=True)
+        return
 
-    # سایر purpose ها (exam_analysis, diet_plan, visit_prep, doctor_review)
-    # بعداً اینجا اضافه می‌شوند.
+    action = pending_action_store.get(payment.id)
+
+    if not action:
+        print(f"[Payment] WARNING: no pending action found for payment_id={payment.id}", flush=True)
+        return
+
+    try:
+        if payment.purpose == PURPOSE_EXAM_ANALYSIS:
+            from app.routers.analyze import start_background_job
+            job_id = await start_background_job(action["data"])
+            pending_action_store.update(payment.id, result_type="job", result_id=job_id)
+            print(f"[Payment] Exam analysis job started: payment_id={payment.id}, job_id={job_id}", flush=True)
+
+        elif payment.purpose == PURPOSE_DIET_PLAN:
+            from app.routers.diet import generate_and_save_diet_plan
+            record = await generate_and_save_diet_plan(db, **action["data"])
+            pending_action_store.update(payment.id, result_type="diet_record", result_id=record.id)
+            print(f"[Payment] Diet plan generated: payment_id={payment.id}, record_id={record.id}", flush=True)
+
+        elif payment.purpose == PURPOSE_VISIT_PREP:
+            from app.routers.visit_prep import generate_and_save_visit_prep
+            record = await generate_and_save_visit_prep(db, **action["data"])
+            pending_action_store.update(payment.id, result_type="visit_prep_record", result_id=record.id)
+            print(f"[Payment] Visit-prep summary generated: payment_id={payment.id}, record_id={record.id}", flush=True)
+
+        else:
+            print(f"[Payment] WARNING: unknown purpose '{payment.purpose}' for payment_id={payment.id}", flush=True)
+
+    except Exception as e:
+        print(f"[Payment] Failed to apply effect for payment_id={payment.id}: {e}", flush=True)
+        pending_action_store.update(payment.id, error=str(e))

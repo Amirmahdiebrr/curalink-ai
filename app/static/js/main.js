@@ -108,7 +108,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const data = await res.json();
 
-                window.location.href = `/processing/${data.job_id}`;
+                if (data.payment_required && data.payment_url) {
+                    window.location.href = data.payment_url;
+                    return;
+                }
+
+                if (data.job_id) {
+                    window.location.href = `/processing/${data.job_id}`;
+                    return;
+                }
+
+                throw new Error("Unexpected response");
 
             } catch (err) {
                 if (submitBtn) {

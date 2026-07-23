@@ -27,6 +27,7 @@ from app.routers.diet import router as diet_router
 from app.routers.visit_prep import router as visit_prep_router
 
 from app.services.job_store import purge_old_jobs
+from app.services import pending_action_store
 from app.services.reminder_service import ReminderService
 from app.routers.admin import router as admin_router
 
@@ -75,6 +76,7 @@ app.include_router(visit_prep_router)
 app.include_router(admin_router)
 app.include_router(payment_router)
 
+
 async def _job_cleanup_loop():
     while True:
         await asyncio.sleep(JOB_CLEANUP_INTERVAL_SECONDS)
@@ -82,6 +84,10 @@ async def _job_cleanup_loop():
             purge_old_jobs()
         except Exception as e:
             print(f"[JobStore] Cleanup loop error: {e}", flush=True)
+        try:
+            pending_action_store.purge_old()
+        except Exception as e:
+            print(f"[PendingActionStore] Cleanup loop error: {e}", flush=True)
 
 
 async def _reminder_check_loop():

@@ -1,6 +1,11 @@
+"""
+app/routers/analyze.py
+"""
+
+import asyncio
 import traceback
 
-from fastapi import APIRouter, UploadFile, File, Form, Request, BackgroundTasks, Depends
+from fastapi import APIRouter, UploadFile, File, Form, Request, Depends
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -15,6 +20,10 @@ from app.routers.auth import get_current_user
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.limiter import limiter
 from app.core.constants import MAX_FILES_PER_REQUEST, MAX_TOTAL_UPLOAD_SIZE_MB
+from app.core.exam_types import EXAM_TYPE_LABELS, VALID_EXAM_TYPES
+from app.models import PURPOSE_EXAM_ANALYSIS
+from app.services.billing_service import check_exam_access, increment_organization_usage, BillingError
+from app.services.payment_service import start_service_payment, PaymentError
 
 
 router = APIRouter()
@@ -80,6 +89,28 @@ async def run_job(
         update_job(job_id, status="error", stage="error", error=str(e))
 
 
+async def start_background_job(payload: dict) -> str:
+    """
+    یک job جدید می‌سازد و پردازش را به‌صورت asyncio task شروع می‌کند.
+    هم از روت /analyze (مسیر رایگان) و هم از payment_service (بعد از
+    پرداخت موفق pay-per-use) صدا زده می‌شود.
+    """
+    job_id = create_job(payload.get("exam_type"), user_id=payload.get("user_id"))
+
+    asyncio.create_task(run_job(
+        job_id,
+        payload["file_data"],
+        payload.get("exam_type"),
+        payload.get("symptoms"),
+        payload.get("patient_age"),
+        payload.get("patient_gender"),
+        payload.get("user_id"),
+        payload.get("family_member_id"),
+    ))
+
+    return job_id
+
+
 def _job_belongs_to_user(job: dict, user_id: int | None) -> bool:
     if not user_id:
         return False
@@ -90,7 +121,6 @@ def _job_belongs_to_user(job: dict, user_id: int | None) -> bool:
 @limiter.limit("10/hour")
 async def analyze(
     request: Request,
-    background_tasks: BackgroundTasks,
     files: list[UploadFile] = File(...),
     exam_type: str = Form(None),
     symptoms: str = Form(None),
@@ -164,13 +194,44 @@ async def analyze(
 
         file_data.append((content, uploaded_file.filename))
 
-    job_id = create_job(exam_type, user_id=user_id)
+    pricing_exam_type = exam_type if exam_type in VALID_EXAM_TYPES else "other"
 
-    background_tasks.add_task(
-        run_job, job_id, file_data, exam_type, symptoms, patient_age, patient_gender, user_id, resolved_family_member_id
-    )
+    try:
+        access = check_exam_access(db, user_id, pricing_exam_type)
+    except BillingError as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
-    return JSONResponse({"job_id": job_id})
+    payload = {
+        "file_data": file_data,
+        "exam_type": exam_type,
+        "symptoms": symptoms,
+        "patient_age": patient_age,
+        "patient_gender": patient_gender,
+        "user_id": user_id,
+        "family_member_id": resolved_family_member_id,
+    }
+
+    if access["free"]:
+        if access.get("org_covered") and access.get("org_user_id"):
+            increment_organization_usage(db, access["org_user_id"])
+
+        job_id = await start_background_job(payload)
+
+        return JSONResponse({"job_id": job_id})
+
+    try:
+        payment_result = await start_service_payment(
+            db,
+            current_user,
+            PURPOSE_EXAM_ANALYSIS,
+            access["price"],
+            f"تحلیل آزمایش ({EXAM_TYPE_LABELS.get(pricing_exam_type, pricing_exam_type)})",
+            payload,
+        )
+    except PaymentError as e:
+        return JSONResponse({"error": f"اتصال به درگاه پرداخت برقرار نشد: {e}"}, status_code=400)
+
+    return JSONResponse({"payment_required": True, "payment_url": payment_result["payment_url"]})
 
 
 @router.get("/status/{job_id}")

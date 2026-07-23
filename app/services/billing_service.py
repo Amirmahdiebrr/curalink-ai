@@ -2,10 +2,7 @@
 app/services/billing_service.py
 
 Core billing logic: service pricing lookup, subscription status
-checks, weekly usage caps, and organization quota tracking. This
-module contains NO payment gateway code (see zarinpal_service.py,
-built in the next step) — it only answers "is this user allowed to
-use X right now for free, and if not, how much do they need to pay?"
+checks, weekly usage caps, and organization quota tracking.
 """
 
 from datetime import datetime, timedelta
@@ -22,8 +19,6 @@ from app.models import (
 )
 
 
-# سقف تعداد برنامه‌ی غذایی رایگان در هفته برای مشترکین (هفتگی/ماهانه).
-# کاربرانی که pay-per-use پرداخت می‌کنند مشمول این سقف نیستند.
 DIET_PLAN_WEEKLY_CAP_FOR_SUBSCRIBERS = 4
 
 PATIENT_SUBSCRIPTION_CODES = ("patient_weekly", "patient_monthly")
@@ -70,11 +65,6 @@ def get_plan_by_code(db: Session, code: str) -> Plan | None:
 # ==========================
 
 def _expire_stale_subscriptions(db: Session, user_id: int):
-    """
-    اشتراک‌های منقضی‌شده (expires_at گذشته) که هنوز status=active
-    مانده‌اند را به‌روزرسانی می‌کند. قبل از هر چک دسترسی صدا زده
-    می‌شود تا هیچ‌وقت یک اشتراک تمام‌شده به‌اشتباه فعال به‌حساب نیاید.
-    """
     now = datetime.utcnow()
 
     stale = (
@@ -125,11 +115,6 @@ def org_has_active_subscription(db: Session, org_user_id: int) -> Subscription |
 
 
 def create_subscription(db: Session, user_id: int, plan: Plan) -> Subscription:
-    """
-    یک اشتراک جدید فعال می‌سازد. اگر اشتراک فعالِ قبلیِ همان نقش
-    وجود داشته باشد، آن را cancel می‌کند (یک کاربر در آن واحد فقط یک
-    اشتراک فعال از یک دسته دارد).
-    """
     now = datetime.utcnow()
 
     existing_active = get_active_subscription(db, user_id)
@@ -153,22 +138,60 @@ def create_subscription(db: Session, user_id: int, plan: Plan) -> Subscription:
 
 
 # ==========================
-# Patient: exam analysis / visit-prep access
-#
-# این دو مورد برای بیمار مشترک همیشه نامحدود و رایگانند (بدون سقف
-# هفتگی)؛ فقط برنامه‌ی غذایی سقف جدا دارد (پایین‌تر).
+# Patient: exam analysis access (شخصی یا از طریق سازمان)
 # ==========================
 
 def patient_can_use_free(db: Session, user_id: int) -> bool:
-    """
-    آیا این بیمار یک اشتراک فعال (هفتگی/ماهانه) دارد که تحلیل آزمایش
-    و آماده‌سازی ویزیت را برایش رایگان می‌کند؟
-    """
     return patient_has_active_subscription(db, user_id) is not None
 
 
+def check_exam_access(db: Session, user_id: int, exam_type: str) -> dict:
+    """
+    خروجی:
+    {
+        "free": bool,
+        "requires_payment": bool,
+        "price": int | None,
+        "reason": str,
+        "org_covered": bool,
+        "org_user_id": int | None,
+    }
+    """
+    if patient_has_active_subscription(db, user_id):
+        return {
+            "free": True, "requires_payment": False, "price": None,
+            "reason": "covered_by_subscription", "org_covered": False, "org_user_id": None,
+        }
+
+    org_user_id = get_organization_for_member(db, user_id)
+
+    if org_user_id:
+        quota = check_organization_quota(db, org_user_id)
+
+        if quota["has_active_plan"] and (quota["remaining"] is None or quota["remaining"] > 0):
+            return {
+                "free": True, "requires_payment": False, "price": None,
+                "reason": "covered_by_organization", "org_covered": True, "org_user_id": org_user_id,
+            }
+
+    price = get_service_price(db, exam_type)
+
+    return {
+        "free": False, "requires_payment": True, "price": price,
+        "reason": "no_active_subscription", "org_covered": False, "org_user_id": None,
+    }
+
+
+def check_visit_prep_access(db: Session, user_id: int) -> dict:
+    if patient_has_active_subscription(db, user_id):
+        return {"free": True, "requires_payment": False, "price": None, "reason": "covered_by_subscription"}
+
+    price = get_service_price(db, "visit_prep")
+    return {"free": False, "requires_payment": True, "price": price, "reason": "no_active_subscription"}
+
+
 # ==========================
-# Patient: diet plan access (has its own weekly cap for subscribers)
+# Patient: diet plan access (سقف هفتگی جدا)
 # ==========================
 
 def _diet_plans_used_this_week(db: Session, user_id: int) -> int:
@@ -185,18 +208,6 @@ def _diet_plans_used_this_week(db: Session, user_id: int) -> int:
 
 
 def check_diet_plan_access(db: Session, user_id: int) -> dict:
-    """
-    بررسی می‌کند این کاربر می‌تواند برنامه‌ی غذایی رایگان (از طریق
-    اشتراک) بگیرد یا باید pay-per-use پرداخت کند.
-
-    خروجی:
-    {
-        "free": bool,           # اگر True، رایگان از طریق اشتراک مجاز است
-        "requires_payment": bool,
-        "price": int | None,    # فقط اگر requires_payment باشد
-        "reason": str,
-    }
-    """
     subscription = patient_has_active_subscription(db, user_id)
 
     if subscription:
@@ -205,9 +216,6 @@ def check_diet_plan_access(db: Session, user_id: int) -> dict:
         if used < DIET_PLAN_WEEKLY_CAP_FOR_SUBSCRIBERS:
             return {"free": True, "requires_payment": False, "price": None, "reason": "covered_by_subscription"}
 
-        # سقف رایگان این هفته پر شده؛ کاربر می‌تواند با پرداخت جداگانه
-        # (pay-per-use) باز هم برنامه بگیرد — سقفی برای pay-per-use
-        # وجود ندارد (طبق تصمیم گرفته‌شده).
         price = get_service_price(db, "diet_plan")
         return {
             "free": False,
@@ -225,10 +233,6 @@ def check_diet_plan_access(db: Session, user_id: int) -> dict:
 # ==========================
 
 def get_organization_for_member(db: Session, member_user_id: int) -> int | None:
-    """
-    اگر این کاربر پرسنل زیرمجموعه‌ی یک سازمان باشد، user_id سازمان
-    (org_admin) را برمی‌گرداند؛ در غیر این صورت None.
-    """
     link = (
         db.query(OrganizationMember)
         .filter(OrganizationMember.member_user_id == member_user_id)
@@ -238,16 +242,6 @@ def get_organization_for_member(db: Session, member_user_id: int) -> int | None:
 
 
 def check_organization_quota(db: Session, org_user_id: int) -> dict:
-    """
-    وضعیت سهمیه‌ی ماهانه‌ی سازمان را برمی‌گرداند.
-    خروجی:
-    {
-        "has_active_plan": bool,
-        "limit": int | None,
-        "used": int,
-        "remaining": int | None,
-    }
-    """
     subscription = org_has_active_subscription(db, org_user_id)
 
     if not subscription:
@@ -278,8 +272,4 @@ def increment_organization_usage(db: Session, org_user_id: int) -> None:
 # ==========================
 
 def patient_review_is_free(db: Session, patient_user_id: int) -> bool:
-    """
-    اگر بیمار اشتراک فعال دارد، درخواست بررسی پزشک برایش رایگان است
-    (هزینه‌ی پزشک را خود پلتفرم از جیب خودش می‌پردازد).
-    """
     return patient_has_active_subscription(db, patient_user_id) is not None

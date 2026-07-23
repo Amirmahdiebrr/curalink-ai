@@ -1,8 +1,8 @@
 """
 app/routers/payment.py
 
-Routes for purchasing a subscription plan and handling the Zarinpal
-callback after the user returns from the gateway.
+خرید اشتراک، پرداخت pay-per-use (از طریق سایر روترها آغاز می‌شود)، و
+هندل کردن callback زرین‌پال برای هر دو نوع پرداخت.
 """
 
 from fastapi import APIRouter, Request, Depends
@@ -14,6 +14,8 @@ from app.database import get_db
 from app.routers.auth import get_current_user
 from app.core.csrf import is_valid_csrf
 from app.core.limiter import limiter
+from app.models import PURPOSE_SUBSCRIPTION, PURPOSE_EXAM_ANALYSIS, PURPOSE_DIET_PLAN, PURPOSE_VISIT_PREP
+from app.services import pending_action_store
 from app.services.payment_service import (
     start_subscription_purchase,
     finalize_payment,
@@ -31,7 +33,6 @@ templates = Jinja2Templates(directory="app/templates")
 async def subscribe_to_plan(
     plan_code: str,
     request: Request,
-    csrf_token: str = None,
     db: Session = Depends(get_db),
 ):
     user = get_current_user(request, db)
@@ -39,7 +40,6 @@ async def subscribe_to_plan(
     if not user:
         return RedirectResponse(url="/login", status_code=303)
 
-    # این روت با فرم POST معمولی صدا زده می‌شود؛ csrf_token از فرم می‌آید
     form = await request.form()
     submitted_csrf = form.get("csrf_token")
 
@@ -72,10 +72,6 @@ async def payment_callback(
     Status: str = None,
     db: Session = Depends(get_db),
 ):
-    """
-    زرین‌پال کاربر را با کوئری‌پارامترهای Authority و Status
-    (OK یا NOK) به این آدرس برمی‌گرداند.
-    """
 
     user = get_current_user(request, db)
 
@@ -97,12 +93,43 @@ async def payment_callback(
             status_code=400,
         )
 
+    if payment.purpose == PURPOSE_SUBSCRIPTION:
+        return templates.TemplateResponse(
+            request,
+            "payment_success.html",
+            {"request": request, "user": user, "payment": payment}
+        )
+
+    action = pending_action_store.get(payment.id)
+
+    if not action or action.get("error"):
+        error_text = (action.get("error") if action else None) or (
+            "پرداخت با موفقیت انجام شد اما در پردازش درخواست خطایی رخ داد. لطفاً با پشتیبانی تماس بگیرید."
+        )
+        return templates.TemplateResponse(
+            request,
+            "error.html",
+            {"request": request, "message": error_text, "user": user},
+            status_code=500,
+        )
+
+    result_type = action.get("result_type")
+    result_id = action.get("result_id")
+
+    pending_action_store.delete(payment.id)
+
+    if payment.purpose == PURPOSE_EXAM_ANALYSIS and result_type == "job":
+        return RedirectResponse(url=f"/processing/{result_id}", status_code=303)
+
+    if payment.purpose == PURPOSE_DIET_PLAN and result_type == "diet_record":
+        return RedirectResponse(url=f"/diet/history/{result_id}", status_code=303)
+
+    if payment.purpose == PURPOSE_VISIT_PREP and result_type == "visit_prep_record":
+        return RedirectResponse(url=f"/visit-prep/history/{result_id}", status_code=303)
+
     return templates.TemplateResponse(
         request,
-        "payment_success.html",
-        {
-            "request": request,
-            "user": user,
-            "payment": payment,
-        }
+        "error.html",
+        {"request": request, "message": "پرداخت انجام شد اما نتیجه‌ی درخواست یافت نشد.", "user": user},
+        status_code=500,
     )

@@ -1,10 +1,5 @@
 """
 app/routers/diet.py
-
-Generates a personalized diet plan for the logged-in user or one of
-their family members, based on aggregated lab test history and
-optional user-provided context, saves it to history, and provides a
-Q&A chat about that plan.
 """
 
 import markdown
@@ -30,6 +25,9 @@ from app.services.diet_history_service import (
 from app.services.chat_service import ChatService
 from app.services.deepseek import DeepSeekError
 from app.services.report_service import ALLOWED_TAGS, ALLOWED_ATTRS
+from app.services.billing_service import check_diet_plan_access
+from app.services.payment_service import start_service_payment, PaymentError
+from app.models import PURPOSE_DIET_PLAN
 
 
 router = APIRouter()
@@ -45,6 +43,37 @@ MAX_CONTEXT_LENGTH = 800
 def _to_html(raw_text: str) -> str:
     raw_html = markdown.markdown(raw_text, extensions=["extra", "nl2br", "sane_lists"])
     return bleach.clean(raw_html, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRS, strip=True)
+
+
+async def generate_and_save_diet_plan(
+    db: Session,
+    user_id: int,
+    family_member_id: int | None,
+    age: int | None,
+    gender: str | None,
+    context_value: str | None,
+):
+    raw_plan = await diet_service.generate(
+        db,
+        user_id=user_id,
+        family_member_id=family_member_id,
+        age=age,
+        gender=gender,
+        extra_context=context_value,
+    )
+
+    diet_plan_html = _to_html(raw_plan)
+
+    record = save_diet_plan(
+        db,
+        user_id=user_id,
+        family_member_id=family_member_id,
+        context=context_value or None,
+        plan_text=raw_plan,
+        plan_html=diet_plan_html,
+    )
+
+    return record
 
 
 @router.get("/diet")
@@ -130,14 +159,52 @@ async def diet_generate(
                 age = member.age
                 gender = member.gender
 
+    access = check_diet_plan_access(db, user.id)
+
+    if not access["free"]:
+        try:
+            payment_result = await start_service_payment(
+                db,
+                user,
+                PURPOSE_DIET_PLAN,
+                access["price"],
+                "خرید برنامه غذایی هوشمند",
+                {
+                    "user_id": user.id,
+                    "family_member_id": resolved_family_member_id,
+                    "age": age,
+                    "gender": gender,
+                    "context_value": context_value,
+                },
+            )
+        except PaymentError as e:
+            return templates.TemplateResponse(
+                request,
+                "diet.html",
+                {
+                    "request": request,
+                    "user": user,
+                    "family_members": family_members,
+                    "csrf_token": new_token,
+                    "diet_plan_html": None,
+                    "diet_plan_raw": None,
+                    "diet_record_id": None,
+                    "error": f"اتصال به درگاه پرداخت برقرار نشد: {e}",
+                    "selected_family_member_id": resolved_family_member_id,
+                    "context_value": context_value,
+                }
+            )
+
+        return RedirectResponse(url=payment_result["payment_url"], status_code=303)
+
     try:
-        raw_plan = await diet_service.generate(
+        record = await generate_and_save_diet_plan(
             db,
             user_id=user.id,
             family_member_id=resolved_family_member_id,
             age=age,
             gender=gender,
-            extra_context=context_value,
+            context_value=context_value,
         )
     except DeepSeekError as e:
         return templates.TemplateResponse(
@@ -157,17 +224,6 @@ async def diet_generate(
             }
         )
 
-    diet_plan_html = _to_html(raw_plan)
-
-    record = save_diet_plan(
-        db,
-        user_id=user.id,
-        family_member_id=resolved_family_member_id,
-        context=context_value or None,
-        plan_text=raw_plan,
-        plan_html=diet_plan_html,
-    )
-
     return templates.TemplateResponse(
         request,
         "diet.html",
@@ -176,8 +232,8 @@ async def diet_generate(
             "user": user,
             "family_members": family_members,
             "csrf_token": new_token,
-            "diet_plan_html": diet_plan_html,
-            "diet_plan_raw": raw_plan,
+            "diet_plan_html": record.plan_html,
+            "diet_plan_raw": record.plan_text,
             "diet_record_id": record.id,
             "error": None,
             "selected_family_member_id": resolved_family_member_id,

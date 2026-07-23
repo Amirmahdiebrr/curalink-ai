@@ -1,10 +1,5 @@
 """
 app/routers/visit_prep.py
-
-Generates a "prepare for your doctor visit" summary for the
-logged-in user or one of their family members, based on aggregated
-lab test history and an optional reason for the visit. Saves it to
-history and lets the user browse past summaries.
 """
 
 import markdown
@@ -28,6 +23,9 @@ from app.services.visit_prep_history_service import (
 )
 from app.services.deepseek import DeepSeekError
 from app.services.report_service import ALLOWED_TAGS, ALLOWED_ATTRS
+from app.services.billing_service import check_visit_prep_access
+from app.services.payment_service import start_service_payment, PaymentError
+from app.models import PURPOSE_VISIT_PREP
 
 
 router = APIRouter()
@@ -42,6 +40,37 @@ MAX_REASON_LENGTH = 800
 def _to_html(raw_text: str) -> str:
     raw_html = markdown.markdown(raw_text, extensions=["extra", "nl2br", "sane_lists"])
     return bleach.clean(raw_html, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRS, strip=True)
+
+
+async def generate_and_save_visit_prep(
+    db: Session,
+    user_id: int,
+    family_member_id: int | None,
+    age: int | None,
+    gender: str | None,
+    reason_value: str | None,
+):
+    raw_summary = await visit_prep_service.generate(
+        db,
+        user_id=user_id,
+        family_member_id=family_member_id,
+        age=age,
+        gender=gender,
+        visit_reason=reason_value,
+    )
+
+    summary_html = _to_html(raw_summary)
+
+    record = save_visit_prep(
+        db,
+        user_id=user_id,
+        family_member_id=family_member_id,
+        visit_reason=reason_value or None,
+        summary_text=raw_summary,
+        summary_html=summary_html,
+    )
+
+    return record
 
 
 @router.get("/visit-prep")
@@ -127,14 +156,52 @@ async def visit_prep_generate(
                 age = member.age
                 gender = member.gender
 
+    access = check_visit_prep_access(db, user.id)
+
+    if not access["free"]:
+        try:
+            payment_result = await start_service_payment(
+                db,
+                user,
+                PURPOSE_VISIT_PREP,
+                access["price"],
+                "خرید آماده‌سازی ویزیت",
+                {
+                    "user_id": user.id,
+                    "family_member_id": resolved_family_member_id,
+                    "age": age,
+                    "gender": gender,
+                    "reason_value": reason_value,
+                },
+            )
+        except PaymentError as e:
+            return templates.TemplateResponse(
+                request,
+                "visit_prep.html",
+                {
+                    "request": request,
+                    "user": user,
+                    "family_members": family_members,
+                    "csrf_token": new_token,
+                    "summary_html": None,
+                    "summary_raw": None,
+                    "record_id": None,
+                    "error": f"اتصال به درگاه پرداخت برقرار نشد: {e}",
+                    "selected_family_member_id": resolved_family_member_id,
+                    "reason_value": reason_value,
+                }
+            )
+
+        return RedirectResponse(url=payment_result["payment_url"], status_code=303)
+
     try:
-        raw_summary = await visit_prep_service.generate(
+        record = await generate_and_save_visit_prep(
             db,
             user_id=user.id,
             family_member_id=resolved_family_member_id,
             age=age,
             gender=gender,
-            visit_reason=reason_value,
+            reason_value=reason_value,
         )
     except DeepSeekError as e:
         return templates.TemplateResponse(
@@ -154,17 +221,6 @@ async def visit_prep_generate(
             }
         )
 
-    summary_html = _to_html(raw_summary)
-
-    record = save_visit_prep(
-        db,
-        user_id=user.id,
-        family_member_id=resolved_family_member_id,
-        visit_reason=reason_value or None,
-        summary_text=raw_summary,
-        summary_html=summary_html,
-    )
-
     return templates.TemplateResponse(
         request,
         "visit_prep.html",
@@ -173,8 +229,8 @@ async def visit_prep_generate(
             "user": user,
             "family_members": family_members,
             "csrf_token": new_token,
-            "summary_html": summary_html,
-            "summary_raw": raw_summary,
+            "summary_html": record.summary_html,
+            "summary_raw": record.summary_text,
             "record_id": record.id,
             "error": None,
             "selected_family_member_id": resolved_family_member_id,
@@ -232,7 +288,3 @@ async def visit_prep_history_detail(request: Request, record_id: int, db: Sessio
             "summary_raw": record.summary_text,
             "record_id": record.id,
             "error": None,
-            "selected_family_member_id": record.family_member_id,
-            "reason_value": record.visit_reason or "",
-        }
-    )
