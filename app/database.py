@@ -58,6 +58,9 @@ def _run_light_migrations():
         with engine.connect() as conn:
             _add_column_if_missing(conn, "analysis_records", "symptoms", "TEXT")
             _add_column_if_missing(conn, "analysis_records", "family_member_id", "INTEGER")
+            _add_column_if_missing(conn, "analysis_records", "review_status", "TEXT")
+            _add_column_if_missing(conn, "analysis_records", "review_payment_status", "TEXT")
+            _add_column_if_missing(conn, "analysis_records", "review_price_paid", "INTEGER")
 
     if "test_results" in table_names:
         with engine.connect() as conn:

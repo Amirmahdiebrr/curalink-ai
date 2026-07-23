@@ -63,22 +63,22 @@ class User(Base):
     last_login_at = Column(DateTime, nullable=True)
 
     analyses = relationship(
-    "AnalysisRecord",
-    back_populates="user",
-    order_by="AnalysisRecord.created_at.desc()",
-    foreign_keys="AnalysisRecord.user_id",
-)
+        "AnalysisRecord",
+        back_populates="user",
+        order_by="AnalysisRecord.created_at.desc()",
+        foreign_keys="AnalysisRecord.user_id",
+    )
     test_results = relationship("TestResult", back_populates="user", order_by="TestResult.test_date.desc()")
     family_members = relationship("FamilyMember", back_populates="user", order_by="FamilyMember.created_at")
     diet_plans = relationship("DietPlanRecord", back_populates="user", order_by="DietPlanRecord.created_at.desc()")
     visit_preps = relationship("VisitPrepRecord", back_populates="user", order_by="VisitPrepRecord.created_at.desc()")
 
     doctor_profile = relationship(
-    "DoctorProfile",
-    back_populates="user",
-    uselist=False,
-    foreign_keys="DoctorProfile.user_id",
-)
+        "DoctorProfile",
+        back_populates="user",
+        uselist=False,
+        foreign_keys="DoctorProfile.user_id",
+    )
     organization_profile = relationship("OrganizationProfile", back_populates="user", uselist=False)
 
 
@@ -157,6 +157,12 @@ class AnalysisRecord(Base):
     doctor_opinion_text = Column(Text, nullable=True)
     doctor_opinion_status = Column(String, nullable=True)
     doctor_opinion_at = Column(DateTime, nullable=True)
+
+    # وضعیت درخواست بررسی توسط پزشک (not_requested / awaiting_doctor / reviewed)
+    review_status = Column(String, nullable=True)
+    # این بررسی چطور پرداخت شد: paid_by_patient / covered_by_subscription
+    review_payment_status = Column(String, nullable=True)
+    review_price_paid = Column(Integer, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
@@ -243,3 +249,166 @@ class VerificationCode(Base):
     attempts = Column(Integer, default=0, nullable=False)
 
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ==========================
+# Billing / Plans / Subscriptions
+# ==========================
+
+BILLING_PERIOD_WEEKLY = "weekly"
+BILLING_PERIOD_MONTHLY = "monthly"
+
+SUBSCRIPTION_ACTIVE = "active"
+SUBSCRIPTION_EXPIRED = "expired"
+SUBSCRIPTION_CANCELLED = "cancelled"
+
+PAYMENT_PENDING = "pending"
+PAYMENT_PAID = "paid"
+PAYMENT_FAILED = "failed"
+
+# چیزی که این پرداخت بابتشه
+PURPOSE_EXAM_ANALYSIS = "exam_analysis"
+PURPOSE_DIET_PLAN = "diet_plan"
+PURPOSE_VISIT_PREP = "visit_prep"
+PURPOSE_DOCTOR_REVIEW = "doctor_review"
+PURPOSE_SUBSCRIPTION = "subscription"
+
+DOCTOR_REVIEW_NOT_REQUESTED = "not_requested"
+DOCTOR_REVIEW_AWAITING_DOCTOR = "awaiting_doctor"
+DOCTOR_REVIEW_REVIEWED = "reviewed"
+
+DOCTOR_PAYOUT_PENDING = "pending"
+DOCTOR_PAYOUT_PAID = "paid"
+
+
+class ServicePricing(Base):
+    """
+    قیمت هر خدمت pay-per-use. service_key برای آزمایش‌ها همون exam_type
+    است (مثلاً 'blood', 'mri')، و برای بقیه: 'diet_plan', 'visit_prep',
+    'doctor_review'. از پنل ادمین قابل تغییر خواهد بود.
+    """
+    __tablename__ = "service_pricing"
+
+    id = Column(Integer, primary_key=True, index=True)
+    service_key = Column(String, unique=True, nullable=False, index=True)
+    price = Column(Integer, nullable=False)  # تومان
+
+    # فقط برای doctor_review معنا دارد: سهمی که از این مبلغ به پزشک می‌رسد
+    doctor_share = Column(Integer, nullable=True)
+
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class Plan(Base):
+    """
+    پلن‌های اشتراکی (بیمار/پزشک/سازمان). usage_limit فقط برای پلن‌های
+    سازمانی معنا دارد (سقف تحلیل در ماه)؛ برای بیمار/پزشک None یعنی
+    دسترسی نامحدود به همان دسته از فیچرها.
+    """
+    __tablename__ = "plans"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique=True, nullable=False, index=True)  # مثلا 'patient_monthly'
+    role = Column(String, nullable=False, index=True)  # patient / doctor / org_admin
+    name_fa = Column(String, nullable=False)
+
+    price = Column(Integer, nullable=False)  # تومان
+    billing_period_days = Column(Integer, nullable=False)  # 7 یا 30
+
+    usage_limit = Column(Integer, nullable=True)  # None = نامحدود
+
+    is_active = Column(Boolean, default=True, nullable=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    subscriptions = relationship("Subscription", back_populates="plan")
+
+
+class Subscription(Base):
+    """
+    اشتراک فعال/گذشته‌ی یک کاربر. usage_count برای پلن‌های سازمانی طی
+    هر دوره صفر و شمارش می‌شود؛ برای بیمار/پزشک فقط جهت آمار است.
+    """
+    __tablename__ = "subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    plan_id = Column(Integer, ForeignKey("plans.id"), nullable=False, index=True)
+
+    status = Column(String, nullable=False, default=SUBSCRIPTION_ACTIVE, index=True)
+
+    started_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+
+    usage_count = Column(Integer, default=0, nullable=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", backref="subscriptions")
+    plan = relationship("Plan", back_populates="subscriptions")
+
+
+class Payment(Base):
+    """
+    هر پرداخت (چه pay-per-use چه خرید اشتراک) از طریق زرین‌پال.
+    reference_id به رکورد مرتبط اشاره می‌کند (analysis_id/diet_plan_id/
+    visit_prep_id/subscription_id) بسته به purpose.
+    """
+    __tablename__ = "payments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    purpose = Column(String, nullable=False, index=True)
+    reference_id = Column(Integer, nullable=True)
+
+    amount = Column(Integer, nullable=False)  # تومان
+    status = Column(String, nullable=False, default=PAYMENT_PENDING, index=True)
+
+    zarinpal_authority = Column(String, nullable=True, index=True)
+    zarinpal_ref_id = Column(String, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    paid_at = Column(DateTime, nullable=True)
+
+    user = relationship("User", backref="payments")
+
+
+class DoctorPayout(Base):
+    """
+    سهمی که باید/شده به پزشک برای یک بررسی پرداخت شود. جدا از Payment
+    نگه می‌داریم چون Payment پول ورودی از بیمار به پلتفرم است، این
+    خروجی از پلتفرم به پزشک است (تسویه‌ی جدا، مثلاً هفتگی/ماهانه).
+    """
+    __tablename__ = "doctor_payouts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    analysis_id = Column(Integer, ForeignKey("analysis_records.id"), nullable=False, index=True)
+
+    amount = Column(Integer, nullable=False)  # تومان، معمولاً ۶۰,۰۰۰
+    status = Column(String, nullable=False, default=DOCTOR_PAYOUT_PENDING, index=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    paid_at = Column(DateTime, nullable=True)
+
+    doctor = relationship("User", foreign_keys=[doctor_id])
+
+
+class OrganizationMember(Base):
+    """
+    پرسنل/اپراتور زیرمجموعه‌ی یک سازمان (org_admin). این کاربر خودش
+    یک ردیف در جدول users است (با role مناسب یا حتی patient)، ولی این
+    جدول رابطه‌ی «متعلق به کدام سازمان» را نگه می‌دارد تا مصرف سهمیه‌ی
+    ماهانه‌ی سازمان درست حساب شود.
+    """
+    __tablename__ = "organization_members"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)  # org_admin
+    member_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)  # پرسنل
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    organization = relationship("User", foreign_keys=[organization_user_id])
+    member = relationship("User", foreign_keys=[member_user_id])

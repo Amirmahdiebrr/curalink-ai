@@ -69,3 +69,12 @@ APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:8000")
 
 DOCTOR_DOCS_MAX_SIZE_MB = 10
 DOCTOR_DOCS_ALLOWED_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg"]
+# ==========================
+# Zarinpal payment gateway
+# ==========================
+
+ZARINPAL_MERCHANT_ID = os.getenv("ZARINPAL_MERCHANT_ID", "")
+ZARINPAL_SANDBOX = os.getenv("ZARINPAL_SANDBOX", "true").strip().lower() == "true"
+
+if not ZARINPAL_MERCHANT_ID:
+    print("⚠️  ZARINPAL_MERCHANT_ID not set in .env — payments will fail until it's configured.")

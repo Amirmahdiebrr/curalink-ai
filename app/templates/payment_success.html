@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}پرداخت موفق | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<div class="container py-5 text-center">
+
+    <i class="fa-solid fa-circle-check" style="font-size:44px;color:var(--accent);"></i>
+
+    <h2 class="mt-4">پرداخت با موفقیت انجام شد</h2>
+
+    <p>
+        مبلغ {{ "{:,}".format(payment.amount) }} تومان با موفقیت پرداخت شد.
+        {% if payment.zarinpal_ref_id %}
+        <br>کد پیگیری: {{ payment.zarinpal_ref_id }}
+        {% endif %}
+    </p>
+
+    <a href="/" class="btn btn-primary">بازگشت به خانه</a>
+
+</div>
+
+{% endblock %}

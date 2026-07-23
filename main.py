@@ -30,6 +30,7 @@ from app.services.job_store import purge_old_jobs
 from app.services.reminder_service import ReminderService
 from app.routers.admin import router as admin_router
 
+from app.routers.payment import router as payment_router
 
 JOB_CLEANUP_INTERVAL_SECONDS = 60 * 30  # هر ۳۰ دقیقه
 REMINDER_CHECK_INTERVAL_SECONDS = 60 * 60 * 24  # هر ۲۴ ساعت
@@ -72,7 +73,7 @@ app.include_router(family_router)
 app.include_router(diet_router)
 app.include_router(visit_prep_router)
 app.include_router(admin_router)
-
+app.include_router(payment_router)
 
 async def _job_cleanup_loop():
     while True:
