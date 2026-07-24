@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}داشبورد مدیریت | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="cl-profile-section">
+    <div class="container">
+
+        <div class="cl-profile-header">
+            <div class="cl-profile-avatar">{{ (user.display_name or "?")[0] }}</div>
+            <div>
+                <h1>داشبورد مدیریت</h1>
+                <p>نمای کلی از وضعیت سیستم</p>
+            </div>
+        </div>
+
+        <div class="result-actions" style="margin:0 0 30px; display:flex; gap:14px; justify-content:flex-start;">
+            <a href="/admin/doctors" class="btn btn-outline">تایید پزشکان</a>
+            <a href="/doctor/reviews" class="btn btn-outline">بررسی گزارش‌ها</a>
+        </div>
+
+        <div class="services-grid" style="margin-bottom:40px;">
+
+            <div class="service-card">
+                <span class="service-icon">👤</span>
+                <h3>{{ stats.total_patients }}</h3>
+                <p>بیمار ثبت‌نام‌شده</p>
+            </div>
+
+            <div class="service-card">
+                <span class="service-icon">🩺</span>
+                <h3>{{ stats.total_doctors }}</h3>
+                <p>پزشک ({{ stats.pending_doctor_approvals }} در انتظار تایید)</p>
+            </div>
+
+            <div class="service-card">
+                <span class="service-icon">🏥</span>
+                <h3>{{ stats.total_orgs }}</h3>
+                <p>سازمان</p>
+            </div>
+
+            <div class="service-card">
+                <span class="service-icon">🧪</span>
+                <h3>{{ stats.total_analyses }}</h3>
+                <p>آنالیز انجام‌شده</p>
+            </div>
+
+            <div class="service-card">
+                <span class="service-icon">📋</span>
+                <h3>{{ stats.pending_doctor_reviews }}</h3>
+                <p>در انتظار بررسی پزشک</p>
+            </div>
+
+            <div class="service-card">
+                <span class="service-icon">💳</span>
+                <h3>{{ stats.active_subscriptions }}</h3>
+                <p>اشتراک فعال</p>
+            </div>
+
+            <div class="service-card">
+                <span class="service-icon">💰</span>
+                <h3>{{ "{:,}".format(stats.total_revenue) }} تومان</h3>
+                <p>مجموع پرداخت‌های موفق ({{ stats.total_paid_payments }} تراکنش)</p>
+            </div>
+
+        </div>
+
+        <div class="cl-profile-card" style="margin-bottom:24px;">
+            <h3 class="cl-profile-card-title">آنالیزهای اخیر (۲۰ مورد آخر)</h3>
+
+            {% if recent_analyses|length == 0 %}
+            <p class="cl-profile-card-sub">هنوز آنالیزی ثبت نشده است.</p>
+            {% else %}
+            <div class="cl-history-list">
+                {% for record in recent_analyses %}
+                <a href="/admin/analysis/{{ record.id }}" class="cl-history-item">
+                    <div class="cl-history-item-main">
+                        <span class="cl-history-badge">{{ exam_type_labels.get(record.exam_type, "آزمایش") }}</span>
+                        <span class="cl-history-filename">
+                            {{ record.filename }} — کاربر #{{ record.user_id }}
+                            {% if record.review_status == 'awaiting_doctor' %} — ⏳ در انتظار پزشک{% elif record.review_status == 'reviewed' %} — ✅ بررسی‌شده{% endif %}
+                        </span>
+                    </div>
+                    <span class="cl-history-date">{{ record.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="cl-profile-card" style="margin-bottom:24px;">
+            <h3 class="cl-profile-card-title">کاربران اخیر (۲۰ مورد آخر)</h3>
+
+            {% if recent_users|length == 0 %}
+            <p class="cl-profile-card-sub">کاربری ثبت نشده است.</p>
+            {% else %}
+            <div class="cl-history-list">
+                {% for u in recent_users %}
+                <div class="cl-history-item">
+                    <div class="cl-history-item-main">
+                        <span class="cl-history-badge">
+                            {% if u.role == 'patient' %}بیمار{% elif u.role == 'doctor' %}پزشک{% elif u.role == 'org_admin' %}سازمان{% else %}ادمین{% endif %}
+                        </span>
+                        <span class="cl-history-filename">{{ u.display_name }} — {{ u.email }}</span>
+                    </div>
+                    <span class="cl-history-date">{{ u.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="cl-profile-card">
+            <h3 class="cl-profile-card-title">پرداخت‌های اخیر (۲۰ مورد آخر)</h3>
+
+            {% if recent_payments|length == 0 %}
+            <p class="cl-profile-card-sub">پرداختی ثبت نشده است.</p>
+            {% else %}
+            <div class="cl-history-list">
+                {% for p in recent_payments %}
+                <div class="cl-history-item">
+                    <div class="cl-history-item-main">
+                        <span class="cl-history-badge">
+                            {% if p.status == 'paid' %}✅ موفق{% elif p.status == 'failed' %}❌ ناموفق{% else %}⏳ در انتظار{% endif %}
+                        </span>
+                        <span class="cl-history-filename">{{ p.purpose }} — {{ "{:,}".format(p.amount) }} تومان — کاربر #{{ p.user_id }}</span>
+                    </div>
+                    <span class="cl-history-date">{{ p.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

@@ -15,6 +15,9 @@ To add a real provider later:
 from __future__ import annotations
 
 from app.config import SMS_PROVIDER
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class SMSError(Exception):
@@ -33,7 +36,7 @@ class ConsoleSMSProvider(BaseSMSProvider):
     """
 
     async def send(self, to: str, message: str) -> bool:
-        print(f"[SMS-Console] To: {to} | Message: {message}", flush=True)
+        logger.info(f"[SMS-Console] To: {to} | Message: {message}")
         return True
 
 
@@ -69,14 +72,14 @@ class SMSService:
 
     async def send_reminder(self, phone: str, message: str) -> bool:
         if not phone:
-            print("[SMSService] Skipped: no phone number provided.", flush=True)
+            logger.info("[SMSService] Skipped: no phone number provided.")
             return False
 
         try:
             return await self.provider.send(phone, message)
         except SMSError as e:
-            print(f"[SMSService] Provider error: {e}", flush=True)
+            logger.error(f"[SMSService] Provider error: {e}")
             return False
         except Exception as e:
-            print(f"[SMSService] Unexpected error sending SMS: {e}", flush=True)
+            logger.error(f"[SMSService] Unexpected error sending SMS: {e}")
             return False

@@ -11,6 +11,10 @@ Run with:
 
 from app.database import SessionLocal, init_db
 from app.models import ServicePricing, Plan
+from app.core.logging_config import setup_logging, get_logger
+
+setup_logging()
+logger = get_logger(__name__)
 
 
 # ==========================
@@ -118,14 +122,14 @@ def upsert_service_pricing(db):
         if existing:
             existing.price = item["price"]
             existing.doctor_share = item["doctor_share"]
-            print(f"[Seed] Updated pricing: {item['service_key']} -> {item['price']}")
+            logger.info(f"[Seed] Updated pricing: {item['service_key']} -> {item['price']}")
         else:
             db.add(ServicePricing(
                 service_key=item["service_key"],
                 price=item["price"],
                 doctor_share=item["doctor_share"],
             ))
-            print(f"[Seed] Created pricing: {item['service_key']} -> {item['price']}")
+            logger.info(f"[Seed] Created pricing: {item['service_key']} -> {item['price']}")
 
     db.commit()
 
@@ -140,7 +144,7 @@ def upsert_plans(db):
             existing.billing_period_days = item["billing_period_days"]
             existing.usage_limit = item["usage_limit"]
             existing.role = item["role"]
-            print(f"[Seed] Updated plan: {item['code']} -> {item['price']} تومان")
+            logger.info(f"[Seed] Updated plan: {item['code']} -> {item['price']} تومان")
         else:
             db.add(Plan(
                 code=item["code"],
@@ -151,7 +155,7 @@ def upsert_plans(db):
                 usage_limit=item["usage_limit"],
                 is_active=True,
             ))
-            print(f"[Seed] Created plan: {item['code']} -> {item['price']} تومان")
+            logger.info(f"[Seed] Created plan: {item['code']} -> {item['price']} تومان")
 
     db.commit()
 
@@ -163,7 +167,7 @@ def main():
     try:
         upsert_service_pricing(db)
         upsert_plans(db)
-        print("[Seed] Done.")
+        logger.info("[Seed] Done.")
     finally:
         db.close()
 

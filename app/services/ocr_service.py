@@ -17,6 +17,9 @@ from PyPDF2 import PdfReader
 import fitz
 
 from app.core.constants import MAX_PDF_PAGES
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 # ==========================
 # مسیر Tesseract
@@ -36,17 +39,16 @@ _TESSERACT_CMD_OVERRIDE = os.getenv("TESSERACT_CMD")
 
 if _TESSERACT_CMD_OVERRIDE:
     pytesseract.pytesseract.tesseract_cmd = _TESSERACT_CMD_OVERRIDE
-    print(f"[OCRService] Using TESSERACT_CMD from env: {_TESSERACT_CMD_OVERRIDE}", flush=True)
+    logger.info(f"[OCRService] Using TESSERACT_CMD from env: {_TESSERACT_CMD_OVERRIDE}")
 elif shutil.which("tesseract"):
     # از PATH پیدا شد (حالت معمول در لینوکس/Docker)
-    print("[OCRService] Using system 'tesseract' found in PATH.", flush=True)
+    logger.info("[OCRService] Using system 'tesseract' found in PATH.")
 else:
-    print(
-        "⚠️  [OCRService] دستور 'tesseract' در PATH سیستم پیدا نشد و "
+    logger.warning(
+        "[OCRService] دستور 'tesseract' در PATH سیستم پیدا نشد و "
         "TESSERACT_CMD هم در .env تنظیم نشده است. OCR تصویری (برای "
         "تصاویر یا PDFهای اسکن‌شده) کار نخواهد کرد تا زمانی که "
-        "Tesseract نصب شود یا مسیر آن در .env مشخص شود.",
-        flush=True
+        "Tesseract نصب شود یا مسیر آن در .env مشخص شود."
     )
 
 pillow_heif.register_heif_opener()
@@ -88,7 +90,7 @@ class OCRService:
                 return extracted
 
         except Exception as e:
-            print(f"[OCRService] PyPDF2 text extraction failed for {filepath}: {e}", flush=True)
+            logger.warning(f"[OCRService] PyPDF2 text extraction failed for {filepath}: {e}")
 
         # اگر PDF متن قابل استخراج نداشت (یعنی اسکن‌شده است)، صفحات را
         # به تصویر تبدیل و روی هرکدام OCR تصویری اجرا می‌کنیم.
@@ -134,13 +136,3 @@ class OCRService:
             raise OCRServiceError(f"باز کردن فایل تصویر ناموفق بود: {e}")
 
         try:
-            text = pytesseract.image_to_string(image, lang="fas+eng")
-        except Exception as e:
-            raise OCRServiceError(f"OCR روی تصویر ناموفق بود (Tesseract نصب/در دسترس است؟): {e}")
-
-        cleaned = (text or "").strip()
-
-        if not cleaned:
-            raise OCRServiceError("هیچ متنی از این تصویر استخراج نشد.")
-
-        return cleaned

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}بررسی گزارش‌های پزشکی | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="cl-profile-section">
+    <div class="container">
+
+        <div class="cl-profile-header">
+            <div class="cl-profile-avatar">{{ (user.display_name or "?")[0] }}</div>
+            <div>
+                <h1>صف بررسی گزارش‌ها</h1>
+                <p>{{ awaiting|length }} گزارش در انتظار بررسی</p>
+            </div>
+        </div>
+
+        <div class="cl-profile-card" style="margin-bottom:24px;">
+            <h3 class="cl-profile-card-title">در انتظار بررسی</h3>
+
+            {% if awaiting|length == 0 %}
+            <p class="cl-profile-card-sub">در حال حاضر گزارشی در انتظار بررسی نیست.</p>
+            {% else %}
+
+            <div class="cl-history-list">
+                {% for record in awaiting %}
+                <a href="/doctor/reviews/{{ record.id }}" class="cl-history-item">
+                    <div class="cl-history-item-main">
+                        <span class="cl-history-badge">{{ exam_type_labels.get(record.exam_type, "آزمایش") }}</span>
+                        <span class="cl-history-filename">{{ record.filename }}</span>
+                    </div>
+                    <span class="cl-history-date">{{ record.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
+                </a>
+                {% endfor %}
+            </div>
+
+            {% endif %}
+        </div>
+
+        <div class="cl-profile-card">
+            <h3 class="cl-profile-card-title">بررسی‌شده توسط من</h3>
+
+            {% if reviewed|length == 0 %}
+            <p class="cl-profile-card-sub">هنوز گزارشی بررسی نکرده‌اید.</p>
+            {% else %}
+
+            <div class="cl-history-list">
+                {% for record in reviewed %}
+                <div class="cl-history-item">
+                    <div class="cl-history-item-main">
+                        <span class="cl-history-badge">{{ exam_type_labels.get(record.exam_type, "آزمایش") }}</span>
+                        <span class="cl-history-filename">{{ record.filename }}</span>
+                    </div>
+                    <span class="cl-history-date">{{ record.doctor_opinion_at.strftime("%Y-%m-%d %H:%M") if record.doctor_opinion_at else "" }}</span>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% endif %}
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

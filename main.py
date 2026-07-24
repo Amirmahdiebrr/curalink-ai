@@ -1,6 +1,11 @@
-print("=" * 50)
-print("RUNNING MAIN.PY")
-print("=" * 50)
+from app.core.logging_config import setup_logging, get_logger
+
+setup_logging()
+logger = get_logger(__name__)
+
+logger.info("=" * 50)
+logger.info("RUNNING MAIN.PY")
+logger.info("=" * 50)
 
 import asyncio
 
@@ -25,6 +30,7 @@ from app.routers.chat import router as chat_router
 from app.routers.family import router as family_router
 from app.routers.diet import router as diet_router
 from app.routers.visit_prep import router as visit_prep_router
+from app.routers.doctor_review import router as doctor_review_router
 
 from app.services.job_store import purge_old_jobs
 from app.services import pending_action_store
@@ -71,6 +77,7 @@ app.include_router(chat_router)
 app.include_router(family_router)
 app.include_router(diet_router)
 app.include_router(visit_prep_router)
+app.include_router(doctor_review_router)
 app.include_router(admin_router)
 app.include_router(payment_router)
 
@@ -81,11 +88,11 @@ async def _job_cleanup_loop():
         try:
             purge_old_jobs()
         except Exception as e:
-            print(f"[JobStore] Cleanup loop error: {e}", flush=True)
+            logger.error(f"[JobStore] Cleanup loop error: {e}")
         try:
             pending_action_store.purge_old()
         except Exception as e:
-            print(f"[PendingActionStore] Cleanup loop error: {e}", flush=True)
+            logger.error(f"[PendingActionStore] Cleanup loop error: {e}")
 
 
 async def _reminder_check_loop():
@@ -94,7 +101,7 @@ async def _reminder_check_loop():
         try:
             await ReminderService().run(db)
         except Exception as e:
-            print(f"[ReminderService] Check loop error: {e}", flush=True)
+            logger.error(f"[ReminderService] Check loop error: {e}")
         finally:
             db.close()
         await asyncio.sleep(REMINDER_CHECK_INTERVAL_SECONDS)
@@ -110,6 +117,4 @@ async def start_reminder_check_task():
     asyncio.create_task(_reminder_check_loop())
 
 
-print("ROUTES:")
-for route in app.routes:
-    print(route)
+logger.info("Application configured. Routes registered: %d", len(app.routes))

@@ -2,12 +2,26 @@
 app/database.py
 
 SQLAlchemy database setup (SQLite file-based).
+
+مسیر فایل دیتابیس از پوشه‌ی data/ خوانده می‌شود تا با volume تعریف‌شده
+در docker-compose.yml (./data:/app/data) بین ری‌استارت‌های کانتینر
+پایدار بماند. در محیط توسعه (بدون Docker)، پوشه‌ی data/ به‌صورت
+خودکار در کنار کد ساخته می‌شود.
 """
+
+from pathlib import Path
 
 from sqlalchemy import create_engine, text, inspect
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-DATABASE_URL = "sqlite:///./lab_analyzer.db"
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
+
+DATA_DIR = Path("data")
+DATA_DIR.mkdir(exist_ok=True)
+
+DATABASE_URL = f"sqlite:///{DATA_DIR}/lab_analyzer.db"
 
 engine = create_engine(
     DATABASE_URL,
@@ -32,10 +46,10 @@ def _add_column_if_missing(conn, table: str, column: str, ddl_type: str):
     existing_columns = {col["name"] for col in inspector.get_columns(table)}
 
     if column not in existing_columns:
-        print(f"[DB Migration] Adding missing column '{column}' to {table}...", flush=True)
+        logger.info(f"[DB Migration] Adding missing column '{column}' to {table}...")
         conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl_type}"))
         conn.commit()
-        print(f"[DB Migration] Column '{column}' added successfully to {table}.", flush=True)
+        logger.info(f"[DB Migration] Column '{column}' added successfully to {table}.")
 
 
 def _run_light_migrations():

@@ -14,7 +14,9 @@ so existing data isn't lost; it will be re-encrypted on the next save.
 from cryptography.fernet import Fernet, InvalidToken
 
 from app.config import ENCRYPTION_KEY
+from app.core.logging_config import get_logger
 
+logger = get_logger(__name__)
 
 _fernet = Fernet(ENCRYPTION_KEY)
 
@@ -40,5 +42,5 @@ def decrypt_value(value: str | None) -> str | None:
     except (InvalidToken, ValueError):
         # داده‌ی قدیمی که هنوز رمزنگاری نشده (قبل از این تغییر)؛
         # همان‌طور که هست نمایش می‌دهیم تا داده گم نشود.
-        print("[Crypto] Failed to decrypt value, returning as legacy plaintext.", flush=True)
+        logger.warning("[Crypto] Failed to decrypt value, returning as legacy plaintext.")
         return value

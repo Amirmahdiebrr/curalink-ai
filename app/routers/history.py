@@ -82,6 +82,8 @@ async def history_detail(request: Request, record_id: int, db: Session = Depends
         "requested_exam_type_label": None,
         "detected_exam_type_label": None,
         "ocr_warning": None,
+        "review_status": record.review_status,
+        "doctor_opinion_text": record.doctor_opinion_text,
     }
 
     csrf_token = get_or_create_csrf_token(request)

@@ -37,6 +37,9 @@ from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.crypto import encrypt_value, decrypt_value
 from app.core.limiter import limiter
 from app.config import DOCTOR_DOCS_MAX_SIZE_MB, DOCTOR_DOCS_ALLOWED_EXTENSIONS
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 router = APIRouter()
@@ -164,7 +167,7 @@ async def register_patient_submit(
         verify_token = start_email_verification(db, user)
         background_tasks.add_task(email_service.send_email_verification, user.email, user.id, verify_token)
     except Exception as e:
-        print(f"[Auth] Failed to queue verification email: {e}", flush=True)
+        logger.error(f"[Auth] Failed to queue verification email: {e}")
 
     request.session["user_id"] = user.id
 
@@ -252,7 +255,7 @@ async def register_doctor_submit(
         verify_token = start_email_verification(db, user)
         background_tasks.add_task(email_service.send_email_verification, user.email, user.id, verify_token)
     except Exception as e:
-        print(f"[Auth] Failed to queue verification email (doctor): {e}", flush=True)
+        logger.error(f"[Auth] Failed to queue verification email (doctor): {e}")
 
     return templates.TemplateResponse(
         request,
@@ -335,7 +338,7 @@ async def register_org_submit(
         verify_token = start_email_verification(db, user)
         background_tasks.add_task(email_service.send_email_verification, user.email, user.id, verify_token)
     except Exception as e:
-        print(f"[Auth] Failed to queue verification email (org): {e}", flush=True)
+        logger.error(f"[Auth] Failed to queue verification email (org): {e}")
 
     request.session["user_id"] = user.id
 
@@ -369,7 +372,7 @@ async def login_submit(
     new_token = get_or_create_csrf_token(request)
 
     if not is_valid_csrf(request, csrf_token):
-        print("[Auth] CSRF validation failed on /login", flush=True)
+        logger.warning("[Auth] CSRF validation failed on /login")
         return templates.TemplateResponse(
             request,
             "login.html",
@@ -703,7 +706,7 @@ async def profile_update(
     new_token = get_or_create_csrf_token(request)
 
     if not is_valid_csrf(request, csrf_token):
-        print("[Auth] CSRF validation failed on /profile", flush=True)
+        logger.warning("[Auth] CSRF validation failed on /profile")
         return templates.TemplateResponse(
             request,
             "profile.html",

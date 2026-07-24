@@ -7,6 +7,9 @@ questions about an already-generated analysis report.
 
 from app.prompts.chat_prompt import CHAT_SYSTEM_PROMPT
 from app.services.deepseek import ask_ai, DeepSeekError
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 REFERRAL_TEXT = "\n\nبرای بررسی دقیق‌تر می‌توانید با مجموعه‌ی ما تماس بگیرید تا پزشکان ما شما را راهنمایی کنند."
@@ -67,7 +70,7 @@ class ChatService:
         try:
             answer = await ask_ai(prompt)
         except DeepSeekError as e:
-            print(f"[Chat] DeepSeekError: {e}", flush=True)
+            logger.error(f"[Chat] DeepSeekError: {e}")
             raise
 
         answer = answer.strip()

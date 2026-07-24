@@ -10,6 +10,9 @@ from sqlalchemy.orm import Session
 from app.models import User
 from app.services.history_service import get_due_reminders_for_all_users
 from app.services.sms_service import SMSService
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class ReminderService:
@@ -26,14 +29,14 @@ class ReminderService:
 
         due_items = get_due_reminders_for_all_users(db)
 
-        print(f"[ReminderService] Found {len(due_items)} due reminder(s)", flush=True)
+        logger.info(f"[ReminderService] Found {len(due_items)} due reminder(s)")
 
         for item in due_items:
 
             user = db.query(User).filter(User.id == item.user_id).first()
 
             if not user or not user.phone:
-                print(f"[ReminderService] Skipped test_result_id={item.id}: no phone number on file", flush=True)
+                logger.info(f"[ReminderService] Skipped test_result_id={item.id}: no phone number on file")
                 continue
 
             person_name = item.family_member.name if item.family_member else None
@@ -44,4 +47,4 @@ class ReminderService:
             if sent:
                 item.followup_reminder_sent = True
                 db.commit()
-                print(f"[ReminderService] Reminder sent for test_result_id={item.id}", flush=True)
+                logger.info(f"[ReminderService] Reminder sent for test_result_id={item.id}")

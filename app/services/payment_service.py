@@ -22,6 +22,9 @@ from app.services import pending_action_store
 from app.services.zarinpal_service import ZarinpalError
 from app.services.billing_service import create_subscription, get_plan_by_code
 from app.config import APP_BASE_URL
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class PaymentError(Exception):
@@ -150,15 +153,15 @@ async def _apply_payment_effect(db: Session, payment: Payment) -> None:
         plan = db.query(Plan).filter(Plan.id == payment.reference_id).first()
         if plan:
             create_subscription(db, payment.user_id, plan)
-            print(f"[Payment] Subscription activated: user_id={payment.user_id}, plan={plan.code}", flush=True)
+            logger.info(f"[Payment] Subscription activated: user_id={payment.user_id}, plan={plan.code}")
         else:
-            print(f"[Payment] WARNING: plan not found for payment_id={payment.id}", flush=True)
+            logger.warning(f"[Payment] WARNING: plan not found for payment_id={payment.id}")
         return
 
     action = pending_action_store.get(payment.id)
 
     if not action:
-        print(f"[Payment] WARNING: no pending action found for payment_id={payment.id}", flush=True)
+        logger.warning(f"[Payment] WARNING: no pending action found for payment_id={payment.id}")
         return
 
     try:
@@ -166,23 +169,23 @@ async def _apply_payment_effect(db: Session, payment: Payment) -> None:
             from app.routers.analyze import start_background_job
             job_id = await start_background_job(action["data"])
             pending_action_store.update(payment.id, result_type="job", result_id=job_id)
-            print(f"[Payment] Exam analysis job started: payment_id={payment.id}, job_id={job_id}", flush=True)
+            logger.info(f"[Payment] Exam analysis job started: payment_id={payment.id}, job_id={job_id}")
 
         elif payment.purpose == PURPOSE_DIET_PLAN:
             from app.routers.diet import generate_and_save_diet_plan
             record = await generate_and_save_diet_plan(db, **action["data"])
             pending_action_store.update(payment.id, result_type="diet_record", result_id=record.id)
-            print(f"[Payment] Diet plan generated: payment_id={payment.id}, record_id={record.id}", flush=True)
+            logger.info(f"[Payment] Diet plan generated: payment_id={payment.id}, record_id={record.id}")
 
         elif payment.purpose == PURPOSE_VISIT_PREP:
             from app.routers.visit_prep import generate_and_save_visit_prep
             record = await generate_and_save_visit_prep(db, **action["data"])
             pending_action_store.update(payment.id, result_type="visit_prep_record", result_id=record.id)
-            print(f"[Payment] Visit-prep summary generated: payment_id={payment.id}, record_id={record.id}", flush=True)
+            logger.info(f"[Payment] Visit-prep summary generated: payment_id={payment.id}, record_id={record.id}")
 
         else:
-            print(f"[Payment] WARNING: unknown purpose '{payment.purpose}' for payment_id={payment.id}", flush=True)
+            logger.warning(f"[Payment] WARNING: unknown purpose '{payment.purpose}' for payment_id={payment.id}")
 
     except Exception as e:
-        print(f"[Payment] Failed to apply effect for payment_id={payment.id}: {e}", flush=True)
+        logger.error(f"[Payment] Failed to apply effect for payment_id={payment.id}: {e}")
         pending_action_store.update(payment.id, error=str(e))

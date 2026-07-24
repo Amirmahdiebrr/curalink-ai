@@ -9,6 +9,9 @@ Provider-agnostic email sending layer، به همان الگوی sms_service.py.
 from __future__ import annotations
 
 from app.config import EMAIL_PROVIDER, APP_BASE_URL
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class EmailError(Exception):
@@ -22,7 +25,7 @@ class BaseEmailProvider:
 
 class ConsoleEmailProvider(BaseEmailProvider):
     async def send(self, to: str, subject: str, html_body: str) -> bool:
-        print(f"[Email-Console] To: {to} | Subject: {subject}\n{html_body}", flush=True)
+        logger.info(f"[Email-Console] To: {to} | Subject: {subject}\n{html_body}")
         return True
 
 

@@ -13,6 +13,9 @@ from app.services.ai_service import AIService
 from app.prompts.exam_prompts import get_prompt_template
 from app.prompts.classify_prompt import CLASSIFY_PROMPT_TEMPLATE
 from app.core.exam_types import EXAM_TYPE_LABELS, VALID_EXAM_TYPES
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 JSON_BLOCK_PATTERN = re.compile(r"```json\s*(\[.*?\])\s*```", re.DOTALL)
@@ -106,8 +109,8 @@ class ReportService:
 
         if not match:
             tail = analysis_text[-600:] if len(analysis_text) > 600 else analysis_text
-            print("[ReportService] No JSON block matched. Raw response tail:", flush=True)
-            print(tail, flush=True)
+            logger.warning("[ReportService] No JSON block matched. Raw response tail:")
+            logger.warning(tail)
 
             fallback_match = re.search(r"(\[\s*\{.*?\}\s*\])\s*$", analysis_text, re.DOTALL)
 
@@ -116,10 +119,10 @@ class ReportService:
                     structured = json.loads(fallback_match.group(1))
                     if isinstance(structured, list):
                         narrative_text = analysis_text[:fallback_match.start()].rstrip()
-                        print(f"[ReportService] Fallback JSON extraction succeeded, {len(structured)} item(s)", flush=True)
+                        logger.info(f"[ReportService] Fallback JSON extraction succeeded, {len(structured)} item(s)")
                         return narrative_text, structured
                 except Exception as e:
-                    print(f"[ReportService] Fallback JSON parse failed: {e}", flush=True)
+                    logger.error(f"[ReportService] Fallback JSON parse failed: {e}")
 
             return analysis_text, []
 
@@ -130,7 +133,7 @@ class ReportService:
             if not isinstance(structured, list):
                 structured = []
         except Exception as e:
-            print(f"[ReportService] Failed to parse structured JSON block: {e}", flush=True)
+            logger.error(f"[ReportService] Failed to parse structured JSON block: {e}")
             structured = []
 
         narrative_text = analysis_text[:match.start()].rstrip()
@@ -149,15 +152,15 @@ class ReportService:
             try:
                 if filepath.exists():
                     filepath.unlink()
-                    print(f"[ReportService] Cleaned up file: {filepath}", flush=True)
+                    logger.info(f"[ReportService] Cleaned up file: {filepath}")
             except Exception as e:
-                print(f"[ReportService] Failed to clean up file {filepath}: {e}", flush=True)
+                logger.error(f"[ReportService] Failed to clean up file {filepath}: {e}")
 
     async def _ocr_single_file(self, filepath, filename: str, index: int):
         try:
             file_text = await self.ocr.extract(filepath)
         except Exception as e:
-            print(f"[ReportService] OCR error on {filepath}: {e}", flush=True)
+            logger.error(f"[ReportService] OCR error on {filepath}: {e}")
             return None, filename
 
         if not file_text.strip():
@@ -195,7 +198,7 @@ class ReportService:
         try:
             raw = await self.ai.analyze(classify_prompt)
         except Exception as e:
-            print(f"[ReportService] Exam type detection error: {e}", flush=True)
+            logger.error(f"[ReportService] Exam type detection error: {e}")
             return None
 
         cleaned = (raw or "").strip().lower()
@@ -204,7 +207,7 @@ class ReportService:
             if key in cleaned:
                 return key
 
-        print(f"[ReportService] Exam type detection inconclusive, raw: {cleaned[:200]}", flush=True)
+        logger.warning(f"[ReportService] Exam type detection inconclusive, raw: {cleaned[:200]}")
         return None
 
     async def process(
@@ -224,13 +227,13 @@ class ReportService:
 
         total_start = time.perf_counter()
 
-        print("=" * 50)
-        print("START REPORT PROCESS")
-        print(f"FILE COUNT: {len(files)}")
-        print(f"EXAM TYPE: {exam_type}")
-        print(f"HAS SYMPTOMS: {bool(symptoms and symptoms.strip())}")
-        print(f"PATIENT AGE/GENDER: {patient_age} / {patient_gender}")
-        print("=" * 50)
+        logger.info("=" * 50)
+        logger.info("START REPORT PROCESS")
+        logger.info(f"FILE COUNT: {len(files)}")
+        logger.info(f"EXAM TYPE: {exam_type}")
+        logger.info(f"HAS SYMPTOMS: {bool(symptoms and symptoms.strip())}")
+        logger.info(f"PATIENT AGE/GENDER: {patient_age} / {patient_gender}")
+        logger.info("=" * 50)
 
         requested_label = EXAM_TYPE_LABELS.get(exam_type, exam_type)
 
@@ -246,7 +249,7 @@ class ReportService:
             try:
                 filepath = self.file_service.save_bytes(original_filename, content)
             except Exception as e:
-                print(f"[ReportService] File validation/save failed for {original_filename}: {e}", flush=True)
+                logger.error(f"[ReportService] File validation/save failed for {original_filename}: {e}")
                 continue
 
             saved_paths.append(filepath)
@@ -300,9 +303,8 @@ class ReportService:
         if detected_exam_type and exam_type and detected_exam_type != exam_type:
             exam_type_mismatch = True
             final_exam_type = detected_exam_type
-            print(
-                f"[ReportService] Exam type mismatch: requested={exam_type}, detected={detected_exam_type}",
-                flush=True
+            logger.info(
+                f"[ReportService] Exam type mismatch: requested={exam_type}, detected={detected_exam_type}"
             )
         elif detected_exam_type and not exam_type:
             final_exam_type = detected_exam_type
@@ -331,10 +333,9 @@ class ReportService:
 
         total_elapsed = time.perf_counter() - total_start
 
-        print(
+        logger.info(
             f"[ReportService] Finished in {total_elapsed:.2f}s, "
-            f"structured_results: {len(structured_results)}",
-            flush=True
+            f"structured_results: {len(structured_results)}"
         )
 
         if len(original_names) == 1:

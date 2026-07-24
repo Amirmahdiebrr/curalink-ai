@@ -59,8 +59,18 @@
                 <a href="/visit-prep">آماده‌سازی ویزیت</a>
                 <a href="/billing/plans">پلن‌های من</a>
                 {% endif %}
+                {% if user and user.role == 'doctor' %}
+                <a href="/doctor/reviews">بررسی گزارش‌ها</a>
+                {% endif %}
                 {% if user and user.role == 'platform_admin' %}
-                <a href="/admin/doctors">تایید پزشکان</a>
+                <div class="nav-dropdown">
+                    <span class="nav-dropdown-trigger">پنل مدیریت ▾</span>
+                    <div class="nav-dropdown-menu">
+                        <a href="/admin">داشبورد مدیریت</a>
+                        <a href="/admin/doctors">تایید پزشکان</a>
+                        <a href="/doctor/reviews">بررسی گزارش‌ها</a>
+                    </div>
+                </div>
                 {% endif %}
                 <a href="https://curalinkcare.com/contact/" target="_blank" rel="noopener">تماس با ما</a>
             </nav>

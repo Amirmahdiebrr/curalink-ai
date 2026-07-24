@@ -35,7 +35,11 @@
                             {% if doctor.doctor_profile.clinic_name %} | مطب: {{ doctor.doctor_profile.clinic_name }}{% endif %}
                         </span>
                         {% if doctor.doctor_profile.license_document_path %}
-                        <span class="cl-history-date">مدرک: {{ doctor.doctor_profile.license_document_path }}</span>
+                        <a href="/admin/doctors/{{ doctor.id }}/document" target="_blank" rel="noopener" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px; margin-top:4px;">
+                            📄 مشاهده مدرک نظام پزشکی
+                        </a>
+                        {% else %}
+                        <span class="cl-history-date" style="color:var(--warn);">⚠️ مدرکی آپلود نشده است</span>
                         {% endif %}
                         {% endif %}
                     </div>
@@ -66,12 +70,17 @@
 
             <div class="cl-history-list">
                 {% for doctor in reviewed %}
-                <div class="cl-history-item">
-                    <div class="cl-history-item-main">
+                <div class="cl-history-item" style="align-items:flex-start; flex-wrap:wrap; gap:14px;">
+                    <div class="cl-history-item-main" style="flex-direction:column; align-items:flex-start; gap:6px;">
                         <span class="cl-history-badge">
                             {% if doctor.verification_status == 'approved' %}تایید‌شده{% else %}رد‌شده{% endif %}
                         </span>
                         <span class="cl-history-filename">{{ doctor.display_name }} — {{ doctor.email }}</span>
+                        {% if doctor.doctor_profile and doctor.doctor_profile.license_document_path %}
+                        <a href="/admin/doctors/{{ doctor.id }}/document" target="_blank" rel="noopener" class="btn btn-outline" style="height:34px; padding:0 12px; font-size:12px;">
+                            📄 مشاهده مدرک
+                        </a>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}

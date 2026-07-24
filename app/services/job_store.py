@@ -15,6 +15,9 @@ from datetime import datetime, timedelta
 
 from app.database import SessionLocal
 from app.models import JobRecord
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 JOB_MAX_AGE_SECONDS = 60 * 60 * 2  # ۲ ساعت
 
@@ -104,4 +107,4 @@ def purge_old_jobs():
         db.close()
 
     if count:
-        print(f"[JobStore] Purged {count} expired job(s)", flush=True)
+        logger.info(f"[JobStore] Purged {count} expired job(s)")

@@ -3,7 +3,9 @@ import time
 import httpx
 
 from app.config import NVIDIA_API_KEY, AI_MODEL
+from app.core.logging_config import get_logger
 
+logger = get_logger(__name__)
 
 NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 
@@ -40,7 +42,7 @@ async def ask_ai(prompt: str) -> str:
 
             attempt_start = time.perf_counter()
 
-            print(f"[DeepSeek] Attempt {attempt}/{max_attempts}", flush=True)
+            logger.info(f"[DeepSeek] Attempt {attempt}/{max_attempts}")
 
             try:
                 response = await client.post(
@@ -52,19 +54,19 @@ async def ask_ai(prompt: str) -> str:
             except (httpx.TimeoutException, httpx.ReadError, httpx.ConnectError) as e:
                 elapsed = time.perf_counter() - attempt_start
                 wait = 5
-                print(f"[DeepSeek] Network error on attempt {attempt}: {repr(e)}  [{elapsed:.2f}s] -> waiting {wait}s", flush=True)
+                logger.warning(f"[DeepSeek] Network error on attempt {attempt}: {repr(e)}  [{elapsed:.2f}s] -> waiting {wait}s")
                 if attempt == max_attempts:
                     raise DeepSeekError("درخواست به NVIDIA API با تایم‌اوت مواجه شد. سرویس احتمالاً موقتاً کند است، لطفاً چند دقیقه دیگر دوباره امتحان کنید.")
                 await asyncio.sleep(wait)
                 continue
 
             except Exception as e:
-                print(f"[DeepSeek] Unexpected request error: {repr(e)}", flush=True)
+                logger.error(f"[DeepSeek] Unexpected request error: {repr(e)}")
                 raise DeepSeekError(str(e))
 
             elapsed = time.perf_counter() - attempt_start
 
-            print(f"[DeepSeek] Response status: {response.status_code}  [{elapsed:.2f}s]", flush=True)
+            logger.info(f"[DeepSeek] Response status: {response.status_code}  [{elapsed:.2f}s]")
 
             if response.status_code == 200:
                 data = response.json()
@@ -73,20 +75,19 @@ async def ask_ai(prompt: str) -> str:
                 content = choice["message"]["content"]
 
                 if finish_reason == "length":
-                    print(
+                    logger.warning(
                         f"[DeepSeek] WARNING: response cut off due to max_tokens={MAX_TOKENS}. "
-                        f"Attempt {attempt}/{max_attempts}. Content length so far: {len(content)}",
-                        flush=True
+                        f"Attempt {attempt}/{max_attempts}. Content length so far: {len(content)}"
                     )
 
                     if attempt == max_attempts:
                         # پاسخ قطع‌شده را برمی‌گردانیم (بهتر از هیچ) اما با
                         # پرچم مشخص در لاگ، چون این احتمالاً بلوک JSON انتهایی
                         # گزارش را خراب می‌کند.
-                        print("[DeepSeek] Returning truncated content after final attempt.", flush=True)
+                        logger.warning("[DeepSeek] Returning truncated content after final attempt.")
                         return content
 
-                    print("[DeepSeek] Retrying once in hope of a complete response...", flush=True)
+                    logger.info("[DeepSeek] Retrying once in hope of a complete response...")
                     await asyncio.sleep(2)
                     continue
 
@@ -94,13 +95,13 @@ async def ask_ai(prompt: str) -> str:
 
             if response.status_code in (503, 429):
                 wait = 10
-                print(f"[DeepSeek] NVIDIA busy ({response.status_code}): {response.text[:300]} -> waiting {wait}s", flush=True)
+                logger.warning(f"[DeepSeek] NVIDIA busy ({response.status_code}): {response.text[:300]} -> waiting {wait}s")
                 if attempt == max_attempts:
                     raise DeepSeekError("سرویس NVIDIA در حال حاضر شلوغ است (ظرفیت پر شده). لطفاً چند دقیقه دیگر دوباره امتحان کنید.")
                 await asyncio.sleep(wait)
                 continue
 
-            print(f"[DeepSeek] Error response {response.status_code}: {response.text[:500]}", flush=True)
+            logger.error(f"[DeepSeek] Error response {response.status_code}: {response.text[:500]}")
             raise DeepSeekError(f"خطای {response.status_code}: {response.text[:300]}")
 
     raise DeepSeekError("سرویس هوش مصنوعی در دسترس نیست (پس از چند تلاش).")

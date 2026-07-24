@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}بررسی گزارش | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="result-section">
+    <div class="container">
+
+        <h1 class="result-title">بررسی گزارش آزمایش</h1>
+
+        {% if error %}
+        <div class="cl-auth-alert cl-auth-alert-error" style="margin-bottom:20px;">{{ error }}</div>
+        {% endif %}
+
+        <div class="result-card">
+            <h2>اطلاعات بیمار</h2>
+            <p style="margin:0 0 8px;">
+                نام: {{ record.family_member.name if record.family_member else record.user.display_name }}
+                {% if record.family_member and record.family_member.age %} — {{ record.family_member.age }} سال
+                {% elif record.user.age %} — {{ record.user.age }} سال
+                {% endif %}
+            </p>
+            <p style="margin:0;">نوع آزمایش: {{ exam_type_labels.get(record.exam_type, "آزمایش") }}</p>
+        </div>
+
+        {% if record.symptoms %}
+        <div class="result-card">
+            <h2>شرح علائم وارد‌شده توسط بیمار</h2>
+            <p style="margin:0; line-height:2;">{{ record.symptoms }}</p>
+        </div>
+        {% endif %}
+
+        <div class="result-card">
+            <h2>تحلیل هوش مصنوعی</h2>
+            <div class="analysis-content">
+                {{ record.analysis_html | safe }}
+            </div>
+        </div>
+
+        <details class="ocr-details">
+            <summary>مشاهده متن خام استخراج‌شده (OCR)</summary>
+            <pre>{{ record.ocr_text }}</pre>
+        </details>
+
+        {% if record.review_status == 'reviewed' %}
+
+        <div class="result-card">
+            <h2>نظر ثبت‌شده‌ی شما</h2>
+            <div style="white-space:pre-wrap; line-height:2;">{{ record.doctor_opinion_text }}</div>
+        </div>
+
+        {% else %}
+
+        <div class="result-card">
+            <h2>ثبت نظر پزشک</h2>
+            <form method="post" action="/doctor/reviews/{{ record.id }}/submit" class="cl-auth-fields">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="cl-field">
+                    <label for="opinion_text">نظر تخصصی شما درباره‌ی این گزارش و تحلیل AI</label>
+                    <textarea id="opinion_text" name="opinion_text" rows="8" required placeholder="نظر، تاییدیه یا اصلاحات خود را روی تحلیل هوش مصنوعی بنویسید..."></textarea>
+                </div>
+                <button type="submit" class="cl-auth-submit">ثبت نظر و بستن بررسی</button>
+            </form>
+        </div>
+
+        {% endif %}
+
+        <div class="result-actions">
+            <a href="/doctor/reviews" class="btn btn-outline">بازگشت به صف بررسی</a>
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

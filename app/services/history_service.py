@@ -6,8 +6,9 @@ of that user), and retrieves past analyses and structured test values
 for the history/trends/home pages.
 
 Sensitive free-text fields (ocr_text, analysis_text, analysis_html,
-symptoms) are encrypted at rest using the same Fernet key used for
-national_id, since they can contain detailed personal medical data.
+symptoms, doctor_opinion_text) are encrypted at rest using the same
+Fernet key used for national_id, since they can contain detailed
+personal medical data.
 """
 
 from datetime import datetime, timedelta
@@ -25,6 +26,7 @@ def _decrypt_record(record: AnalysisRecord) -> AnalysisRecord:
     record.analysis_text = decrypt_value(record.analysis_text)
     record.analysis_html = decrypt_value(record.analysis_html)
     record.symptoms = decrypt_value(record.symptoms)
+    record.doctor_opinion_text = decrypt_value(record.doctor_opinion_text)
     return record
 
 
@@ -116,6 +118,15 @@ def get_record_for_user(db: Session, record_id: int, user_id: int):
         .filter(AnalysisRecord.id == record_id, AnalysisRecord.user_id == user_id)
         .first()
     )
+    return _decrypt_record(record)
+
+
+def get_record_for_admin(db: Session, record_id: int):
+    """
+    مثل get_record_for_user، اما بدون محدودیت به مالک رکورد — فقط
+    برای پنل نظارتی platform_admin استفاده می‌شود.
+    """
+    record = db.query(AnalysisRecord).filter(AnalysisRecord.id == record_id).first()
     return _decrypt_record(record)
 
 

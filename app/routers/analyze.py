@@ -25,6 +25,9 @@ from app.core.exam_types import EXAM_TYPE_LABELS, VALID_EXAM_TYPES
 from app.models import PURPOSE_EXAM_ANALYSIS
 from app.services.billing_service import check_exam_access, increment_organization_usage, BillingError
 from app.services.payment_service import start_service_payment, PaymentError
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 router = APIRouter()
@@ -89,17 +92,17 @@ async def run_job(
                     symptoms=symptoms,
                     family_member_id=family_member_id,
                 )
-                print(f"[Analyze] Saved analysis to history for user_id={user_id}, family_member_id={family_member_id}", flush=True)
+                logger.info(f"[Analyze] Saved analysis to history for user_id={user_id}, family_member_id={family_member_id}")
             except Exception as e:
-                print(f"[Analyze] Failed to save history: {e}", flush=True)
+                logger.error(f"[Analyze] Failed to save history: {e}")
             finally:
                 db.close()
 
     except Exception as e:
-        print("=" * 50)
-        print("BACKGROUND JOB ERROR")
-        print("=" * 50)
-        traceback.print_exc()
+        logger.error("=" * 50)
+        logger.error("BACKGROUND JOB ERROR")
+        logger.error("=" * 50)
+        logger.error(traceback.format_exc())
         update_job(job_id, status="error", stage="error", error=str(e))
 
 
@@ -152,14 +155,14 @@ async def analyze(
     current_user = get_current_user(request, db)
 
     if not current_user:
-        print("[Analyze] Rejected: unauthenticated request", flush=True)
+        logger.warning("[Analyze] Rejected: unauthenticated request")
         return JSONResponse(
             {"error": "برای استفاده از تحلیل، ابتدا باید وارد حساب کاربری خود شوید.", "login_required": True},
             status_code=401,
         )
 
     if not is_valid_csrf(request, csrf_token):
-        print("[Analyze] Rejected: invalid CSRF token", flush=True)
+        logger.warning("[Analyze] Rejected: invalid CSRF token")
         return JSONResponse(
             {"error": "خطای اعتبارسنجی امنیتی. لطفاً صفحه را رفرش کرده و دوباره تلاش کنید."},
             status_code=403,
@@ -190,14 +193,14 @@ async def analyze(
                 patient_age = member.age
                 patient_gender = member.gender
             else:
-                print(f"[Analyze] family_member_id={fm_id} not found for user_id={user_id}, ignoring", flush=True)
+                logger.info(f"[Analyze] family_member_id={fm_id} not found for user_id={user_id}, ignoring")
 
-    print(f"[Analyze] exam_type received: {exam_type}", flush=True)
-    print(f"[Analyze] file count received: {len(files)}", flush=True)
-    print(f"[Analyze] symptoms provided: {bool(symptoms and symptoms.strip())}", flush=True)
-    print(f"[Analyze] user_id: {user_id}", flush=True)
-    print(f"[Analyze] family_member_id resolved: {resolved_family_member_id}", flush=True)
-    print(f"[Analyze] patient_age/gender used: {patient_age} / {patient_gender}", flush=True)
+    logger.info(f"[Analyze] exam_type received: {exam_type}")
+    logger.info(f"[Analyze] file count received: {len(files)}")
+    logger.info(f"[Analyze] symptoms provided: {bool(symptoms and symptoms.strip())}")
+    logger.info(f"[Analyze] user_id: {user_id}")
+    logger.info(f"[Analyze] family_member_id resolved: {resolved_family_member_id}")
+    logger.info(f"[Analyze] patient_age/gender used: {patient_age} / {patient_gender}")
 
     file_data = []
     total_size_mb = 0.0
@@ -267,7 +270,7 @@ async def job_status(job_id: str, request: Request, db: Session = Depends(get_db
         return JSONResponse({"status": "not_found"}, status_code=404)
 
     if not _job_belongs_to_user(job, current_user.id if current_user else None):
-        print(f"[Analyze] Unauthorized status access attempt on job_id={job_id}", flush=True)
+        logger.warning(f"[Analyze] Unauthorized status access attempt on job_id={job_id}")
         return JSONResponse({"status": "not_found"}, status_code=404)
 
     return JSONResponse({
@@ -284,7 +287,7 @@ async def processing_page(request: Request, job_id: str, db: Session = Depends(g
     job = get_job(job_id)
 
     if not job or not _job_belongs_to_user(job, user.id if user else None):
-        print(f"[Analyze] Unauthorized processing-page access attempt on job_id={job_id}", flush=True)
+        logger.warning(f"[Analyze] Unauthorized processing-page access attempt on job_id={job_id}")
         return templates.TemplateResponse(
             request,
             "error.html",
@@ -323,7 +326,7 @@ async def result_page(request: Request, job_id: str, db: Session = Depends(get_d
     job = get_job(job_id)
 
     if not job or not _job_belongs_to_user(job, user.id if user else None):
-        print(f"[Analyze] Unauthorized result-page access attempt on job_id={job_id}", flush=True)
+        logger.warning(f"[Analyze] Unauthorized result-page access attempt on job_id={job_id}")
         return templates.TemplateResponse(
             request,
             "error.html",

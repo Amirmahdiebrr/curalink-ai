@@ -92,6 +92,27 @@
             </div>
         </div>
 
+        {% if record_id %}
+        <div class="result-card">
+            <h2>بررسی توسط پزشک</h2>
+
+            {% if result.review_status == 'reviewed' %}
+            <p style="margin:0 0 12px; color:#0E9C74; font-weight:700;">✅ این گزارش توسط پزشک بررسی شده است.</p>
+            <div style="white-space:pre-wrap; line-height:2;">{{ result.doctor_opinion_text }}</div>
+
+            {% elif result.review_status == 'awaiting_doctor' %}
+            <p style="margin:0; color:#8CA0B3;">⏳ این گزارش برای بررسی توسط پزشک ارسال شده و در انتظار پاسخ است.</p>
+
+            {% else %}
+            <p style="margin:0 0 16px; color:#8CA0B3;">می‌توانید این گزارش را برای بررسی توسط یک پزشک متخصص ارسال کنید.</p>
+            <form method="post" action="/history/{{ record_id }}/request-review">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-solid">درخواست بررسی توسط پزشک</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endif %}
+
         <details class="ocr-details">
             <summary>مشاهده متن خام استخراج‌شده (OCR)</summary>
             <pre>{{ result.ocr }}</pre>

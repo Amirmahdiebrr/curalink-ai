@@ -15,6 +15,9 @@ from datetime import datetime, timedelta
 
 from app.database import SessionLocal
 from app.models import PendingActionRecord
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 ACTION_MAX_AGE_SECONDS = 60 * 60 * 2  # ۲ ساعت
 
@@ -107,4 +110,4 @@ def purge_old():
         db.close()
 
     if count:
-        print(f"[PendingActionStore] Purged {count} expired action(s)", flush=True)
+        logger.info(f"[PendingActionStore] Purged {count} expired action(s)")

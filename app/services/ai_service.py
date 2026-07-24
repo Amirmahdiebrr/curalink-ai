@@ -1,4 +1,7 @@
 from app.services.deepseek import ask_ai, DeepSeekError
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class AIService:
@@ -10,7 +13,7 @@ class AIService:
 
         except DeepSeekError as e:
 
-            print("[AIService] DeepSeekError:", e)
+            logger.error(f"[AIService] DeepSeekError: {e}")
 
             return f"""
 تحلیل AI انجام نشد.
@@ -21,7 +24,7 @@ class AIService:
 
         except Exception as e:
 
-            print("[AIService] Unexpected error:", e)
+            logger.error(f"[AIService] Unexpected error: {e}")
 
             return f"""
 خطای غیرمنتظره در تحلیل AI.

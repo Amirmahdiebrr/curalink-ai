@@ -3,6 +3,10 @@ app/services/billing_service.py
 
 Core billing logic: service pricing lookup, subscription status
 checks, weekly usage caps, and organization quota tracking.
+
+نکته: کاربران با نقش platform_admin از تمام سرویس‌های پولی به‌صورت
+رایگان و نامحدود استفاده می‌کنند (برای تست و نظارت کامل روی سیستم،
+بدون نیاز به درگاه پرداخت فعال).
 """
 
 from datetime import datetime, timedelta
@@ -15,7 +19,9 @@ from app.models import (
     Subscription,
     DietPlanRecord,
     OrganizationMember,
+    User,
     SUBSCRIPTION_ACTIVE,
+    ROLE_PLATFORM_ADMIN,
 )
 
 
@@ -28,6 +34,15 @@ ORG_SUBSCRIPTION_CODES = ("org_small_monthly", "org_lab_monthly", "org_hospital_
 
 class BillingError(Exception):
     pass
+
+
+# ==========================
+# Platform-admin bypass
+# ==========================
+
+def _is_platform_admin(db: Session, user_id: int) -> bool:
+    user = db.query(User).filter(User.id == user_id).first()
+    return bool(user and user.role == ROLE_PLATFORM_ADMIN)
 
 
 # ==========================
@@ -157,6 +172,13 @@ def check_exam_access(db: Session, user_id: int, exam_type: str) -> dict:
         "org_user_id": int | None,
     }
     """
+
+    if _is_platform_admin(db, user_id):
+        return {
+            "free": True, "requires_payment": False, "price": None,
+            "reason": "platform_admin_free_access", "org_covered": False, "org_user_id": None,
+        }
+
     if patient_has_active_subscription(db, user_id):
         return {
             "free": True, "requires_payment": False, "price": None,
@@ -183,6 +205,10 @@ def check_exam_access(db: Session, user_id: int, exam_type: str) -> dict:
 
 
 def check_visit_prep_access(db: Session, user_id: int) -> dict:
+
+    if _is_platform_admin(db, user_id):
+        return {"free": True, "requires_payment": False, "price": None, "reason": "platform_admin_free_access"}
+
     if patient_has_active_subscription(db, user_id):
         return {"free": True, "requires_payment": False, "price": None, "reason": "covered_by_subscription"}
 
@@ -208,6 +234,10 @@ def _diet_plans_used_this_week(db: Session, user_id: int) -> int:
 
 
 def check_diet_plan_access(db: Session, user_id: int) -> dict:
+
+    if _is_platform_admin(db, user_id):
+        return {"free": True, "requires_payment": False, "price": None, "reason": "platform_admin_free_access"}
+
     subscription = patient_has_active_subscription(db, user_id)
 
     if subscription:
