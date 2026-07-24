@@ -9,7 +9,7 @@ logger = get_logger(__name__)
 
 NVIDIA_URL = "https://integrate.api.nvidia.com/v1/chat/completions"
 
-MAX_TOKENS = 4096
+MAX_TOKENS = 6000
 
 
 class DeepSeekError(Exception):

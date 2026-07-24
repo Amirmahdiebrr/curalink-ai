@@ -2,7 +2,8 @@
 app/routers/auth.py
 
 ثبت‌نام (انتخاب نوع حساب + بیمار/پزشک/سازمان)، ورود، خروج، پروفایل،
-تایید ایمیل، تایید موبایل (OTP)، فراموشی رمز عبور — کاملاً مستقل از وردپرس.
+تایید ایمیل، تایید موبایل (OTP)، فراموشی رمز عبور، تغییر ایمیل/رمز،
+آواتار، و حذف حساب توسط خود کاربر — کاملاً مستقل از وردپرس.
 """
 
 import uuid
@@ -29,10 +30,15 @@ from app.services.auth_service import (
     confirm_email_token,
     start_password_reset,
     complete_password_reset,
+    change_email,
+    change_password,
+    update_avatar,
+    delete_own_account,
 )
 from app.services.email_service import EmailService
 from app.services.sms_service import SMSService
 from app.services.file_service import signature_matches_extension
+from app.services.avatar_service import save_avatar, AvatarError
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.crypto import encrypt_value, decrypt_value
 from app.core.limiter import limiter
@@ -162,7 +168,6 @@ async def register_patient_submit(
             {"request": request, "error": str(e), "csrf_token": new_token, "user": None}
         )
 
-    # ارسال ایمیل تایید در پس‌زمینه (کاربر منتظر نمی‌ماند)
     try:
         verify_token = start_email_verification(db, user)
         background_tasks.add_task(email_service.send_email_verification, user.email, user.id, verify_token)
@@ -175,7 +180,7 @@ async def register_patient_submit(
 
 
 # ==========================
-# ثبت‌نام (پزشک)
+# ثبت‌نام (پزشک) — عکس پروفایل اجباری
 # ==========================
 
 @router.get("/register/doctor")
@@ -201,6 +206,7 @@ async def register_doctor_submit(
     medical_council_no: str = Form(None),
     clinic_name: str = Form(None),
     license_document: UploadFile = File(...),
+    avatar: UploadFile = File(...),
     csrf_token: str = Form(...),
     db: Session = Depends(get_db),
 ):
@@ -232,6 +238,16 @@ async def register_doctor_submit(
         )
 
     try:
+        avatar_content = await avatar.read()
+        avatar_path = save_avatar(avatar_content, avatar.filename)
+    except AvatarError as e:
+        return templates.TemplateResponse(
+            request,
+            "register_doctor.html",
+            {"request": request, "error": f"عکس پروفایل: {e}", "csrf_token": new_token, "user": None}
+        )
+
+    try:
         user = register_doctor(
             db,
             email=email,
@@ -243,6 +259,8 @@ async def register_doctor_submit(
             license_document_path=license_path,
             clinic_name=clinic_name,
         )
+        user.avatar_path = avatar_path
+        db.commit()
     except AuthError as e:
         return templates.TemplateResponse(
             request,
@@ -250,7 +268,6 @@ async def register_doctor_submit(
             {"request": request, "error": str(e), "csrf_token": new_token, "user": None}
         )
 
-    # پزشک تا تایید ادمین is_active=False است، پس اینجا لاگین خودکار نمی‌کنیم
     try:
         verify_token = start_email_verification(db, user)
         background_tasks.add_task(email_service.send_email_verification, user.email, user.id, verify_token)
@@ -591,7 +608,6 @@ async def forgot_password_submit(
         reset_token = start_password_reset(db, user)
         background_tasks.add_task(email_service.send_password_reset, user.email, user.id, reset_token)
 
-    # پیام یکسان چه ایمیل ثبت‌شده باشد چه نباشد (جلوگیری از لو رفتن ایمیل‌های ثبت‌شده)
     return templates.TemplateResponse(
         request,
         "forgot_password.html",
@@ -767,7 +783,7 @@ async def profile_update(
             )
 
         user.phone = new_phone
-        user.phone_verified = False  # شماره جدید، تا وقتی OTP نشده تایید‌نشده است
+        user.phone_verified = False
 
     db.commit()
     db.refresh(user)
@@ -786,3 +802,159 @@ async def profile_update(
             "csrf_token": new_token2,
         }
     )
+
+
+# ==========================
+# آواتار (اختیاری برای همه)
+# ==========================
+
+@router.post("/profile/avatar")
+async def profile_avatar_upload(
+    request: Request,
+    avatar: UploadFile = File(...),
+    csrf_token: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    user = get_current_user(request, db)
+
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not is_valid_csrf(request, csrf_token):
+        return RedirectResponse(url="/profile", status_code=303)
+
+    try:
+        content = await avatar.read()
+        avatar_path = save_avatar(content, avatar.filename)
+        update_avatar(db, user, avatar_path)
+    except AvatarError as e:
+        logger.error(f"[Auth] Avatar upload failed: {e}")
+
+    return RedirectResponse(url="/profile", status_code=303)
+
+
+# ==========================
+# تغییر ایمیل / رمز عبور
+# ==========================
+
+@router.post("/profile/change-email")
+async def profile_change_email(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    new_email: str = Form(...),
+    current_password: str = Form(...),
+    csrf_token: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    user = get_current_user(request, db)
+
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    new_token = get_or_create_csrf_token(request)
+
+    if not is_valid_csrf(request, csrf_token):
+        return templates.TemplateResponse(
+            request, "profile.html",
+            {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
+             "saved": False, "error": "خطای اعتبارسنجی امنیتی.", "csrf_token": new_token}
+        )
+
+    try:
+        change_email(db, user, new_email, current_password)
+        verify_token = start_email_verification(db, user)
+        background_tasks.add_task(email_service.send_email_verification, user.email, user.id, verify_token)
+    except AuthError as e:
+        return templates.TemplateResponse(
+            request, "profile.html",
+            {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
+             "saved": False, "error": str(e), "csrf_token": new_token}
+        )
+
+    return RedirectResponse(url="/profile", status_code=303)
+
+
+@router.post("/profile/change-password")
+async def profile_change_password(
+    request: Request,
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    new_password_confirm: str = Form(...),
+    csrf_token: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    user = get_current_user(request, db)
+
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    new_token = get_or_create_csrf_token(request)
+
+    if not is_valid_csrf(request, csrf_token):
+        return templates.TemplateResponse(
+            request, "profile.html",
+            {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
+             "saved": False, "error": "خطای اعتبارسنجی امنیتی.", "csrf_token": new_token}
+        )
+
+    if new_password != new_password_confirm:
+        return templates.TemplateResponse(
+            request, "profile.html",
+            {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
+             "saved": False, "error": "رمز عبور جدید و تکرار آن یکسان نیستند.", "csrf_token": new_token}
+        )
+
+    try:
+        change_password(db, user, current_password, new_password)
+    except AuthError as e:
+        return templates.TemplateResponse(
+            request, "profile.html",
+            {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
+             "saved": False, "error": str(e), "csrf_token": new_token}
+        )
+
+    return RedirectResponse(url="/profile", status_code=303)
+
+
+# ==========================
+# حذف حساب توسط خود کاربر
+# ==========================
+
+@router.post("/profile/delete")
+async def profile_delete_account(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    current_password: str = Form(...),
+    csrf_token: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    user = get_current_user(request, db)
+
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    new_token = get_or_create_csrf_token(request)
+
+    if not is_valid_csrf(request, csrf_token):
+        return templates.TemplateResponse(
+            request, "profile.html",
+            {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
+             "saved": False, "error": "خطای اعتبارسنجی امنیتی.", "csrf_token": new_token}
+        )
+
+    email = user.email
+
+    try:
+        delete_own_account(db, user, current_password)
+    except AuthError as e:
+        return templates.TemplateResponse(
+            request, "profile.html",
+            {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
+             "saved": False, "error": str(e), "csrf_token": new_token}
+        )
+
+    background_tasks.add_task(email_service.send_account_deleted_notice, email, False)
+
+    request.session.clear()
+
+    return RedirectResponse(url="/", status_code=303)

@@ -302,3 +302,55 @@ def reject_doctor(db: Session, doctor_id: int, admin_id: int, note: str | None =
     db.refresh(doctor)
 
     return doctor
+def change_email(db: Session, user: User, new_email: str, current_password: str) -> None:
+    new_email = (new_email or "").strip().lower()
+
+    if not new_email or "@" not in new_email:
+        raise AuthError("ایمیل معتبر وارد کنید.")
+
+    if not verify_password(current_password, user.password_hash):
+        raise AuthError("رمز عبور فعلی اشتباه است.")
+
+    if get_user_by_email(db, new_email) and new_email != user.email:
+        raise AuthError("این ایمیل قبلاً توسط حساب دیگری ثبت شده است.")
+
+    user.email = new_email
+    user.email_verified = False
+    db.commit()
+
+
+def change_password(db: Session, user: User, current_password: str, new_password: str) -> None:
+    if not verify_password(current_password, user.password_hash):
+        raise AuthError("رمز عبور فعلی اشتباه است.")
+
+    password_error = validate_password_strength(new_password)
+    if password_error:
+        raise AuthError(password_error)
+
+    user.password_hash = hash_password(new_password)
+    db.commit()
+
+
+def update_avatar(db: Session, user: User, avatar_path: str) -> None:
+    user.avatar_path = avatar_path
+    db.commit()
+
+
+def delete_own_account(db: Session, user: User, current_password: str) -> None:
+    if not verify_password(current_password, user.password_hash):
+        raise AuthError("رمز عبور اشتباه است.")
+
+    db.delete(user)
+    db.commit()
+
+
+def admin_delete_user(db: Session, user_id: int) -> User:
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise AuthError("کاربر پیدا نشد.")
+
+    db.delete(user)
+    db.commit()
+
+    return user

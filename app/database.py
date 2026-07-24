@@ -82,6 +82,10 @@ def _run_light_migrations():
             _add_column_if_missing(conn, "test_results", "recommended_followup_days", "INTEGER")
             _add_column_if_missing(conn, "test_results", "organ_category", "TEXT")
             _add_column_if_missing(conn, "test_results", "followup_reminder_sent", "BOOLEAN DEFAULT 0")
+  
+    if "users" in table_names:
+        with engine.connect() as conn:
+            _add_column_if_missing(conn, "users", "avatar_path", "TEXT")
 
 
 def init_db():

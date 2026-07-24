@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}آماده‌سازی ویزیت | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="cl-profile-section">
+    <div class="container">
+
+        <div class="cl-profile-header">
+            <div class="cl-profile-avatar">
+                {{ (user.display_name or user.nicename or "?")[0] }}
+            </div>
+            <div>
+                <h1>آماده‌سازی ویزیت پزشک</h1>
+                <p>خلاصه‌ای آماده از وضعیت آزمایش‌هایتان قبل از مراجعه به پزشک</p>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="cl-auth-alert cl-auth-alert-error">{{ error }}</div>
+        {% endif %}
+
+        <div class="cl-profile-card" style="margin-bottom:24px;">
+
+            <h3 class="cl-profile-card-title">برای چه کسی آماده کنیم؟</h3>
+
+            <form method="post" action="/visit-prep" class="cl-auth-fields">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <div class="cl-field">
+                    <label for="family_member_id">انتخاب فرد</label>
+                    <select id="family_member_id" name="family_member_id">
+                        <option value="self">خودم</option>
+                        {% for member in family_members %}
+                        <option value="{{ member.id }}" {% if selected_family_member_id == member.id %}selected{% endif %}>
+                            {{ member.name }}{% if member.relation %} ({{ member.relation }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="cl-field">
+                    <label for="reason">دلیل یا شرح مراجعه (اختیاری)</label>
+                    <textarea id="reason" name="reason" rows="4" maxlength="800" placeholder="مثلاً: سردرد مداوم دو هفته اخیر">{{ reason_value or '' }}</textarea>
+                </div>
+
+                <button type="submit" class="cl-auth-submit">تولید خلاصه‌ی ویزیت</button>
+
+            </form>
+
+        </div>
+
+        <div class="result-actions" style="margin:0 0 24px;">
+            <a href="/visit-prep/history" class="btn btn-outline">مشاهده تاریخچه آماده‌سازی‌های ویزیت</a>
+        </div>
+
+        {% if summary_html %}
+        <div class="result-card">
+            <h2>خلاصه‌ی آماده‌شده</h2>
+            <div class="analysis-content">
+                {{ summary_html | safe }}
+            </div>
+        </div>
+        {% endif %}
+
+        <p class="cl-trends-disclaimer">
+            ⚠️ این خلاصه صرفاً برای بهینه‌تر کردن زمان ویزیت است و جایگزین معاینه یا نظر پزشک نیست.
+        </p>
+
+    </div>
+</section>
+
+{% endblock %}

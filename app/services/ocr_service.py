@@ -136,3 +136,13 @@ class OCRService:
             raise OCRServiceError(f"باز کردن فایل تصویر ناموفق بود: {e}")
 
         try:
+            text = pytesseract.image_to_string(image, lang="fas+eng")
+        except Exception as e:
+            raise OCRServiceError(f"OCR روی تصویر ناموفق بود (Tesseract نصب/در دسترس است؟): {e}")
+
+        cleaned = (text or "").strip()
+
+        if not cleaned:
+            raise OCRServiceError("هیچ متنی از این تصویر استخراج نشد.")
+
+        return cleaned

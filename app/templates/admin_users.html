@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}مدیریت کاربران | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="cl-profile-section">
+    <div class="container">
+
+        <div class="cl-profile-header">
+            <div class="cl-profile-avatar">{{ (user.display_name or "?")[0] }}</div>
+            <div>
+                <h1>مدیریت کاربران</h1>
+                <p>{{ users|length }} کاربر ثبت‌شده</p>
+            </div>
+        </div>
+
+        <div class="cl-profile-card">
+            <div class="cl-history-list">
+                {% for u in users %}
+                <div class="cl-history-item">
+                    <div class="cl-history-item-main">
+                        <span class="cl-history-badge">
+                            {% if u.role == 'patient' %}بیمار{% elif u.role == 'doctor' %}پزشک{% elif u.role == 'org_admin' %}سازمان{% else %}ادمین{% endif %}
+                        </span>
+                        <span class="cl-history-filename">{{ u.display_name }} — {{ u.email }}</span>
+                    </div>
+                    {% if u.role != 'platform_admin' %}
+                    <form method="post" action="/admin/users/{{ u.id }}/delete" onsubmit="return confirm('این کاربر و تمام داده‌هایش حذف شود؟');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px; border-color:var(--warn); color:var(--warn);">حذف</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

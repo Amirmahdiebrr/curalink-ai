@@ -54,6 +54,7 @@ class User(Base):
     gender = Column(String, nullable=True)
     national_id = Column(String, nullable=True)
     address = Column(String, nullable=True)
+    avatar_path = Column(String, nullable=True)
 
     is_active = Column(Boolean, default=True, nullable=False)
     verification_status = Column(String, nullable=True)
@@ -464,3 +465,22 @@ class PendingActionRecord(Base):
     error = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+# انتهای فایل models/__init__.py اضافه کن:
+
+class ReviewRecord(Base):
+    """
+    نظرات واقعی کاربران که در صفحه‌ی اصلی نمایش داده می‌شود.
+    """
+    __tablename__ = "reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    rating = Column(Integer, nullable=False)  # 1 تا 5
+    comment = Column(Text, nullable=False)
+
+    is_approved = Column(Boolean, default=True, nullable=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    user = relationship("User")

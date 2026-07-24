@@ -132,3 +132,20 @@ ZARINPAL_SANDBOX = os.getenv("ZARINPAL_SANDBOX", "true").strip().lower() == "tru
 
 if not ZARINPAL_MERCHANT_ID:
     print("⚠️  ZARINPAL_MERCHANT_ID not set in .env — payments will fail until it's configured.")
+# ==========================
+# SMTP Settings (ایمیل واقعی)
+# ==========================
+
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM = os.getenv("SMTP_FROM", SMTP_USER)
+SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").strip().lower() == "true"
+
+# ==========================
+# Avatar uploads
+# ==========================
+
+AVATAR_MAX_SIZE_MB = 5
+AVATAR_ALLOWED_EXTENSIONS = [".png", ".jpg", ".jpeg"]

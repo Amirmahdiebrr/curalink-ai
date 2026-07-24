@@ -31,6 +31,7 @@ from app.routers.family import router as family_router
 from app.routers.diet import router as diet_router
 from app.routers.visit_prep import router as visit_prep_router
 from app.routers.doctor_review import router as doctor_review_router
+from app.routers.reviews import router as reviews_router
 
 from app.services.job_store import purge_old_jobs
 from app.services import pending_action_store
@@ -80,7 +81,7 @@ app.include_router(visit_prep_router)
 app.include_router(doctor_review_router)
 app.include_router(admin_router)
 app.include_router(payment_router)
-
+app.include_router(reviews_router)
 
 async def _job_cleanup_loop():
     while True:

@@ -8,9 +8,13 @@
     <div class="container">
 
         <div class="cl-profile-header">
+            {% if user.avatar_path %}
+            <img src="{{ user.avatar_path }}" alt="عکس پروفایل" class="cl-profile-avatar" style="object-fit:cover;">
+            {% else %}
             <div class="cl-profile-avatar">
                 {{ (user.display_name or "?")[0] }}
             </div>
+            {% endif %}
             <div>
                 <h1>{{ user.display_name }}</h1>
                 <p>{{ user.email }}</p>
@@ -83,6 +87,18 @@
 
             <div class="cl-profile-card cl-profile-card-info">
 
+                <h3 class="cl-profile-card-title">عکس پروفایل</h3>
+
+                <form method="post" action="/profile/avatar" enctype="multipart/form-data" class="cl-auth-fields">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="cl-field">
+                        <input type="file" name="avatar" accept=".png,.jpg,.jpeg" required>
+                    </div>
+                    <button type="submit" class="cl-auth-submit">آپلود عکس جدید</button>
+                </form>
+
+                <hr style="margin:24px 0; border:none; border-top:1px solid var(--line);">
+
                 <h3 class="cl-profile-card-title">حساب کاربری</h3>
 
                 <div class="cl-info-row">
@@ -101,12 +117,61 @@
                     </span>
                 </div>
 
-                <div class="cl-info-note">
-                    برای تغییر ایمیل حساب کاربری با پشتیبانی تماس بگیرید.
-                </div>
-
             </div>
 
+        </div>
+
+        <div class="cl-profile-grid" style="margin-top:24px;">
+
+            <div class="cl-profile-card">
+                <h3 class="cl-profile-card-title">تغییر ایمیل</h3>
+                <form method="post" action="/profile/change-email" class="cl-auth-fields">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="cl-field">
+                        <label for="new_email">ایمیل جدید</label>
+                        <input type="email" id="new_email" name="new_email" required>
+                    </div>
+                    <div class="cl-field">
+                        <label for="current_password_email">رمز عبور فعلی</label>
+                        <input type="password" id="current_password_email" name="current_password" required>
+                    </div>
+                    <button type="submit" class="cl-auth-submit">تغییر ایمیل</button>
+                </form>
+            </div>
+
+            <div class="cl-profile-card">
+                <h3 class="cl-profile-card-title">تغییر رمز عبور</h3>
+                <form method="post" action="/profile/change-password" class="cl-auth-fields">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <div class="cl-field">
+                        <label for="current_password_pw">رمز عبور فعلی</label>
+                        <input type="password" id="current_password_pw" name="current_password" required>
+                    </div>
+                    <div class="cl-field">
+                        <label for="new_password">رمز عبور جدید</label>
+                        <input type="password" id="new_password" name="new_password" required>
+                    </div>
+                    <div class="cl-field">
+                        <label for="new_password_confirm">تکرار رمز عبور جدید</label>
+                        <input type="password" id="new_password_confirm" name="new_password_confirm" required>
+                    </div>
+                    <button type="submit" class="cl-auth-submit">تغییر رمز عبور</button>
+                </form>
+            </div>
+
+        </div>
+
+        <div class="cl-profile-card" style="margin-top:24px; border:1px solid #FEECEC;">
+            <h3 class="cl-profile-card-title" style="color:var(--warn);">حذف حساب کاربری</h3>
+            <p class="cl-profile-card-sub">این عملیات غیرقابل بازگشت است و تمام اطلاعات شما حذف می‌شود.</p>
+            <form method="post" action="/profile/delete" class="cl-auth-fields" onsubmit="return confirm('آیا مطمئن هستید؟ این عملیات غیرقابل بازگشت است.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="cl-field">
+                    <label for="current_password_delete">رمز عبور برای تایید</label>
+                    <input type="password" id="current_password_delete" name="current_password" required>
+                </div>
+                <button type="submit" class="btn btn-outline" style="border-color:var(--warn); color:var(--warn);">حذف حساب کاربری من</button>
+            </form>
         </div>
 
     </div>

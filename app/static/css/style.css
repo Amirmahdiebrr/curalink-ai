@@ -2172,3 +2172,63 @@ pre{
         display:none;
     }
 }
+/* ===== Testimonials ===== */
+
+.cl-testimonials-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:22px;
+}
+
+.cl-testimonial-card{
+    background:var(--glass-strong);
+    backdrop-filter:blur(14px);
+    -webkit-backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,.7);
+    border-radius:var(--radius-md);
+    padding:26px;
+    box-shadow:var(--shadow-sm);
+}
+
+.cl-testimonial-text{
+    font-size:14.5px;
+    line-height:2;
+    color:var(--text);
+    margin:0 0 18px;
+}
+
+.cl-testimonial-author{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.cl-testimonial-avatar{
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    background:linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:700;
+    flex-shrink:0;
+}
+
+.cl-testimonial-author strong{
+    display:block;
+    font-size:13.5px;
+    color:var(--navy);
+}
+
+.cl-testimonial-author small{
+    font-size:12px;
+    color:#8CA0B3;
+}
+
+@media(max-width:900px){
+    .cl-testimonials-grid{
+        grid-template-columns:1fr;
+    }
+}

@@ -2,10 +2,10 @@
 app/routers/admin.py
 
 Platform-admin panel:
-- /admin: داشبورد نظارتی کلی (آمار کاربران، آنالیزها، پرداخت‌ها،
-  اشتراک‌ها، صف بررسی پزشک) + مشاهده‌ی هر گزارش آزمایشی از هر کاربری
-- /admin/doctors: بررسی و تایید/رد ثبت‌نام پزشکان
-- /admin/doctors/{id}/document: مشاهده/دانلود امن مدرک نظام پزشکی
+- /admin: داشبورد نظارتی کلی
+- /admin/analysis/{id}: مشاهده‌ی هر گزارش آزمایشی از هر کاربری
+- /admin/doctors: بررسی و تایید/رد ثبت‌نام پزشکان + مشاهده مدرک
+- /admin/users: مدیریت و حذف کاربران
 
 فقط برای کاربرانی با role=platform_admin در دسترس است.
 """
@@ -30,6 +30,7 @@ from app.services.auth_service import (
     get_reviewed_doctors,
     approve_doctor,
     reject_doctor,
+    admin_delete_user,
     AuthError,
 )
 from app.services.email_service import EmailService
@@ -58,6 +59,10 @@ def _require_admin(request: Request, db: Session):
         return None
     return user
 
+
+# ==========================
+# داشبورد نظارتی کلی
+# ==========================
 
 @router.get("/admin")
 async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
@@ -180,6 +185,10 @@ async def admin_view_analysis(request: Request, record_id: int, db: Session = De
     )
 
 
+# ==========================
+# تایید حساب پزشکان
+# ==========================
+
 @router.get("/admin/doctors")
 async def admin_doctors_page(request: Request, db: Session = Depends(get_db)):
 
@@ -210,9 +219,6 @@ async def admin_doctors_page(request: Request, db: Session = Depends(get_db)):
 async def admin_view_doctor_document(doctor_id: int, request: Request, db: Session = Depends(get_db)):
     """
     نمایش/دانلود امن مدرک نظام پزشکی یک پزشک، فقط برای platform_admin.
-    فایل مستقیماً از دیسک سرو می‌شود (نه از طریق StaticFiles عمومی)،
-    تا هیچ فایلی از uploads/doctor_docs بدون احراز هویت ادمین قابل
-    دسترسی نباشد.
     """
 
     admin_user = _require_admin(request, db)
@@ -308,3 +314,60 @@ async def admin_reject_doctor(
         logger.error(f"[Admin] Reject doctor failed: {e}")
 
     return RedirectResponse(url="/admin/doctors", status_code=303)
+
+
+# ==========================
+# مدیریت کاربران (حذف توسط ادمین)
+# ==========================
+
+@router.get("/admin/users")
+async def admin_users_page(request: Request, db: Session = Depends(get_db)):
+
+    admin_user = _require_admin(request, db)
+
+    if not admin_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    users = db.query(User).order_by(User.created_at.desc()).all()
+    csrf_token = get_or_create_csrf_token(request)
+
+    return templates.TemplateResponse(
+        request,
+        "admin_users.html",
+        {
+            "request": request,
+            "user": admin_user,
+            "users": users,
+            "csrf_token": csrf_token,
+        }
+    )
+
+
+@router.post("/admin/users/{target_user_id}/delete")
+@limiter.limit("20/hour")
+async def admin_delete_user_route(
+    target_user_id: int,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    csrf_token: str = Form(...),
+    db: Session = Depends(get_db),
+):
+
+    admin_user = _require_admin(request, db)
+
+    if not admin_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not is_valid_csrf(request, csrf_token):
+        return RedirectResponse(url="/admin/users", status_code=303)
+
+    if target_user_id == admin_user.id:
+        return RedirectResponse(url="/admin/users", status_code=303)
+
+    try:
+        deleted_user = admin_delete_user(db, target_user_id)
+        background_tasks.add_task(email_service.send_account_deleted_notice, deleted_user.email, True)
+    except AuthError as e:
+        logger.error(f"[Admin] Delete user failed: {e}")
+
+    return RedirectResponse(url="/admin/users", status_code=303)
