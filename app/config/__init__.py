@@ -20,6 +20,14 @@ AI_MODEL = os.getenv(
     "deepseek-ai/deepseek-v4-pro"
 )
 
+# مدل جایگزین (سریع‌تر/سبک‌تر) که در صورت timeout یا شلوغی (503) مدل
+# اصلی، به‌صورت خودکار برای همان درخواست امتحان می‌شود تا کاربر با
+# شکست کامل تحلیل مواجه نشود.
+AI_FALLBACK_MODEL = os.getenv(
+    "AI_FALLBACK_MODEL",
+    "deepseek-ai/deepseek-v4-flash"
+)
+
 NVIDIA_API_KEY = os.getenv(
     "NVIDIA_API_KEY"
 )

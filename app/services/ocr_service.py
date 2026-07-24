@@ -11,7 +11,7 @@ import shutil
 from pathlib import Path
 
 import pytesseract
-from PIL import Image
+from PIL import Image, ImageOps, ImageFilter
 import pillow_heif
 from PyPDF2 import PdfReader
 import fitz
@@ -52,6 +52,41 @@ else:
     )
 
 pillow_heif.register_heif_opener()
+
+
+def _preprocess_for_ocr(image: Image.Image) -> Image.Image:
+    """
+    پیش‌پردازش تصویر قبل از OCR تا دقت تشخیص ارقام و حروف (به‌خصوص
+    در برگه‌های آزمایش با کیفیت اسکن/عکس پایین) بهبود یابد:
+    - تبدیل به grayscale (حذف نویز رنگی)
+    - افزایش کنتراست با autocontrast (سیاه/سفید کردن واضح‌تر متن)
+    - یک اسکیل‌آپ ملایم برای تصاویر خیلی کوچک (متن ریز/فشرده در
+      رزولوشن پایین معمولاً باعث اشتباه خواندن ارقام مشابه مثل ۲/۹
+      یا ۰/۶ می‌شود)
+    - یک فیلتر sharpen خفیف برای واضح‌تر شدن لبه‌ی حروف/ارقام
+
+    اگر هر بخشی از پیش‌پردازش شکست بخورد، تصویر اصلی (بدون تغییر)
+    برگردانده می‌شود تا OCR کاملاً متوقف نشود.
+    """
+    try:
+        processed = image.convert("L")  # grayscale
+
+        # اگر تصویر کوچک‌تر از حد معقول برای OCR دقیق است، آن را بزرگ‌تر کن.
+        min_dimension = 1600
+        width, height = processed.size
+        if max(width, height) < min_dimension:
+            scale = min_dimension / max(width, height)
+            new_size = (int(width * scale), int(height * scale))
+            processed = processed.resize(new_size, Image.LANCZOS)
+
+        processed = ImageOps.autocontrast(processed, cutoff=1)
+        processed = processed.filter(ImageFilter.SHARPEN)
+
+        return processed.convert("RGB")
+
+    except Exception as e:
+        logger.warning(f"[OCRService] Image preprocessing failed, using original image: {e}")
+        return image
 
 
 class OCRServiceError(Exception):
@@ -111,8 +146,9 @@ class OCRService:
                 page = doc.load_page(page_index)
                 pix = page.get_pixmap(dpi=200)
                 image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                image = _preprocess_for_ocr(image)
 
-                page_text = pytesseract.image_to_string(image, lang="fas+eng")
+                page_text = pytesseract.image_to_string(image, lang="fas+eng", config="--psm 6")
 
                 if page_text and page_text.strip():
                     pages_text.append(page_text.strip())
@@ -135,8 +171,10 @@ class OCRService:
         except Exception as e:
             raise OCRServiceError(f"باز کردن فایل تصویر ناموفق بود: {e}")
 
+        image = _preprocess_for_ocr(image)
+
         try:
-            text = pytesseract.image_to_string(image, lang="fas+eng")
+            text = pytesseract.image_to_string(image, lang="fas+eng", config="--psm 6")
         except Exception as e:
             raise OCRServiceError(f"OCR روی تصویر ناموفق بود (Tesseract نصب/در دسترس است؟): {e}")
 
