@@ -47,7 +47,7 @@
                     </h3>
 
                     <div class="cl-organ-items">
-                        {% for item in group.items %}
+                        {% for item in group['items'] %}
                         <div class="cl-organ-item cl-organ-item-{{ item.status or 'normal' }}">
                             <div class="cl-organ-item-head">
                                 <span class="cl-organ-item-name">{{ item.name }}</span>
