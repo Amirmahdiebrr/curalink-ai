@@ -10,3 +10,4 @@ services:
     volumes:
       - ./data:/app/data
       - ./uploads:/app/uploads
+      - ./avatars:/app/app/static/avatars

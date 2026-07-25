@@ -1,4 +1,192 @@
-async def process(
+"""
+app/services/report_service.py
+
+سرویس اصلی پردازش یک یا چند فایل آپلودی: ذخیره‌سازی موقت، OCR،
+انتخاب/تشخیص نوع آزمایش، فراخوانی هوش مصنوعی برای تحلیل، تبدیل
+خروجی به HTML امن، و استخراج بلوک JSON مقادیر ساختاریافته.
+"""
+
+import json
+import asyncio
+import re
+import time
+from pathlib import Path
+
+import markdown
+import bleach
+
+from app.core.exam_types import EXAM_TYPE_LABELS, VALID_EXAM_TYPES
+from app.core.logging_config import get_logger
+from app.prompts.exam_prompts import get_prompt_template
+from app.prompts.classify_prompt import CLASSIFY_PROMPT_TEMPLATE
+from app.services.file_service import FileService
+from app.services.ocr_service import OCRService, OCRServiceError
+from app.services.ai_service import AIService
+
+logger = get_logger(__name__)
+
+# حداکثر طول متنی که به AI فرستاده می‌شود، تا پرامپت وقتی چند فایل با
+# هم آپلود شده‌اند بیش‌ازحد سنگین نشود.
+MAX_PROMPT_TEXT_LENGTH = 14000
+
+NO_SYMPTOMS_TEXT = "کاربر علائم یا سابقه‌ی پزشکی خاصی وارد نکرده است."
+NO_PROFILE_TEXT = "اطلاعاتی از سن/جنسیت این فرد در دسترس نیست."
+
+GENDER_LABELS = {
+    "male": "مرد",
+    "female": "زن",
+    "other": "سایر",
+}
+
+# تگ‌ها و اتریبیوت‌های مجاز هنگام تبدیل خروجی Markdown به HTML امن
+# (هم اینجا و هم در diet.py / visit_prep.py با همین دو ثابت استفاده می‌شود).
+ALLOWED_TAGS = [
+    "p", "br", "hr",
+    "h1", "h2", "h3", "h4",
+    "ul", "ol", "li",
+    "strong", "b", "em", "i",
+    "table", "thead", "tbody", "tr", "th", "td",
+    "blockquote", "code", "pre",
+    "a", "span",
+]
+
+ALLOWED_ATTRS = {
+    "a": ["href", "title", "target", "rel"],
+}
+
+
+class ReportService:
+    """
+    پردازش کامل یک درخواست تحلیل آزمایش: از فایل خام تا گزارش نهایی.
+    """
+
+    def __init__(self):
+        self.file_service = FileService()
+        self.ocr_service = OCRService()
+        self.ai = AIService()
+
+    # ==========================
+    # ابزارهای داخلی
+    # ==========================
+
+    def _notify(self, on_stage, stage: str):
+        if on_stage:
+            try:
+                on_stage(stage)
+            except Exception as e:
+                logger.warning(f"[ReportService] on_stage callback failed: {e}")
+
+    def _cleanup_files(self, saved_paths: list[Path]):
+        for path in saved_paths:
+            try:
+                if path.exists():
+                    path.unlink()
+            except Exception as e:
+                logger.warning(f"[ReportService] Failed to remove temp file {path}: {e}")
+
+    async def _ocr_single_file(self, filepath: Path, filename: str, index: int):
+        try:
+            text = await self.ocr_service.extract(filepath)
+        except OCRServiceError as e:
+            logger.warning(f"[ReportService] OCR failed for {filename}: {e}")
+            return None, filename
+        except Exception as e:
+            logger.error(f"[ReportService] Unexpected OCR error for {filename}: {e}")
+            return None, filename
+
+        part = f"--- فایل {index}: {filename} ---\n{text}"
+        return part, None
+
+    def _notify_ocr_failures(self, failed_filenames: list[str]):
+        if not failed_filenames:
+            return None
+
+        names = "، ".join(failed_filenames)
+        return f"⚠️ استخراج متن از {len(failed_filenames)} فایل ناموفق بود: {names}"
+
+    def _build_limited_text(self, combined_parts: list[str]) -> str:
+        full_text = "\n\n".join(combined_parts)
+
+        if len(full_text) <= MAX_PROMPT_TEXT_LENGTH:
+            return full_text
+
+        return full_text[:MAX_PROMPT_TEXT_LENGTH]
+
+    def _prepare_symptoms(self, symptoms: str | None) -> str:
+        if not symptoms:
+            return NO_SYMPTOMS_TEXT
+
+        cleaned = symptoms.strip()
+
+        if not cleaned:
+            return NO_SYMPTOMS_TEXT
+
+        return cleaned[:1000]
+
+    def _prepare_patient_profile(self, age: int | None, gender: str | None) -> str:
+        parts = []
+
+        if age is not None:
+            parts.append(f"سن: {age} سال")
+
+        if gender:
+            gender_label = GENDER_LABELS.get(gender)
+            if gender_label:
+                parts.append(f"جنسیت: {gender_label}")
+
+        if not parts:
+            return NO_PROFILE_TEXT
+
+        return " | ".join(parts)
+
+    async def _detect_exam_type(self, limited_text: str) -> str | None:
+        try:
+            prompt = CLASSIFY_PROMPT_TEMPLATE.format(limited_text)
+            raw = await self.ai.analyze(prompt)
+        except Exception as e:
+            logger.warning(f"[ReportService] Exam type detection failed: {e}")
+            return None
+
+        detected = (raw or "").strip().lower()
+
+        for exam_type in VALID_EXAM_TYPES:
+            if exam_type in detected:
+                return exam_type
+
+        return None
+
+    def _extract_structured_results(self, raw_analysis: str):
+        """
+        از خروجی خام AI، بلوک ```json ... ``` انتهایی را جدا می‌کند و
+        (متن روایی بدون آن بلوک، لیست مقادیر ساختاریافته) را برمی‌گرداند.
+        """
+        match = re.search(r"```json\s*(\[.*?\])\s*```", raw_analysis, re.DOTALL)
+
+        if not match:
+            return raw_analysis.strip(), []
+
+        json_block = match.group(1)
+        narrative_text = raw_analysis[:match.start()].strip()
+
+        try:
+            structured_results = json.loads(json_block)
+            if not isinstance(structured_results, list):
+                structured_results = []
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.warning(f"[ReportService] Failed to parse structured JSON block: {e}")
+            structured_results = []
+
+        return narrative_text, structured_results
+
+    def _to_html(self, narrative_text: str) -> str:
+        raw_html = markdown.markdown(narrative_text, extensions=["extra", "nl2br", "sane_lists"])
+        return bleach.clean(raw_html, tags=ALLOWED_TAGS, attributes=ALLOWED_ATTRS, strip=True)
+
+    # ==========================
+    # نقطه ورود اصلی
+    # ==========================
+
+    async def process(
         self,
         files: list[tuple[bytes, str]],
         exam_type: str = None,
