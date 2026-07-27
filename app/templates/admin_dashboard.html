@@ -23,43 +23,43 @@
         <div class="services-grid" style="margin-bottom:40px;">
 
             <div class="service-card">
-                <span class="service-icon">👤</span>
+                <span class="service-icon"><span class="material-symbols-outlined">group</span></span>
                 <h3>{{ stats.total_patients }}</h3>
                 <p>بیمار ثبت‌نام‌شده</p>
             </div>
 
             <div class="service-card">
-                <span class="service-icon">🩺</span>
+                <span class="service-icon"><span class="material-symbols-outlined">medical_services</span></span>
                 <h3>{{ stats.total_doctors }}</h3>
                 <p>پزشک ({{ stats.pending_doctor_approvals }} در انتظار تایید)</p>
             </div>
 
             <div class="service-card">
-                <span class="service-icon">🏥</span>
+                <span class="service-icon"><span class="material-symbols-outlined">local_hospital</span></span>
                 <h3>{{ stats.total_orgs }}</h3>
                 <p>سازمان</p>
             </div>
 
             <div class="service-card">
-                <span class="service-icon">🧪</span>
+                <span class="service-icon"><span class="material-symbols-outlined">science</span></span>
                 <h3>{{ stats.total_analyses }}</h3>
                 <p>آنالیز انجام‌شده</p>
             </div>
 
             <div class="service-card">
-                <span class="service-icon">📋</span>
+                <span class="service-icon"><span class="material-symbols-outlined">assignment</span></span>
                 <h3>{{ stats.pending_doctor_reviews }}</h3>
                 <p>در انتظار بررسی پزشک</p>
             </div>
 
             <div class="service-card">
-                <span class="service-icon">💳</span>
+                <span class="service-icon"><span class="material-symbols-outlined">workspace_premium</span></span>
                 <h3>{{ stats.active_subscriptions }}</h3>
                 <p>اشتراک فعال</p>
             </div>
 
             <div class="service-card">
-                <span class="service-icon">💰</span>
+                <span class="service-icon"><span class="material-symbols-outlined">payments</span></span>
                 <h3>{{ "{:,}".format(stats.total_revenue) }} تومان</h3>
                 <p>مجموع پرداخت‌های موفق ({{ stats.total_paid_payments }} تراکنش)</p>
             </div>
@@ -79,7 +79,7 @@
                         <span class="cl-history-badge">{{ exam_type_labels.get(record.exam_type, "آزمایش") }}</span>
                         <span class="cl-history-filename">
                             {{ record.filename }} — کاربر #{{ record.user_id }}
-                            {% if record.review_status == 'awaiting_doctor' %} — ⏳ در انتظار پزشک{% elif record.review_status == 'reviewed' %} — ✅ بررسی‌شده{% endif %}
+                            {% if record.review_status == 'awaiting_doctor' %} — در انتظار پزشک{% elif record.review_status == 'reviewed' %} — بررسی‌شده{% endif %}
                         </span>
                     </div>
                     <span class="cl-history-date">{{ record.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
@@ -122,7 +122,7 @@
                 <div class="cl-history-item">
                     <div class="cl-history-item-main">
                         <span class="cl-history-badge">
-                            {% if p.status == 'paid' %}✅ موفق{% elif p.status == 'failed' %}❌ ناموفق{% else %}⏳ در انتظار{% endif %}
+                            {% if p.status == 'paid' %}موفق{% elif p.status == 'failed' %}ناموفق{% else %}در انتظار{% endif %}
                         </span>
                         <span class="cl-history-filename">{{ p.purpose }} — {{ "{:,}".format(p.amount) }} تومان — کاربر #{{ p.user_id }}</span>
                     </div>

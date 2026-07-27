@@ -42,7 +42,7 @@
                 {% for group in organ_groups %}
                 <div class="cl-organ-group">
                     <h3 class="cl-organ-group-title">
-                        <span class="cl-organ-icon">{{ group.icon }}</span>
+                        <span class="cl-organ-icon"><span class="material-symbols-outlined">{{ group.icon }}</span></span>
                         {{ group.label }}
                     </h3>
 
@@ -122,7 +122,7 @@
         <div class="cl-chat-box" id="chat-box" data-job-id="{{ job_id or '' }}" data-record-id="{{ record_id or '' }}" data-csrf="{{ csrf_token }}">
 
             <div class="cl-chat-header">
-                <span class="cl-chat-header-icon">💬</span>
+                <span class="cl-chat-header-icon"><span class="material-symbols-outlined">forum</span></span>
                 <div>
                     <strong>پرسش و پاسخ درباره‌ی این آزمایش</strong>
                     <small>فقط سوالات مرتبط با این گزارش و مسائل پزشکی پاسخ داده می‌شود</small>

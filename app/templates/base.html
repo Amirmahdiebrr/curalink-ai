@@ -1,436 +1,313 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
 
-{% block title %}CuraLink AI | تحلیل هوشمند آزمایشات و همراه سلامت شما{% endblock %}
+<head>
 
-{% block content %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-{% if user and due_followups %}
-<section class="cl-followup-banner">
-    <div class="container">
-        <div class="cl-followup-card">
-            <div class="cl-followup-icon"><span class="material-symbols-outlined">notifications_active</span></div>
-            <div class="cl-followup-body">
-                <h3>یادآوری پیگیری آزمایش</h3>
-                <ul>
-                    {% for item in due_followups %}
-                    <li>
-                        زمان تکرار آزمایش <strong>{{ item.test_name }}</strong>
-                        {% if item.person_name %}برای <strong>{{ item.person_name }}</strong>{% endif %}
-                        فرا رسیده است.
-                    </li>
-                    {% endfor %}
-                </ul>
+    <title>
+        {% block title %}CuraLink AI{% endblock %}
+    </title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <link rel="stylesheet" href="/static/css/style.css">
+
+    {% block head %}{% endblock %}
+
+</head>
+
+<body>
+
+    <div class="cl-dna-bg" aria-hidden="true">
+        <svg viewBox="0 0 120 1260" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+            <path class="cl-dna-strand cl-dna-strand-a" d="M60,0 C120,60 0,120 60,180 C120,240 0,300 60,360 C120,420 0,480 60,540 C120,600 0,660 60,720 C120,780 0,840 60,900 C120,960 0,1020 60,1080 C120,1140 0,1200 60,1260"/>
+            <path class="cl-dna-strand cl-dna-strand-b" d="M60,0 C0,60 120,120 60,180 C0,240 120,300 60,360 C0,420 120,480 60,540 C0,600 120,660 60,720 C0,780 120,840 60,900 C0,960 120,1020 60,1080 C0,1140 120,1200 60,1260"/>
+            <g class="cl-dna-rungs">
+                <line x1="15" y1="90" x2="105" y2="90"/>
+                <line x1="15" y1="270" x2="105" y2="270"/>
+                <line x1="15" y1="450" x2="105" y2="450"/>
+                <line x1="15" y1="630" x2="105" y2="630"/>
+                <line x1="15" y1="810" x2="105" y2="810"/>
+                <line x1="15" y1="990" x2="105" y2="990"/>
+                <line x1="15" y1="1170" x2="105" y2="1170"/>
+            </g>
+        </svg>
+    </div>
+
+    <header class="navbar">
+        <div class="container navbar-inner">
+
+            <a href="/" class="logo">
+                <img src="/static/images/logo.png" alt="CuraLink AI">
+            </a>
+
+            <nav class="cl-mega-nav">
+
+                <a href="/" class="cl-nav-link nav-active">
+                    <span class="material-symbols-outlined" style="font-size:18px;">home</span>
+                    خانه
+                </a>
+
+                {% if user %}
+                <div class="cl-mega-item">
+                    <button type="button" class="cl-mega-trigger">
+                        سرویس‌های سلامت
+                        <span class="material-symbols-outlined cl-mega-caret">expand_more</span>
+                    </button>
+                    <div class="cl-mega-panel">
+                        <div class="cl-mega-panel-inner">
+                            <a href="/#upload" class="cl-mega-link">
+                                <span class="cl-mega-icon"><span class="material-symbols-outlined">science</span></span>
+                                <span>
+                                    <strong>تحلیل آزمایش</strong>
+                                    <small>آپلود و تفسیر هوشمند نتایج</small>
+                                </span>
+                            </a>
+                            <a href="/history" class="cl-mega-link">
+                                <span class="cl-mega-icon"><span class="material-symbols-outlined">folder_shared</span></span>
+                                <span>
+                                    <strong>تاریخچه آزمایش‌ها</strong>
+                                    <small>مشاهده تحلیل‌های قبلی</small>
+                                </span>
+                            </a>
+                            <a href="/trends" class="cl-mega-link">
+                                <span class="cl-mega-icon"><span class="material-symbols-outlined">trending_up</span></span>
+                                <span>
+                                    <strong>روند آزمایش‌ها</strong>
+                                    <small>مقایسه مقادیر در طول زمان</small>
+                                </span>
+                            </a>
+                            <a href="/diet" class="cl-mega-link">
+                                <span class="cl-mega-icon"><span class="material-symbols-outlined">nutrition</span></span>
+                                <span>
+                                    <strong>برنامه غذایی</strong>
+                                    <small>شخصی‌سازی‌شده بر اساس آزمایش‌ها</small>
+                                </span>
+                            </a>
+                            <a href="/visit-prep" class="cl-mega-link">
+                                <span class="cl-mega-icon"><span class="material-symbols-outlined">assignment</span></span>
+                                <span>
+                                    <strong>آماده‌سازی ویزیت</strong>
+                                    <small>خلاصه‌ای آماده قبل از مراجعه به پزشک</small>
+                                </span>
+                            </a>
+                            <a href="/family" class="cl-mega-link">
+                                <span class="cl-mega-icon"><span class="material-symbols-outlined">diversity_3</span></span>
+                                <span>
+                                    <strong>خانواده</strong>
+                                    <small>مدیریت آزمایش‌های اعضای خانواده</small>
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="cl-mega-item">
+                    <button type="button" class="cl-mega-trigger">
+                        درباره کیورالینک
+                        <span class="material-symbols-outlined cl-mega-caret">expand_more</span>
+                    </button>
+                    <div class="cl-mega-panel">
+                        <div class="cl-mega-panel-inner">
+                            <a href="https://curalinkcare.com/about/" target="_blank" rel="noopener" class="cl-mega-link">
+                                <span class="cl-mega-icon"><span class="material-symbols-outlined">apartment</span></span>
+                                <span>
+                                    <strong>درباره ما</strong>
+                                    <small>آشنایی با تیم و ماموریت CuraLink</small>
+                                </span>
+                            </a>
+                            <a href="https://curalinkcare.com/our-services/" target="_blank" rel="noopener" class="cl-mega-link">
+                                <span class="cl-mega-icon"><span class="material-symbols-outlined">dashboard</span></span>
+                                <span>
+                                    <strong>خدمات ما</strong>
+                                    <small>معرفی کامل قابلیت‌های پلتفرم</small>
+                                </span>
+                            </a>
+                            <a href="https://curalinkcare.com/contact/" target="_blank" rel="noopener" class="cl-mega-link">
+                                <span class="cl-mega-icon"><span class="material-symbols-outlined">support_agent</span></span>
+                                <span>
+                                    <strong>تماس با ما</strong>
+                                    <small>پشتیبانی و ارتباط مستقیم</small>
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                {% if user %}
+                <a href="/billing/plans" class="cl-nav-link">
+                    <span class="material-symbols-outlined" style="font-size:18px;">workspace_premium</span>
+                    پلن‌های من
+                </a>
+                {% endif %}
+
+                {% if user and user.role == 'doctor' %}
+                <a href="/doctor/reviews" class="cl-nav-link">
+                    <span class="material-symbols-outlined" style="font-size:18px;">medical_services</span>
+                    بررسی گزارش‌ها
+                </a>
+                {% endif %}
+
+                {% if user and user.role == 'platform_admin' %}
+                <div class="cl-mega-item">
+                    <button type="button" class="cl-mega-trigger">
+                        پنل مدیریت
+                        <span class="material-symbols-outlined cl-mega-caret">expand_more</span>
+                    </button>
+                    <div class="cl-mega-panel">
+                        <div class="cl-mega-panel-inner cl-mega-panel-inner-simple">
+                            <a href="/admin" class="cl-mega-link-simple">داشبورد مدیریت</a>
+                            <a href="/admin/doctors" class="cl-mega-link-simple">تایید پزشکان</a>
+                            <a href="/admin/users" class="cl-mega-link-simple">مدیریت کاربران</a>
+                            <a href="/doctor/reviews" class="cl-mega-link-simple">بررسی گزارش‌ها</a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+            </nav>
+
+            <div class="navbar-cta">
+                {% if user %}
+                    <a href="/profile" class="btn btn-outline">{{ user.display_name or 'پروفایل من' }}</a>
+                    <a href="/logout" class="btn btn-solid">خروج</a>
+                {% else %}
+                    <a href="/login" class="btn btn-outline">ورود به پنل</a>
+                    <a href="/register" class="btn btn-solid">ثبت‌نام</a>
+                {% endif %}
+            </div>
+
+            <button type="button" class="cl-nav-toggle" id="cl-nav-toggle" aria-label="منو">
+                <span></span><span></span><span></span>
+            </button>
+
+        </div>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="footer-badge-bar">
+            <div class="container footer-badge-inner">
+                <div class="footer-brand-block">
+                    <img src="/static/images/logo.png" alt="CuraLink" class="footer-brand-logo">
+                    <div>
+                        <strong>کیورالینک</strong>
+                        <span>شرکت درمان پیوند ایرانیان</span>
+                    </div>
+                </div>
+                <p class="footer-brand-desc">
+                    کیورالینک، پلتفرم هوشمند درمان و مراقبت‌های پزشکی است که با همکاری پزشکان،
+                    پرستاران و درمانگران متخصص فعالیت می‌کند. تمام خدمات بر اساس استانداردهای
+                    حرفه‌ای و با تأکید بر اخلاق، شفافیت و امنیت اطلاعات ارائه می‌شود. کیورالینک همراه
+                    شماست تا روند درمان، پیگیری و مراقبت از بیمار با آرامش و اطمینان انجام شود.
+                </p>
             </div>
         </div>
-    </div>
-</section>
-{% endif %}
 
-<section class="hero">
-    <div class="container hero-grid">
+        <div class="container footer-inner">
 
-        <div class="hero-text">
+            <div class="footer-grid">
 
-            <p class="eyebrow">CuraLink AI | دستیار هوشمند سلامت شما و خانواده‌تان</p>
+                <div class="footer-col">
+                    <h5 class="footer-col-title">راه‌های ارتباطی</h5>
+                    <a href="tel:02191694499" class="footer-contact-row">
+                        <span class="material-symbols-outlined">call</span>
+                        021-91694499
+                    </a>
+                    <a href="tel:09913055620" class="footer-contact-row">
+                        <span class="material-symbols-outlined">call</span>
+                        09913055620
+                    </a>
+                    <a href="tel:09929724063" class="footer-contact-row">
+                        <span class="material-symbols-outlined">smartphone</span>
+                        09929724063
+                    </a>
+                    <a href="mailto:info@curalinkcare.com" class="footer-contact-row">
+                        <span class="material-symbols-outlined">mail</span>
+                        info@curalinkcare.com
+                    </a>
+                </div>
 
-           <h1>
+                <div class="footer-col">
+                    <h5 class="footer-col-title">شبکه‌های اجتماعی</h5>
+                    <a href="https://t.me/curalinkcare" target="_blank" rel="noopener" class="footer-contact-row">
+                        <span class="material-symbols-outlined">send</span>
+                        تلگرام: curalinkcare@
+                    </a>
+                    <a href="https://wa.me/989214728753" target="_blank" rel="noopener" class="footer-contact-row">
+                        <span class="material-symbols-outlined">chat</span>
+                        واتس‌آپ: 09214728753
+                    </a>
+                    <a href="https://instagram.com/curalink.ir" target="_blank" rel="noopener" class="footer-contact-row">
+                        <span class="material-symbols-outlined">photo_camera</span>
+                        اینستاگرام: curalink.ir@
+                    </a>
+                </div>
 
-                از آزمایش تا مشاوره پزشک،
+                <div class="footer-col">
+                    <h5 class="footer-col-title">دسترسی سریع</h5>
+                    <a href="https://curalinkcare.com/our-services/" target="_blank" rel="noopener">خدمات کیورالینک</a>
+                    <a href="https://curalinkcare.com/about/" target="_blank" rel="noopener">درباره ما</a>
+                    <a href="https://curalinkcare.com/contact/" target="_blank" rel="noopener">تماس با ما</a>
+                    <a href="https://curalinkcare.com/faq/" target="_blank" rel="noopener">سوالات متداول</a>
+                </div>
 
-                <span>همه‌جا همراه شما</span>
+                <div class="footer-col">
+                    <h5 class="footer-col-title">آدرس</h5>
+                    <p class="footer-address-text">
+                        استان آذربایجان غربی، ارومیه، گلشهر یک، کوی گلنار،
+                        مجتمع گلستان یک، بلوک یاس
+                    </p>
+                </div>
 
-            </h1>
+            </div>
 
-            <p class="lead">
-                آزمایش، سونوگرافی، MRI یا CT اسکنت رو بفرست، در چند ثانیه تحلیل فارسی و ساده بگیر،
-                بر اساس نتایج برنامه غذایی و آماده‌سازی ویزیت پزشک دریافت کن، و در صورت نیاز
-                گزارش را برای بررسی توسط یک پزشک واقعی ارسال کن — همه در یک پلتفرم.
+            <p class="footer-copyright">
+                کلیه حقوق این وب‌سایت متعلق به شرکت درمان پیوند ایرانیان است
+                (برند ثبت‌شده کیورالینک — شماره ثبت ۲۴۴۹۷).
             </p>
 
-            <div class="hero-actions">
-                <a href="#upload" class="btn btn-solid btn-lg">شروع تحلیل آزمایش‌های شما</a>
-                <a href="#services" class="btn btn-ghost">خدمات ما را ببینید</a>
-            </div>
-
         </div>
-
-        <div class="hero-media">
-
-            <div class="cl-scan-ring">
-                <img class="hero-robot" src="/static/images/robot.png" alt="دستیار هوشمند CuraLink">
-            </div>
-
-            <div class="badge badge-top">
-                <span class="badge-icon"><span class="material-symbols-outlined">medical_services</span></span>
-                <div>
-                    <strong>بررسی توسط پزشک واقعی</strong>
-                    <small>در کنار تحلیل هوش مصنوعی</small>
-                </div>
-            </div>
-
-            <div class="badge badge-bottom">
-                <span class="badge-icon"><span class="material-symbols-outlined">monitoring</span></span>
-                <div>
-                    <strong>پیگیری روند سلامت</strong>
-                    <small>برای شما و اعضای خانواده</small>
-                </div>
-            </div>
-
-        </div>
-
-    </div>
-</section>
-
-<section class="upload-section" id="upload">
-    <div class="container">
-
-        {% if user %}
-
-        <div class="upload-card">
-
-            <div class="upload-card-head">
-                <h2>آپلود آزمایش</h2>
-                <p>می‌توانید چند فایل (مثلاً چند صفحه یا چند عکس از یک آزمایش) را با هم انتخاب کنید</p>
-            </div>
-
-            <form action="/analyze" method="post" enctype="multipart/form-data" id="upload-form">
-
-                <input type="hidden" name="csrf_token" id="csrf_token" value="{{ csrf_token }}">
-
-                <label class="field-label" for="family_member_id">این آزمایش برای کیست؟</label>
-
-                <select name="family_member_id" id="family_member_id">
-                    <option value="self">خودم</option>
-                    {% for member in family_members %}
-                    <option value="{{ member.id }}">{{ member.name }}{% if member.relation %} ({{ member.relation }}){% endif %}</option>
-                    {% endfor %}
-                </select>
-
-                <p class="cl-field-hint">
-                    اگر عضو موردنظر در لیست نیست، ابتدا از <a href="/family">صفحه اعضای خانواده</a> اضافه‌اش کنید.
-                </p>
-
-                <label class="field-label" for="exam_type">نوع آزمایش را انتخاب کنید</label>
-
-                <select name="exam_type" id="exam_type" required>
-                    <option value="" disabled selected>— انتخاب کنید —</option>
-                    <option value="blood">آزمایش خون</option>
-                    <option value="urine">آزمایش ادرار</option>
-                    <option value="biochemistry">بیوشیمی</option>
-                    <option value="sonography">سونوگرافی</option>
-                    <option value="radiology">رادیولوژی (X-Ray)</option>
-                    <option value="mri">MRI</option>
-                    <option value="ct_scan">CT Scan</option>
-                    <option value="mammography">ماموگرافی</option>
-                    <option value="hse">گزارش HSE (طب کار)</option>
-                    <option value="other">سایر</option>
-                </select>
-
-                <label class="upload-area" id="dropzone" for="file">
-                    <input type="file" name="files" id="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif" multiple required>
-                    <span class="upload-icon"><span class="material-symbols-outlined">cloud_upload</span></span>
-                    <p id="file-label">یک یا چند فایل PDF/تصویر آزمایش را انتخاب کنید</p>
-                </label>
-
-                <label class="field-label" for="symptoms">شرح علائم یا سابقه پزشکی (اختیاری)</label>
-                <textarea id="symptoms" name="symptoms" rows="4" maxlength="1000" placeholder="مثلاً: چند هفته‌ای سردرد و خستگی دارم، سابقه فشار خون بالا..."></textarea>
-                <p class="cl-field-hint">نوشتن علائم یا سابقه‌ی پزشکی کاملاً اختیاری است، اما به هوش مصنوعی کمک می‌کند تحلیل دقیق‌تری متناسب با شرایط شما ارائه دهد.</p>
-
-                <button type="submit">شروع تحلیل با AI</button>
-
-            </form>
-
-        </div>
-
-        {% else %}
-
-        <div class="upload-card cl-upload-locked">
-
-            <div class="upload-card-head">
-                <h2>آپلود آزمایش</h2>
-                <p>برای استفاده از تحلیل هوشمند آزمایش‌ها، ابتدا باید وارد حساب کاربری خود شوید</p>
-            </div>
-
-            <div class="cl-locked-body">
-                <span class="cl-locked-icon"><span class="material-symbols-outlined">lock</span></span>
-                <p class="cl-locked-text">
-                    ثبت و تحلیل آزمایش‌ها، دسترسی به تاریخچه و روند نتایج شما، فقط برای کاربران وارد‌شده امکان‌پذیر است.
-                </p>
-                <a href="/login" class="btn btn-solid btn-lg">ورود به حساب کاربری</a>
-                <p class="cl-locked-register">
-                    حساب کاربری ندارید؟
-                    <a href="/register">همین حالا ثبت‌نام کنید</a>
-                </p>
-            </div>
-
-        </div>
-
-        {% endif %}
-
-    </div>
-</section>
-
-<section class="services" id="services">
-    <div class="container">
-
-        <div class="section-head">
-            <p class="eyebrow">خدمات ما</p>
-            <h2>یک پلتفرم کامل برای سلامت شما و خانواده</h2>
-            <p class="section-sub">
-                از تحلیل هوشمند آزمایش‌ها گرفته تا برنامه غذایی شخصی‌سازی‌شده، آماده‌سازی ویزیت پزشک،
-                و بررسی گزارش‌ها توسط پزشکان واقعی — همه در یک جا.
-            </p>
-        </div>
-
-        <div class="services-grid">
-
-            <div class="service-card">
-                <span class="service-icon"><span class="material-symbols-outlined">science</span></span>
-                <h3>تحلیل آزمایش‌های پزشکی</h3>
-                <p>خون، ادرار، بیوشیمی، سونوگرافی، رادیولوژی، MRI، CT اسکن، ماموگرافی و گزارش HSE با تفسیر فارسی و ساده.</p>
-            </div>
-
-            <div class="service-card">
-                <span class="service-icon"><span class="material-symbols-outlined">medical_services</span></span>
-                <h3>بررسی توسط پزشک واقعی</h3>
-                <p>هر گزارش تحلیل‌شده را می‌توانید برای بررسی نهایی و نظر تخصصی به یک پزشک واقعی ارسال کنید.</p>
-            </div>
-
-            <div class="service-card">
-                <span class="service-icon"><span class="material-symbols-outlined">nutrition</span></span>
-                <h3>برنامه غذایی هوشمند</h3>
-                <p>بر اساس مجموع آخرین نتایج آزمایش‌های شما، یک برنامه غذایی شخصی‌سازی‌شده تولید می‌شود.</p>
-            </div>
-
-            <div class="service-card">
-                <span class="service-icon"><span class="material-symbols-outlined">assignment</span></span>
-                <h3>آماده‌سازی ویزیت پزشک</h3>
-                <p>قبل از مراجعه به پزشک، خلاصه‌ای منظم از وضعیت آزمایش‌هایتان و سوالات پیشنهادی دریافت کنید.</p>
-            </div>
-
-            <div class="service-card">
-                <span class="service-icon"><span class="material-symbols-outlined">trending_up</span></span>
-                <h3>روند و تاریخچه آزمایش‌ها</h3>
-                <p>تغییرات مقادیر آزمایش‌های خود را در طول زمان، با نمودار و بازه‌ی مرجع، پیگیری کنید.</p>
-            </div>
-
-            <div class="service-card">
-                <span class="service-icon"><span class="material-symbols-outlined">diversity_3</span></span>
-                <h3>مدیریت خانواده</h3>
-                <p>آزمایش‌های همه‌ی اعضای خانواده را در یک حساب کاربری مدیریت و پیگیری کنید.</p>
-            </div>
-
-            <div class="service-card">
-                <span class="service-icon"><span class="material-symbols-outlined">forum</span></span>
-                <h3>پرسش و پاسخ هوشمند</h3>
-                <p>بعد از دریافت نتیجه، هر سوالی درباره‌ی گزارش خود دارید، مستقیم از دستیار هوش مصنوعی بپرسید.</p>
-            </div>
-
-            <div class="service-card">
-                <span class="service-icon"><span class="material-symbols-outlined">notifications</span></span>
-                <h3>یادآوری پیگیری</h3>
-                <p>وقتی زمان تکرار یک آزمایش خاص فرا برسد، به‌صورت خودکار به شما یادآوری می‌شود.</p>
-            </div>
-
-            <div class="service-card">
-                <span class="service-icon"><span class="material-symbols-outlined">local_hospital</span></span>
-                <h3>پلن‌های سازمانی</h3>
-                <p>کلینیک‌ها، آزمایشگاه‌ها و بیمارستان‌ها می‌توانند از پلن‌های اختصاصی حجم بالا استفاده کنند.</p>
-            </div>
-
-        </div>
-
-    </div>
-</section>
-
-<section class="cl-faq" id="testimonials" style="padding-top:0;">
-    <div class="container">
-
-        <div class="section-head">
-            <p class="eyebrow">نظرات کاربران</p>
-            <h2>تجربه‌ی کاربران CuraLink AI</h2>
-        </div>
-
-        <div class="cl-testimonials-grid">
-
-            <div class="cl-testimonial-card">
-                <p class="cl-testimonial-text">"خیلی سریع فهمیدم نتیجه آزمایش خونم چی میگه، بدون اینکه منتظر نوبت دکتر بمونم. توضیحات هم واقعاً ساده و قابل‌فهم بود."</p>
-                <div class="cl-testimonial-author">
-                    <span class="cl-testimonial-avatar">م</span>
-                    <div>
-                        <strong>محسن رضایی</strong>
-                        <small>⭐⭐⭐⭐⭐</small>
-                    </div>
-                </div>
-            </div>
-
-            <div class="cl-testimonial-card">
-                <p class="cl-testimonial-text">"بخش برنامه غذایی واقعاً به نتایج آزمایشم توجه کرده بود، حس نکردم یه رژیم عمومی و کلی‌گویانه گرفتم."</p>
-                <div class="cl-testimonial-author">
-                    <span class="cl-testimonial-avatar">س</span>
-                    <div>
-                        <strong>سارا احمدی</strong>
-                        <small>⭐⭐⭐⭐⭐</small>
-                    </div>
-                </div>
-            </div>
-
-            <div class="cl-testimonial-card">
-                <p class="cl-testimonial-text">"برای مادرم که با موبایل مشکل داره از این سایت استفاده کردم، خیلی راحت آزمایششو ثبت کردم و روند رو هم می‌بینم."</p>
-                <div class="cl-testimonial-author">
-                    <span class="cl-testimonial-avatar">ع</span>
-                    <div>
-                        <strong>علی کریمی</strong>
-                        <small>⭐⭐⭐⭐</small>
-                    </div>
-                </div>
-            </div>
-
-            {% for review in reviews %}
-            <div class="cl-testimonial-card">
-                <p class="cl-testimonial-text">"{{ review.comment }}"</p>
-                <div class="cl-testimonial-author">
-                    <span class="cl-testimonial-avatar">{{ (review.user.display_name or "?")[0] }}</span>
-                    <div>
-                        <strong>{{ review.user.display_name }}</strong>
-                        <small>{{ "⭐" * review.rating }}</small>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-
-        </div>
-
-        {% if user %}
-        <div class="cl-profile-card" style="max-width:520px; margin:40px auto 0;">
-            <h3 class="cl-profile-card-title">نظر شما درباره‌ی CuraLink چیست؟</h3>
-            <form method="post" action="/reviews" class="cl-auth-fields">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <div class="cl-field">
-                    <label for="rating">امتیاز</label>
-                    <select id="rating" name="rating" required>
-                        <option value="5">⭐⭐⭐⭐⭐ عالی</option>
-                        <option value="4">⭐⭐⭐⭐ خوب</option>
-                        <option value="3">⭐⭐⭐ متوسط</option>
-                        <option value="2">⭐⭐ ضعیف</option>
-                        <option value="1">⭐ خیلی ضعیف</option>
-                    </select>
-                </div>
-                <div class="cl-field">
-                    <label for="comment">نظر شما</label>
-                    <textarea id="comment" name="comment" rows="3" maxlength="500" required></textarea>
-                </div>
-                <button type="submit" class="cl-auth-submit">ثبت نظر</button>
-            </form>
-        </div>
-        {% endif %}
-
-    </div>
-</section>
-
-<section class="features" id="features">
-    <div class="container">
-
-        <div class="section-head">
-            <p class="eyebrow">چرا CuraLink AI؟</p>
-            <h2>یک تجربه‌ی هوشمند، دقیق و امن</h2>
-            <p class="section-sub">
-                هر آپلود شما با چند لایه هوش مصنوعی و در صورت نیاز نظر پزشک واقعی بررسی می‌شود
-                تا تحلیلی دقیق، شخصی‌سازی‌شده و قابل پیگیری در طول زمان دریافت کنید.
-            </p>
-        </div>
-
-        <div class="features-grid">
-
-            <div class="feature">
-                <span class="feature-icon"><span class="material-symbols-outlined">search</span></span>
-                <h3>OCR هوشمند</h3>
-                <p>استخراج دقیق متن از تصویر و PDF، حتی از عکس‌های کمی نامرتب یا کج گرفته‌شده.</p>
-            </div>
-
-            <div class="feature">
-                <span class="feature-icon"><span class="material-symbols-outlined">target</span></span>
-                <h3>تشخیص خودکار نوع گزارش</h3>
-                <p>اگر نوع آزمایش را اشتباه انتخاب کنید، سیستم خودش نوع واقعی را تشخیص داده و به شما اطلاع می‌دهد.</p>
-            </div>
-
-            <div class="feature">
-                <span class="feature-icon"><span class="material-symbols-outlined">stethoscope</span></span>
-                <h3>لایه‌ی نظارت پزشک واقعی</h3>
-                <p>در کنار تحلیل AI، امکان درخواست بررسی نهایی توسط پزشک متخصص برای اطمینان بیشتر شما فراهم است.</p>
-            </div>
-
-            <div class="feature">
-                <span class="feature-icon"><span class="material-symbols-outlined">summarize</span></span>
-                <h3>گزارش ساختاریافته و قابل فهم</h3>
-                <p>خلاصه وضعیت، موارد غیرطبیعی و توصیه‌های پیگیری، همه در یک گزارش منظم و خوانا.</p>
-            </div>
-
-            <div class="feature">
-                <span class="feature-icon"><span class="material-symbols-outlined">show_chart</span></span>
-                <h3>تاریخچه و روند آزمایش‌ها</h3>
-                <p>تمام تحلیل‌های قبلی شما ذخیره می‌شود و می‌توانید روند تغییر مقادیر را در طول زمان ببینید.</p>
-            </div>
-
-            <div class="feature">
-                <span class="feature-icon"><span class="material-symbols-outlined">chat</span></span>
-                <h3>پرسش و پاسخ هوشمند</h3>
-                <p>بعد از دریافت نتیجه، هر سوالی درباره‌ی گزارش خود دارید، مستقیم از دستیار هوش مصنوعی بپرسید.</p>
-            </div>
-
-        </div>
-
-    </div>
-</section>
-
-<section class="cl-faq" id="faq">
-    <div class="container">
-
-        <div class="section-head">
-            <p class="eyebrow">سوالات متداول</p>
-            <h2>پاسخ سوالات رایج شما</h2>
-        </div>
-
-        <div class="cl-faq-list">
-
-            <details class="cl-faq-item">
-                <summary>آیا این تحلیل جایگزین نظر پزشک است؟</summary>
-                <p>خیر. تحلیل CuraLink صرفاً برای کمک به فهم بهتر نتایج آزمایش شماست و جایگزین تشخیص، مشاوره یا نسخه پزشک متخصص نیست. برای اطمینان بیشتر می‌توانید گزارش را برای بررسی به یک پزشک واقعی ارسال کنید.</p>
-            </details>
-
-            <details class="cl-faq-item">
-                <summary>بررسی توسط پزشک واقعی چطور کار می‌کند؟</summary>
-                <p>بعد از دریافت تحلیل هوش مصنوعی، از صفحه‌ی نتیجه می‌توانید درخواست بررسی توسط پزشک بدهید. یک پزشک تایید‌شده گزارش شما را بررسی و نظر تخصصی خود را ثبت می‌کند.</p>
-            </details>
-
-            <details class="cl-faq-item">
-                <summary>برنامه غذایی چطور شخصی‌سازی می‌شود؟</summary>
-                <p>بر اساس مجموع آخرین نتایج آزمایش‌های ثبت‌شده‌ی شما و شرایط خاصی که وارد می‌کنید (بیماری، هدف بدنی، حساسیت غذایی)، یک برنامه‌ی متناسب تولید می‌شود.</p>
-            </details>
-
-            <details class="cl-faq-item">
-                <summary>اطلاعات و فایل‌های آزمایش من چقدر امن هستند؟</summary>
-                <p>فایل‌های آپلودی پس از پردازش از سرور حذف می‌شوند، اطلاعات حساس رمزنگاری‌شده ذخیره می‌شوند، و دسترسی به گزارش‌ها فقط برای خود شما و از طریق حساب کاربری‌تان امکان‌پذیر است.</p>
-            </details>
-
-            <details class="cl-faq-item">
-                <summary>چه نوع آزمایش‌هایی را می‌توانم آپلود کنم؟</summary>
-                <p>آزمایش خون، ادرار، بیوشیمی، سونوگرافی، رادیولوژی، MRI، CT Scan، ماموگرافی و گزارش‌های طب کار (HSE).</p>
-            </details>
-
-            <details class="cl-faq-item">
-                <summary>آیا می‌توانم روند تغییرات آزمایش‌هایم را در طول زمان ببینم؟</summary>
-                <p>بله، در بخش «روند آزمایش‌ها» می‌توانید مقادیر عددی آزمایش‌های قبلی خود را به‌صورت نمودار مقایسه کنید.</p>
-            </details>
-
-            <details class="cl-faq-item">
-                <summary>می‌توانم حساب کاربری‌ام را حذف کنم؟</summary>
-                <p>بله، از صفحه‌ی پروفایل خود می‌توانید در هر زمان درخواست حذف کامل حساب کاربری خود را ثبت کنید.</p>
-            </details>
-
-        </div>
-
-    </div>
-</section>
-
-{% endblock %}
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+    <script>
+    (function(){
+        const toggle = document.getElementById('cl-nav-toggle');
+        const nav = document.querySelector('.cl-mega-nav');
+        if (toggle && nav) {
+            toggle.addEventListener('click', function(){
+                nav.classList.toggle('cl-mega-nav-open');
+                toggle.classList.toggle('cl-nav-toggle-open');
+            });
+        }
+
+        document.querySelectorAll('.cl-mega-trigger').forEach(function(btn){
+            btn.addEventListener('click', function(e){
+                if (window.innerWidth <= 960) {
+                    e.preventDefault();
+                    const item = btn.closest('.cl-mega-item');
+                    document.querySelectorAll('.cl-mega-item').forEach(function(other){
+                        if (other !== item) other.classList.remove('cl-mega-item-open');
+                    });
+                    item.classList.toggle('cl-mega-item-open');
+                }
+            });
+        });
+    })();
+    </script>
+    {% block scripts %}{% endblock %}
+
+</body>
+</html>

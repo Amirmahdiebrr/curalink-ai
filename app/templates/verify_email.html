@@ -7,14 +7,14 @@
 <div class="container py-5 text-center">
 
     {% if success %}
-    <i class="fa-solid fa-circle-check" style="font-size:44px;color:var(--accent);"></i>
+    <span class="material-symbols-outlined" style="font-size:44px; color:var(--accent-2);">check_circle</span>
     {% else %}
-    <i class="fa-solid fa-circle-exclamation error-icon"></i>
+    <span class="error-icon material-symbols-outlined">error</span>
     {% endif %}
 
     <h2 class="mt-4">{{ message }}</h2>
 
-    <a href="/" class="btn btn-primary">بازگشت به خانه</a>
+    <a href="/" class="btn btn-solid">بازگشت به خانه</a>
 
 </div>
 

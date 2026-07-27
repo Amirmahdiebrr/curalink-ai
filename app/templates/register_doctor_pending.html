@@ -1,96 +1,22 @@
 {% extends "base.html" %}
 
-{% block title %}ثبت‌نام پزشک | CuraLink AI{% endblock %}
+{% block title %}در انتظار تایید | CuraLink AI{% endblock %}
 
 {% block content %}
 
-<section class="cl-auth-split">
+<div class="container py-5 text-center">
 
-    <div class="cl-auth-brand">
-        <div class="cl-auth-brand-inner">
-            <img src="/static/images/robot.png" alt="CuraLink AI" class="cl-auth-robot">
-            <h2>ثبت‌نام پزشکان</h2>
-            <p>پس از بارگذاری مدارک، حساب شما توسط تیم ادمین بررسی و تایید خواهد شد.</p>
-        </div>
-    </div>
+    <span class="material-symbols-outlined" style="font-size:44px; color:var(--accent-2);">hourglass_top</span>
 
-    <div class="cl-auth-form-side">
-        <div class="cl-auth-box">
+    <h2 class="mt-4">درخواست ثبت‌نام شما ثبت شد</h2>
 
-            <img src="/static/images/logo.png" alt="CuraLink AI" class="cl-auth-logo">
-            <h1 class="cl-auth-heading">ثبت‌نام پزشک</h1>
-            <p class="cl-auth-desc">اطلاعات زیر را برای ثبت‌نام تکمیل کنید</p>
+    <p>
+        حساب کاربری شما پس از بررسی مدارک توسط تیم ادمین فعال خواهد شد.
+        نتیجه از طریق ایمیل به شما اطلاع داده می‌شود.
+    </p>
 
-            {% if error %}
-            <div class="cl-auth-alert cl-auth-alert-error">{{ error }}</div>
-            {% endif %}
+    <a href="/" class="btn btn-solid">بازگشت به خانه</a>
 
-            <form method="post" action="/register/doctor" enctype="multipart/form-data" class="cl-auth-fields">
-
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-
-                <div class="cl-field">
-                    <label for="display_name">نام و نام خانوادگی</label>
-                    <input type="text" id="display_name" name="display_name" required>
-                </div>
-
-                <div class="cl-field">
-                    <label for="email">ایمیل</label>
-                    <input type="email" id="email" name="email" required>
-                </div>
-
-                <div class="cl-field">
-                    <label for="phone">شماره موبایل</label>
-                    <input type="text" id="phone" name="phone" required>
-                </div>
-
-                <div class="cl-field">
-                    <label for="password">رمز عبور</label>
-                    <input type="password" id="password" name="password" required>
-                </div>
-
-                <div class="cl-field">
-                    <label for="password_confirm">تکرار رمز عبور</label>
-                    <input type="password" id="password_confirm" name="password_confirm" required>
-                </div>
-
-                <div class="cl-field">
-                    <label for="specialty">تخصص</label>
-                    <input type="text" id="specialty" name="specialty" placeholder="مثلاً: داخلی، قلب و عروق">
-                </div>
-
-                <div class="cl-field">
-                    <label for="medical_council_no">شماره نظام پزشکی</label>
-                    <input type="text" id="medical_council_no" name="medical_council_no" required>
-                </div>
-
-                <div class="cl-field">
-                    <label for="clinic_name">نام مطب/کلینیک (اختیاری)</label>
-                    <input type="text" id="clinic_name" name="clinic_name">
-                </div>
-
-                <div class="cl-field">
-                    <label for="license_document">تصویر یا اسکن مدرک نظام پزشکی</label>
-                    <input type="file" id="license_document" name="license_document" accept=".pdf,.png,.jpg,.jpeg" required>
-                </div>
-
-                <div class="cl-field">
-                    <label for="avatar">عکس پروفایل (اجباری برای پزشکان)</label>
-                    <input type="file" id="avatar" name="avatar" accept=".png,.jpg,.jpeg" required>
-                    <p class="cl-field-hint">این عکس در پروفایل عمومی شما نمایش داده می‌شود.</p>
-                </div>
-
-                <button type="submit" class="cl-auth-submit">ارسال درخواست ثبت‌نام</button>
-
-            </form>
-
-            <p class="cl-auth-footer-link">
-                حساب کاربری دارید؟ <a href="/login">وارد شوید</a>
-            </p>
-
-        </div>
-    </div>
-
-</section>
+</div>
 
 {% endblock %}

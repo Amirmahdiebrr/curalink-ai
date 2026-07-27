@@ -11,15 +11,15 @@ from collections import OrderedDict
 
 
 ORGAN_LABELS = {
-    "blood": ("خون‌شناسی", "🩸"),
-    "metabolic": ("متابولیک (قند و چربی)", "🍬"),
-    "liver": ("کبد", "🫁"),
-    "kidney": ("کلیه", "🫘"),
-    "thyroid": ("تیروئید", "🦋"),
-    "cardiac": ("قلب", "❤️"),
-    "urine": ("ادرار", "💧"),
-    "vitamin_mineral": ("ویتامین‌ها و مواد معدنی", "🥕"),
-    "other": ("سایر", "🔬"),
+    "blood": ("خون‌شناسی", "bloodtype"),
+    "metabolic": ("متابولیک (قند و چربی)", "monitor_weight"),
+    "liver": ("کبد", "medical_information"),
+    "kidney": ("کلیه", "water_drop"),
+    "thyroid": ("تیروئید", "endocrinology"),
+    "cardiac": ("قلب", "cardiology"),
+    "urine": ("ادرار", "science"),
+    "vitamin_mineral": ("ویتامین‌ها و مواد معدنی", "nutrition"),
+    "other": ("سایر", "biotech"),
 }
 
 ORGAN_ORDER = ["blood", "metabolic", "liver", "kidney", "thyroid", "cardiac", "urine", "vitamin_mineral", "other"]
