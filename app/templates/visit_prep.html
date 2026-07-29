@@ -63,6 +63,15 @@
                 {{ summary_html | safe }}
             </div>
         </div>
+
+        {% if record_id %}
+        <div class="result-actions" style="margin:0 0 24px;">
+            <a href="/visit-prep/pdf/{{ record_id }}" class="btn btn-outline" target="_blank">
+                <span class="material-symbols-outlined" style="font-size:18px;">download</span>
+                دانلود PDF
+            </a>
+        </div>
+        {% endif %}
         {% endif %}
 
         <p class="cl-trends-disclaimer">

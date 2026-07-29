@@ -141,7 +141,18 @@
         </div>
         {% endif %}
 
-        <div class="result-actions">
+        <div class="result-actions" style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+            {% if job_id %}
+            <a href="/result/{{ job_id }}/pdf" class="btn btn-outline" target="_blank">
+                <span class="material-symbols-outlined" style="font-size:18px;">download</span>
+                دانلود PDF
+            </a>
+            {% elif record_id %}
+            <a href="/history/{{ record_id }}/pdf" class="btn btn-outline" target="_blank">
+                <span class="material-symbols-outlined" style="font-size:18px;">download</span>
+                دانلود PDF
+            </a>
+            {% endif %}
             <a href="/" class="btn btn-solid">تحلیل آزمایش جدید</a>
         </div>
 

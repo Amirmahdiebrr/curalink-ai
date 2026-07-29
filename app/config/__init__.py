@@ -38,6 +38,18 @@ else:
     print("❌ NVIDIA API KEY missing")
 
 # ==========================
+# GapGPT API Settings
+# ==========================
+
+GAPGPT_API_KEY = os.getenv("GAPGPT_API_KEY")
+GAPGPT_BASE_URL = os.getenv("GAPGPT_BASE_URL", "https://api.gapgpt.app/v1")
+
+if GAPGPT_API_KEY:
+    print("✅ GAPGPT API KEY loaded")
+else:
+    print("❌ GAPGPT API KEY missing")
+
+# ==========================
 # آدرس پایه سایت - باید قبل از چک production تعریف بشه
 # ==========================
 
@@ -47,20 +59,6 @@ IS_PRODUCTION = APP_BASE_URL.startswith("https://")
 
 # ==========================
 # SESSION_SECRET_KEY و ENCRYPTION_KEY
-#
-# در production (یعنی APP_BASE_URL با https شروع بشه) این دو کلید
-# باید حتماً در .env ست شده باشن. اگه ست نشده باشن و چند worker
-# یا ری‌استارت داشته باشی:
-#   - SESSION_SECRET_KEY رندوم -> همه‌ی کاربرها logout می‌شن /
-#     بین worker های مختلف سشن معتبر نیست
-#   - ENCRYPTION_KEY رندوم -> داده‌های رمزنگاری‌شده‌ی قبلی
-#     (ocr_text, analysis_text, national_id و...) غیرقابل‌بازیابی
-#     و به‌صورت متن نامفهوم به کاربر نمایش داده می‌شن
-#
-# بنابراین در production این دو رو اجباری می‌کنیم (fail-fast) تا
-# اپ اصلاً بالا نیاد به‌جای اینکه بی‌سروصدا دیتا خراب کنه.
-# در حالت development (localhost) همچنان کلید موقت تولید می‌شه
-# تا کار توسعه راحت بمونه.
 # ==========================
 
 SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY")
@@ -113,9 +111,6 @@ else:
 # SMS Settings (9.1)
 # ==========================
 
-# "console" = no real panel yet, just logs the message.
-# Set to a real provider key (e.g. "kavenegar") once a panel is purchased
-# and implemented in app/services/sms_service.py.
 SMS_PROVIDER = os.getenv("SMS_PROVIDER", "console")
 
 # ==========================
@@ -140,6 +135,7 @@ ZARINPAL_SANDBOX = os.getenv("ZARINPAL_SANDBOX", "true").strip().lower() == "tru
 
 if not ZARINPAL_MERCHANT_ID:
     print("⚠️  ZARINPAL_MERCHANT_ID not set in .env — payments will fail until it's configured.")
+
 # ==========================
 # SMTP Settings (ایمیل واقعی)
 # ==========================

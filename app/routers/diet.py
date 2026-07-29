@@ -7,13 +7,14 @@ import bleach
 
 from fastapi import APIRouter, Request, Form, Depends
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse, JSONResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.routers.auth import get_current_user
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
+from app.core.crypto import decrypt_value
 from app.core.limiter import limiter
 from app.services.family_service import get_family_members, get_family_member_for_user
 from app.services.diet_service import DietService
@@ -27,7 +28,11 @@ from app.services.deepseek import DeepSeekError
 from app.services.report_service import ALLOWED_TAGS, ALLOWED_ATTRS
 from app.services.billing_service import check_diet_plan_access
 from app.services.payment_service import start_service_payment, PaymentError
+from app.services.pdf_export_service import render_generic_pdf, PDFExportError
 from app.models import PURPOSE_DIET_PLAN
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 router = APIRouter()
@@ -232,8 +237,8 @@ async def diet_generate(
             "user": user,
             "family_members": family_members,
             "csrf_token": new_token,
-            "diet_plan_html": record.plan_html,
-            "diet_plan_raw": record.plan_text,
+            "diet_plan_html": decrypt_value(record.plan_html),
+            "diet_plan_raw": decrypt_value(record.plan_text),
             "diet_record_id": record.id,
             "error": None,
             "selected_family_member_id": resolved_family_member_id,
@@ -294,6 +299,42 @@ async def diet_history_detail(request: Request, record_id: int, db: Session = De
             "selected_family_member_id": record.family_member_id,
             "context_value": record.context or "",
         }
+    )
+
+
+@router.get("/diet/pdf/{record_id}")
+async def diet_pdf(request: Request, record_id: int, db: Session = Depends(get_db)):
+
+    user = get_current_user(request, db)
+
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    record = get_diet_plan_for_user(db, record_id, user.id)
+
+    if not record:
+        return JSONResponse({"error": "این برنامه غذایی پیدا نشد یا به شما تعلق ندارد."}, status_code=404)
+
+    patient_name = record.family_member.name if record.family_member else user.display_name
+
+    try:
+        pdf_bytes = render_generic_pdf(
+            document_title="برنامه غذایی شخصی‌سازی‌شده",
+            section_heading="برنامه غذایی پیشنهادی",
+            patient_name=patient_name,
+            report_date=record.created_at,
+            content_html=record.plan_html or "",
+            extra_meta={"شرح وضعیت خاص وارد‌شده": record.context},
+            disclaimer_text="این برنامه غذایی صرفاً یک پیشنهاد کلی بر اساس نتایج آزمایش است و جایگزین ویزیت متخصص تغذیه یا پزشک نیست.",
+        )
+    except PDFExportError as e:
+        logger.error(f"[Diet] PDF export failed for record_id={record_id}: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="curalink-diet-{record_id}.pdf"'}
     )
 
 

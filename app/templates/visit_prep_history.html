@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}تاریخچه آزمایشات | CuraLink AI{% endblock %}
+{% block title %}تاریخچه آماده‌سازی ویزیت | CuraLink AI{% endblock %}
 
 {% block content %}
 
@@ -12,16 +12,16 @@
                 {{ (user.display_name or user.nicename or "?")[0] }}
             </div>
             <div>
-                <h1>تاریخچه آزمایشات</h1>
-                <p>{{ records|length }} تحلیل ثبت‌شده</p>
+                <h1>تاریخچه آماده‌سازی ویزیت</h1>
+                <p>{{ records|length }} خلاصه ثبت‌شده</p>
             </div>
         </div>
 
         {% if records|length == 0 %}
 
         <div class="cl-history-empty">
-            <p>هنوز هیچ آزمایشی ثبت نکرده‌اید.</p>
-            <a href="/#upload" class="btn btn-solid">شروع اولین تحلیل</a>
+            <p>هنوز هیچ خلاصه‌ی آماده‌سازی ویزیتی تولید نکرده‌اید.</p>
+            <a href="/visit-prep" class="btn btn-solid">تولید اولین خلاصه</a>
         </div>
 
         {% else %}
@@ -29,17 +29,18 @@
         <div class="cl-history-list">
             {% for record in records %}
             <div class="cl-history-item">
-                <a href="/history/{{ record.id }}" class="cl-history-item-main" style="flex:1; min-width:0;">
-                    <span class="cl-history-badge">{{ exam_type_labels.get(record.exam_type, "آزمایش") }}</span>
-                    <span class="cl-history-badge" style="background:linear-gradient(135deg, rgba(108,92,231,.16), rgba(15,182,168,.16));">
+                <a href="/visit-prep/history/{{ record.id }}" class="cl-history-item-main" style="flex:1; min-width:0;">
+                    <span class="cl-history-badge">
                         {% if record.family_member %}{{ record.family_member.name }}{% else %}خودم{% endif %}
                     </span>
-                    <span class="cl-history-filename">{{ record.filename }}</span>
+                    <span class="cl-history-filename">
+                        {% if record.visit_reason %}{{ record.visit_reason[:60] }}{% else %}آماده‌سازی ویزیت عمومی{% endif %}
+                    </span>
                 </a>
 
                 <div style="display:flex; align-items:center; gap:12px; flex-shrink:0;">
                     <span class="cl-history-date">{{ record.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
-                    <a href="/history/{{ record.id }}/pdf" target="_blank" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px; gap:6px;" title="دانلود PDF">
+                    <a href="/visit-prep/pdf/{{ record.id }}" target="_blank" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px; gap:6px;" title="دانلود PDF">
                         <span class="material-symbols-outlined" style="font-size:16px;">picture_as_pdf</span>
                         PDF
                     </a>
@@ -49,6 +50,10 @@
         </div>
 
         {% endif %}
+
+        <div class="result-actions">
+            <a href="/visit-prep" class="btn btn-solid">تولید خلاصه‌ی جدید</a>
+        </div>
 
     </div>
 </section>

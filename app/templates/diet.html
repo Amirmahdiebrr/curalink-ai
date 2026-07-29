@@ -69,6 +69,15 @@
             </div>
         </div>
 
+        {% if diet_record_id %}
+        <div class="result-actions" style="margin:0 0 24px;">
+            <a href="/diet/pdf/{{ diet_record_id }}" class="btn btn-outline" target="_blank">
+                <span class="material-symbols-outlined" style="font-size:18px;">download</span>
+                دانلود PDF
+            </a>
+        </div>
+        {% endif %}
+
         <div class="cl-chat-box" id="diet-chat-box" data-csrf="{{ csrf_token }}">
 
             <div class="cl-chat-header">

@@ -1718,3 +1718,9 @@ pre{
     color:var(--navy);
     flex-shrink:0;
 }
+.cl-history-item-main{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    text-decoration:none;
+}

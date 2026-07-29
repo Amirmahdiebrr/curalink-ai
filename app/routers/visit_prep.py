@@ -7,7 +7,7 @@ import bleach
 
 from fastapi import APIRouter, Request, Form, Depends
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -25,7 +25,11 @@ from app.services.deepseek import DeepSeekError
 from app.services.report_service import ALLOWED_TAGS, ALLOWED_ATTRS
 from app.services.billing_service import check_visit_prep_access
 from app.services.payment_service import start_service_payment, PaymentError
+from app.services.pdf_export_service import render_generic_pdf, PDFExportError
 from app.models import PURPOSE_VISIT_PREP
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 router = APIRouter()
@@ -291,4 +295,40 @@ async def visit_prep_history_detail(request: Request, record_id: int, db: Sessio
             "selected_family_member_id": record.family_member_id,
             "reason_value": record.visit_reason or "",
         }
+    )
+
+
+@router.get("/visit-prep/pdf/{record_id}")
+async def visit_prep_pdf(request: Request, record_id: int, db: Session = Depends(get_db)):
+
+    user = get_current_user(request, db)
+
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    record = get_visit_prep_for_user(db, record_id, user.id)
+
+    if not record:
+        return JSONResponse({"error": "این خلاصه پیدا نشد یا به شما تعلق ندارد."}, status_code=404)
+
+    patient_name = record.family_member.name if record.family_member else user.display_name
+
+    try:
+        pdf_bytes = render_generic_pdf(
+            document_title="خلاصه آماده‌سازی ویزیت پزشک",
+            section_heading="خلاصه آماده‌شده",
+            patient_name=patient_name,
+            report_date=record.created_at,
+            content_html=record.summary_html or "",
+            extra_meta={"دلیل یا شرح مراجعه": record.visit_reason},
+            disclaimer_text="این خلاصه صرفاً برای بهینه‌تر کردن زمان ویزیت است و جایگزین معاینه یا نظر پزشک نیست.",
+        )
+    except PDFExportError as e:
+        logger.error(f"[VisitPrep] PDF export failed for record_id={record_id}: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="curalink-visit-prep-{record_id}.pdf"'}
     )

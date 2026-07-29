@@ -5,9 +5,10 @@ app/routers/analyze.py
 import asyncio
 import base64
 import traceback
+from datetime import datetime
 
 from fastapi import APIRouter, UploadFile, File, Form, Request, Depends
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -17,6 +18,7 @@ from app.services.job_store import create_job, update_job, get_job
 from app.services.history_service import save_analysis
 from app.services.family_service import get_family_member_for_user
 from app.services.organ_display_service import group_results_by_organ
+from app.services.pdf_export_service import render_analysis_pdf, PDFExportError
 from app.routers.auth import get_current_user
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.limiter import limiter
@@ -356,4 +358,40 @@ async def result_page(request: Request, job_id: str, db: Session = Depends(get_d
             "csrf_token": csrf_token,
             "organ_groups": organ_groups,
         }
+    )
+
+
+@router.get("/result/{job_id}/pdf")
+async def result_pdf(request: Request, job_id: str, db: Session = Depends(get_db)):
+
+    user = get_current_user(request, db)
+    job = get_job(job_id)
+
+    if not job or not _job_belongs_to_user(job, user.id if user else None):
+        logger.warning(f"[Analyze] Unauthorized PDF access attempt on job_id={job_id}")
+        return JSONResponse({"error": "این درخواست پیدا نشد یا به شما تعلق ندارد."}, status_code=404)
+
+    if job["status"] != "done" or not job.get("result"):
+        return JSONResponse({"error": "تحلیل هنوز آماده نشده است."}, status_code=400)
+
+    result = job["result"]
+    organ_groups = group_results_by_organ(result.get("structured_results", []))
+
+    try:
+        pdf_bytes = render_analysis_pdf(
+            patient_name=user.display_name if user else "کاربر",
+            exam_type_label=EXAM_TYPE_LABELS.get(result.get("exam_type"), result.get("exam_type") or "آزمایش"),
+            report_date=datetime.utcnow(),
+            symptoms=result.get("symptoms"),
+            analysis_html=result.get("analysis_html", ""),
+            organ_groups=organ_groups,
+        )
+    except PDFExportError as e:
+        logger.error(f"[Analyze] PDF export failed for job_id={job_id}: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="curalink-report-{job_id}.pdf"'}
     )
