@@ -1,12 +1,5 @@
 """
 app/database.py
-
-SQLAlchemy database setup (SQLite file-based).
-
-مسیر فایل دیتابیس از پوشه‌ی data/ خوانده می‌شود تا با volume تعریف‌شده
-در docker-compose.yml (./data:/app/data) بین ری‌استارت‌های کانتینر
-پایدار بماند. در محیط توسعه (بدون Docker)، پوشه‌ی data/ به‌صورت
-خودکار در کنار کد ساخته می‌شود.
 """
 
 from pathlib import Path
@@ -52,15 +45,20 @@ def _add_column_if_missing(conn, table: str, column: str, ddl_type: str):
         logger.info(f"[DB Migration] Column '{column}' added successfully to {table}.")
 
 
-def _run_light_migrations():
-    """
-    Adds newly-introduced columns to existing SQLite tables that were
-    created before this project used a proper migration tool (Alembic).
-    Safe to call every startup: it only adds a column if it's missing.
-    New tables are created automatically by Base.metadata.create_all()
-    before this function runs.
-    """
+HEALTH_PROFILE_COLUMNS = [
+    ("height_cm", "INTEGER"),
+    ("weight_kg", "FLOAT"),
+    ("blood_type", "TEXT"),
+    ("chronic_diseases", "TEXT"),
+    ("allergies", "TEXT"),
+    ("current_medications", "TEXT"),
+    ("surgeries_history", "TEXT"),
+    ("smoking_status", "TEXT"),
+    ("activity_level", "TEXT"),
+]
 
+
+def _run_light_migrations():
     inspector = inspect(engine)
     table_names = inspector.get_table_names()
 
@@ -82,10 +80,17 @@ def _run_light_migrations():
             _add_column_if_missing(conn, "test_results", "recommended_followup_days", "INTEGER")
             _add_column_if_missing(conn, "test_results", "organ_category", "TEXT")
             _add_column_if_missing(conn, "test_results", "followup_reminder_sent", "BOOLEAN DEFAULT 0")
-  
+
     if "users" in table_names:
         with engine.connect() as conn:
             _add_column_if_missing(conn, "users", "avatar_path", "TEXT")
+            for column, ddl_type in HEALTH_PROFILE_COLUMNS:
+                _add_column_if_missing(conn, "users", column, ddl_type)
+
+    if "family_members" in table_names:
+        with engine.connect() as conn:
+            for column, ddl_type in HEALTH_PROFILE_COLUMNS:
+                _add_column_if_missing(conn, "family_members", column, ddl_type)
 
 
 def init_db():

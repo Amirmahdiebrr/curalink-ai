@@ -1,9 +1,5 @@
 """
 app/routers/payment.py
-
-خرید اشتراک، نمایش پلن‌های متناسب با نقش کاربر، پرداخت pay-per-use
-(از طریق سایر روترها آغاز می‌شود)، و هندل کردن callback زرین‌پال برای
-هر دو نوع پرداخت.
 """
 
 from fastapi import APIRouter, Request, Depends
@@ -15,7 +11,10 @@ from app.database import get_db
 from app.routers.auth import get_current_user
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.limiter import limiter
-from app.models import Plan, PURPOSE_SUBSCRIPTION, PURPOSE_EXAM_ANALYSIS, PURPOSE_DIET_PLAN, PURPOSE_VISIT_PREP
+from app.models import (
+    Plan, PURPOSE_SUBSCRIPTION, PURPOSE_EXAM_ANALYSIS, PURPOSE_DIET_PLAN,
+    PURPOSE_VISIT_PREP, PURPOSE_WORKOUT_PLAN,
+)
 from app.services import pending_action_store
 from app.services.billing_service import get_active_subscription
 from app.services.payment_service import (
@@ -159,6 +158,9 @@ async def payment_callback(
 
     if payment.purpose == PURPOSE_VISIT_PREP and result_type == "visit_prep_record":
         return RedirectResponse(url=f"/visit-prep/history/{result_id}", status_code=303)
+
+    if payment.purpose == PURPOSE_WORKOUT_PLAN and result_type == "workout_record":
+        return RedirectResponse(url=f"/workout/history/{result_id}", status_code=303)
 
     return templates.TemplateResponse(
         request,

@@ -16,6 +16,7 @@ from app.routers.auth import get_current_user
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.crypto import decrypt_value
 from app.core.limiter import limiter
+from app.core.health_profile import person_health_fields
 from app.services.family_service import get_family_members, get_family_member_for_user
 from app.services.diet_service import DietService
 from app.services.diet_history_service import (
@@ -54,16 +55,14 @@ async def generate_and_save_diet_plan(
     db: Session,
     user_id: int,
     family_member_id: int | None,
-    age: int | None,
-    gender: str | None,
+    health_profile_fields: dict,
     context_value: str | None,
 ):
     raw_plan = await diet_service.generate(
         db,
         user_id=user_id,
         family_member_id=family_member_id,
-        age=age,
-        gender=gender,
+        health_profile_fields=health_profile_fields,
         extra_context=context_value,
     )
 
@@ -148,8 +147,7 @@ async def diet_generate(
         )
 
     resolved_family_member_id = None
-    age = user.age
-    gender = user.gender
+    person = user
 
     if family_member_id and family_member_id.strip() != "self":
         try:
@@ -161,8 +159,9 @@ async def diet_generate(
             member = get_family_member_for_user(db, fm_id, user.id)
             if member:
                 resolved_family_member_id = member.id
-                age = member.age
-                gender = member.gender
+                person = member
+
+    health_profile_fields = person_health_fields(person)
 
     access = check_diet_plan_access(db, user.id)
 
@@ -177,8 +176,7 @@ async def diet_generate(
                 {
                     "user_id": user.id,
                     "family_member_id": resolved_family_member_id,
-                    "age": age,
-                    "gender": gender,
+                    "health_profile_fields": health_profile_fields,
                     "context_value": context_value,
                 },
             )
@@ -207,8 +205,7 @@ async def diet_generate(
             db,
             user_id=user.id,
             family_member_id=resolved_family_member_id,
-            age=age,
-            gender=gender,
+            health_profile_fields=health_profile_fields,
             context_value=context_value,
         )
     except DeepSeekError as e:
@@ -356,7 +353,6 @@ async def diet_chat(request: Request, payload: DietChatRequest, db: Session = De
     csrf_header = request.headers.get("X-CSRF-Token")
 
     if not is_valid_csrf(request, csrf_header):
-        print("[DietChat] Rejected: invalid CSRF token", flush=True)
         return JSONResponse({"error": "خطای اعتبارسنجی امنیتی. لطفاً صفحه را رفرش کنید."}, status_code=403)
 
     user = get_current_user(request, db)
@@ -387,7 +383,7 @@ async def diet_chat(request: Request, payload: DietChatRequest, db: Session = De
             status_code=503
         )
     except Exception as e:
-        print(f"[DietChat] Unexpected error: {e}", flush=True)
+        logger.error(f"[DietChat] Unexpected error: {e}")
         return JSONResponse({"error": "پاسخ‌گویی با خطا مواجه شد. لطفاً دوباره تلاش کنید."}, status_code=500)
 
     return JSONResponse({"answer": answer})

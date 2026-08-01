@@ -30,6 +30,7 @@ from app.routers.chat import router as chat_router
 from app.routers.family import router as family_router
 from app.routers.diet import router as diet_router
 from app.routers.visit_prep import router as visit_prep_router
+from app.routers.workout import router as workout_router
 from app.routers.doctor_review import router as doctor_review_router
 from app.routers.reviews import router as reviews_router
 
@@ -40,8 +41,8 @@ from app.routers.admin import router as admin_router
 
 from app.routers.payment import router as payment_router
 
-JOB_CLEANUP_INTERVAL_SECONDS = 60 * 30  # هر ۳۰ دقیقه
-REMINDER_CHECK_INTERVAL_SECONDS = 60 * 60 * 24  # هر ۲۴ ساعت
+JOB_CLEANUP_INTERVAL_SECONDS = 60 * 30
+REMINDER_CHECK_INTERVAL_SECONDS = 60 * 60 * 24
 
 
 app = FastAPI(
@@ -58,7 +59,7 @@ app.add_middleware(
     secret_key=SESSION_SECRET_KEY,
     https_only=IS_PRODUCTION,
     same_site="lax",
-    max_age=60 * 60 * 24 * 14,  # ۱۴ روز
+    max_age=60 * 60 * 24 * 14,
 )
 
 init_db()
@@ -78,10 +79,12 @@ app.include_router(chat_router)
 app.include_router(family_router)
 app.include_router(diet_router)
 app.include_router(visit_prep_router)
+app.include_router(workout_router)
 app.include_router(doctor_review_router)
 app.include_router(admin_router)
 app.include_router(payment_router)
 app.include_router(reviews_router)
+
 
 async def _job_cleanup_loop():
     while True:

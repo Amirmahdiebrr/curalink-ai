@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}برنامه ورزشی | CuraLink AI{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/chat.css">
+{% endblock %}
+
+{% block content %}
+
+<section class="cl-profile-section">
+    <div class="container">
+
+        <div class="cl-profile-header">
+            <div class="cl-profile-avatar">
+                {{ (user.display_name or user.nicename or "?")[0] }}
+            </div>
+            <div>
+                <h1>برنامه ورزشی هوشمند</h1>
+                <p>برنامه‌ی تمرینی شخصی‌سازی‌شده بر اساس پروفایل سلامتی و آزمایش‌ها</p>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="cl-auth-alert cl-auth-alert-error">{{ error }}</div>
+        {% endif %}
+
+        <div class="cl-profile-card" style="margin-bottom:24px;">
+
+            <h3 class="cl-profile-card-title">برای چه کسی برنامه بسازیم؟</h3>
+
+            <form method="post" action="/workout" class="cl-auth-fields">
+
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <div class="cl-field">
+                    <label for="family_member_id">انتخاب فرد</label>
+                    <select id="family_member_id" name="family_member_id">
+                        <option value="self" {% if not selected_family_member_id %}selected{% endif %}>خودم</option>
+                        {% for member in family_members %}
+                        <option value="{{ member.id }}" {% if selected_family_member_id == member.id %}selected{% endif %}>
+                            {{ member.name }}{% if member.relation %} ({{ member.relation }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="cl-field-row">
+                    <div class="cl-field">
+                        <label for="goal">هدف تمرینی</label>
+                        <select id="goal" name="goal">
+                            <option value="fat_loss" {% if goal_value == 'fat_loss' %}selected{% endif %}>کاهش چربی</option>
+                            <option value="muscle_gain" {% if goal_value == 'muscle_gain' %}selected{% endif %}>افزایش حجم و قدرت</option>
+                            <option value="general_fitness" {% if goal_value == 'general_fitness' %}selected{% endif %}>تناسب اندام عمومی</option>
+                            <option value="endurance" {% if goal_value == 'endurance' %}selected{% endif %}>افزایش استقامت</option>
+                            <option value="rehab" {% if goal_value == 'rehab' %}selected{% endif %}>بازتوانی / بازگشت ملایم به ورزش</option>
+                        </select>
+                    </div>
+                    <div class="cl-field">
+                        <label for="fitness_level">سطح آمادگی جسمانی</label>
+                        <select id="fitness_level" name="fitness_level">
+                            <option value="beginner" {% if fitness_level_value == 'beginner' %}selected{% endif %}>مبتدی</option>
+                            <option value="intermediate" {% if fitness_level_value == 'intermediate' %}selected{% endif %}>متوسط</option>
+                            <option value="advanced" {% if fitness_level_value == 'advanced' %}selected{% endif %}>پیشرفته</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="cl-field-row">
+                    <div class="cl-field">
+                        <label for="days_per_week">روزهای تمرین در هفته</label>
+                        <select id="days_per_week" name="days_per_week">
+                            {% for d in range(1, 8) %}
+                            <option value="{{ d }}" {% if days_per_week_value == d %}selected{% endif %}>{{ d }} روز</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="cl-field">
+                        <label for="equipment">امکانات تمرینی</label>
+                        <select id="equipment" name="equipment">
+                            <option value="none" {% if equipment_value == 'none' %}selected{% endif %}>بدون وسیله</option>
+                            <option value="home_basic" {% if equipment_value == 'home_basic' %}selected{% endif %}>وسایل ساده خانگی</option>
+                            <option value="full_gym" {% if equipment_value == 'full_gym' %}selected{% endif %}>دسترسی کامل به باشگاه</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="cl-field">
+                    <label for="injuries">آسیب یا محدودیت جسمی خاص (اختیاری)</label>
+                    <textarea id="injuries" name="injuries" rows="3" maxlength="800" placeholder="مثلاً: مشکل زانو، دیسک کمر، جراحی شانه...">{{ injuries_value or '' }}</textarea>
+                </div>
+
+                <button type="submit" class="cl-auth-submit">تولید برنامه ورزشی</button>
+
+            </form>
+
+        </div>
+
+        <div class="result-actions" style="margin:0 0 24px;">
+            <a href="/workout/history" class="btn btn-outline">مشاهده تاریخچه برنامه‌های ورزشی</a>
+        </div>
+
+        {% if plan_html %}
+        <div class="result-card">
+            <h2>برنامه ورزشی پیشنهادی</h2>
+            <div class="analysis-content">
+                {{ plan_html | safe }}
+            </div>
+        </div>
+
+        {% if workout_record_id %}
+        <div class="result-actions" style="margin:0 0 24px;">
+            <a href="/workout/pdf/{{ workout_record_id }}" class="btn btn-outline" target="_blank">
+                <span class="material-symbols-outlined" style="font-size:18px;">download</span>
+                دانلود PDF
+            </a>
+        </div>
+        {% endif %}
+
+        <div class="cl-chat-box" id="workout-chat-box" data-csrf="{{ csrf_token }}">
+
+            <div class="cl-chat-header">
+                <span class="cl-chat-header-icon"><span class="material-symbols-outlined">forum</span></span>
+                <div>
+                    <strong>پرسش و پاسخ درباره‌ی این برنامه ورزشی</strong>
+                    <small>سوالات مرتبط با همین برنامه را بپرسید</small>
+                </div>
+            </div>
+
+            <div class="cl-chat-messages" id="workout-chat-messages">
+                <div class="cl-chat-empty" id="workout-chat-empty">سوال خود را درباره‌ی این برنامه ورزشی بپرسید...</div>
+            </div>
+
+            <form class="cl-chat-input-row" id="workout-chat-form">
+                <input type="text" id="workout-chat-input" class="cl-chat-input" placeholder="مثلاً: اگر یک روز نتوانم تمرین کنم چه کار کنم؟" autocomplete="off">
+                <button type="submit" class="cl-chat-send-btn">ارسال</button>
+            </form>
+
+        </div>
+
+        <textarea id="workout-plan-raw-store" style="display:none;">{{ plan_raw or '' }}</textarea>
+
+        {% endif %}
+
+        <p class="cl-trends-disclaimer">
+            ⚠️ این برنامه ورزشی صرفاً یک پیشنهاد کلی است و جایگزین نظر پزشک، فیزیوتراپیست یا مربی حضوری نیست.
+        </p>
+
+    </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+
+    const chatBox = document.getElementById("workout-chat-box");
+
+    if (!chatBox) {
+        return;
+    }
+
+    const csrfToken = chatBox.getAttribute("data-csrf") || "";
+    const planText = document.getElementById("workout-plan-raw-store").value;
+
+    const messagesEl = document.getElementById("workout-chat-messages");
+    const emptyEl = document.getElementById("workout-chat-empty");
+    const form = document.getElementById("workout-chat-form");
+    const input = document.getElementById("workout-chat-input");
+    const sendBtn = form.querySelector("button[type='submit']");
+
+    let conversation = [];
+
+    function scrollToBottom() {
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function addMessage(role, text) {
+        if (emptyEl) emptyEl.remove();
+        const bubble = document.createElement("div");
+        bubble.className = "cl-chat-msg " + (role === "user" ? "cl-chat-msg-user" : "cl-chat-msg-ai");
+        bubble.textContent = text;
+        messagesEl.appendChild(bubble);
+        scrollToBottom();
+    }
+
+    function addError(text) {
+        const bubble = document.createElement("div");
+        bubble.className = "cl-chat-msg cl-chat-msg-error";
+        bubble.textContent = text;
+        messagesEl.appendChild(bubble);
+        scrollToBottom();
+    }
+
+    function addTyping() {
+        const typing = document.createElement("div");
+        typing.className = "cl-chat-typing";
+        typing.id = "workout-chat-typing";
+        typing.textContent = "در حال نوشتن پاسخ...";
+        messagesEl.appendChild(typing);
+        scrollToBottom();
+    }
+
+    function removeTyping() {
+        const typing = document.getElementById("workout-chat-typing");
+        if (typing) typing.remove();
+    }
+
+    form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const question = input.value.trim();
+        if (!question) return;
+
+        addMessage("user", question);
+        conversation.push({ role: "user", content: question });
+
+        input.value = "";
+        input.disabled = true;
+        sendBtn.disabled = true;
+
+        addTyping();
+
+        try {
+            const res = await fetch("/workout/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-Token": csrfToken,
+                },
+                body: JSON.stringify({
+                    workout_plan_text: planText,
+                    question: question,
+                    history: conversation,
+                })
+            });
+
+            const data = await res.json();
+            removeTyping();
+
+            if (!res.ok) {
+                addError(data.error || "خطایی رخ داد. لطفاً دوباره تلاش کنید.");
+            } else {
+                addMessage("ai", data.answer);
+                conversation.push({ role: "assistant", content: data.answer });
+            }
+
+        } catch (err) {
+            removeTyping();
+            addError("ارتباط با سرور برقرار نشد. لطفاً دوباره تلاش کنید.");
+        } finally {
+            input.disabled = false;
+            sendBtn.disabled = false;
+            input.focus();
+        }
+    });
+
+})();
+</script>
+{% endblock %}

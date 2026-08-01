@@ -1,11 +1,5 @@
 """
 app/services/diet_history_service.py
-
-Persists generated diet plans tied to a user (or one of their
-family members), and retrieves past plans for the history page.
-
-Free-text fields (context, plan_text, plan_html) are encrypted at
-rest since they can reflect personal health details.
 """
 
 from sqlalchemy.orm import Session
@@ -61,6 +55,19 @@ def get_diet_plan_for_user(db: Session, record_id: int, user_id: int):
     record = (
         db.query(DietPlanRecord)
         .filter(DietPlanRecord.id == record_id, DietPlanRecord.user_id == user_id)
+        .first()
+    )
+    return _decrypt_record(record)
+
+
+def get_latest_diet_plan_for_person(db: Session, user_id: int, family_member_id: int | None):
+    record = (
+        db.query(DietPlanRecord)
+        .filter(
+            DietPlanRecord.user_id == user_id,
+            DietPlanRecord.family_member_id == family_member_id,
+        )
+        .order_by(DietPlanRecord.created_at.desc())
         .first()
     )
     return _decrypt_record(record)

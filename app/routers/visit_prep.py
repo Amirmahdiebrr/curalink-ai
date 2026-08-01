@@ -14,6 +14,7 @@ from app.database import get_db
 from app.routers.auth import get_current_user
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.limiter import limiter
+from app.core.health_profile import person_health_fields
 from app.services.family_service import get_family_members, get_family_member_for_user
 from app.services.visit_prep_service import VisitPrepService
 from app.services.visit_prep_history_service import (
@@ -50,16 +51,14 @@ async def generate_and_save_visit_prep(
     db: Session,
     user_id: int,
     family_member_id: int | None,
-    age: int | None,
-    gender: str | None,
+    health_profile_fields: dict,
     reason_value: str | None,
 ):
     raw_summary = await visit_prep_service.generate(
         db,
         user_id=user_id,
         family_member_id=family_member_id,
-        age=age,
-        gender=gender,
+        health_profile_fields=health_profile_fields,
         visit_reason=reason_value,
     )
 
@@ -144,8 +143,7 @@ async def visit_prep_generate(
         )
 
     resolved_family_member_id = None
-    age = user.age
-    gender = user.gender
+    person = user
 
     if family_member_id and family_member_id.strip() != "self":
         try:
@@ -157,8 +155,9 @@ async def visit_prep_generate(
             member = get_family_member_for_user(db, fm_id, user.id)
             if member:
                 resolved_family_member_id = member.id
-                age = member.age
-                gender = member.gender
+                person = member
+
+    health_profile_fields = person_health_fields(person)
 
     access = check_visit_prep_access(db, user.id)
 
@@ -173,8 +172,7 @@ async def visit_prep_generate(
                 {
                     "user_id": user.id,
                     "family_member_id": resolved_family_member_id,
-                    "age": age,
-                    "gender": gender,
+                    "health_profile_fields": health_profile_fields,
                     "reason_value": reason_value,
                 },
             )
@@ -203,8 +201,7 @@ async def visit_prep_generate(
             db,
             user_id=user.id,
             family_member_id=resolved_family_member_id,
-            age=age,
-            gender=gender,
+            health_profile_fields=health_profile_fields,
             reason_value=reason_value,
         )
     except DeepSeekError as e:

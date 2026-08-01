@@ -13,7 +13,7 @@
             </div>
             <div>
                 <h1>اعضای خانواده</h1>
-                <p>مدیریت پروفایل افرادی که آزمایش‌هایشان را برایشان آپلود می‌کنید</p>
+                <p>مدیریت پروفایل و اطلاعات سلامت افرادی که آزمایش‌هایشان را برایشان آپلود می‌کنید</p>
             </div>
         </div>
 
@@ -26,7 +26,7 @@
             <div class="cl-profile-card">
 
                 <h3 class="cl-profile-card-title">افزودن عضو جدید</h3>
-                <p class="cl-profile-card-sub">این اطلاعات هنگام تحلیل آزمایش این فرد به هوش مصنوعی کمک می‌کند.</p>
+                <p class="cl-profile-card-sub">این اطلاعات هنگام تحلیل آزمایش، برنامه غذایی و برنامه ورزشی این فرد به هوش مصنوعی کمک می‌کند.</p>
 
                 <form method="post" action="/family" class="cl-auth-fields">
 
@@ -58,6 +58,70 @@
                         </div>
                     </div>
 
+                    <div class="cl-field-row">
+                        <div class="cl-field">
+                            <label for="height_cm">قد (سانتی‌متر)</label>
+                            <input type="number" id="height_cm" name="height_cm" min="0" max="260">
+                        </div>
+                        <div class="cl-field">
+                            <label for="weight_kg">وزن (کیلوگرم)</label>
+                            <input type="number" step="0.1" id="weight_kg" name="weight_kg" min="0" max="400">
+                        </div>
+                    </div>
+
+                    <div class="cl-field-row">
+                        <div class="cl-field">
+                            <label for="blood_type">گروه خونی</label>
+                            <select id="blood_type" name="blood_type">
+                                <option value="">— نامشخص —</option>
+                                {% for bt in blood_type_options %}
+                                <option value="{{ bt }}">{{ bt }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="cl-field">
+                            <label for="smoking_status">وضعیت سیگار</label>
+                            <select id="smoking_status" name="smoking_status">
+                                <option value="">— نامشخص —</option>
+                                <option value="none">غیرسیگاری</option>
+                                <option value="occasional">گاه‌به‌گاه</option>
+                                <option value="regular">سیگاری منظم</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="cl-field">
+                        <label for="activity_level">سطح فعالیت بدنی</label>
+                        <select id="activity_level" name="activity_level">
+                            <option value="">— نامشخص —</option>
+                            <option value="sedentary">کم‌تحرک</option>
+                            <option value="light">فعالیت سبک</option>
+                            <option value="moderate">فعالیت متوسط</option>
+                            <option value="active">فعال</option>
+                            <option value="very_active">بسیار فعال / ورزشکار</option>
+                        </select>
+                    </div>
+
+                    <div class="cl-field">
+                        <label for="chronic_diseases">سابقه بیماری‌های مزمن (اختیاری)</label>
+                        <textarea id="chronic_diseases" name="chronic_diseases" rows="2" maxlength="800"></textarea>
+                    </div>
+
+                    <div class="cl-field">
+                        <label for="allergies">حساسیت‌ها (اختیاری)</label>
+                        <textarea id="allergies" name="allergies" rows="2" maxlength="500"></textarea>
+                    </div>
+
+                    <div class="cl-field">
+                        <label for="current_medications">داروهای مصرفی فعلی (اختیاری)</label>
+                        <textarea id="current_medications" name="current_medications" rows="2" maxlength="500"></textarea>
+                    </div>
+
+                    <div class="cl-field">
+                        <label for="surgeries_history">سابقه جراحی (اختیاری)</label>
+                        <textarea id="surgeries_history" name="surgeries_history" rows="2" maxlength="500"></textarea>
+                    </div>
+
                     <button type="submit" class="cl-auth-submit">افزودن عضو</button>
 
                 </form>
@@ -81,6 +145,8 @@
                                 {{ member.name }}
                                 {% if member.age %} — {{ member.age }} سال{% endif %}
                                 {% if member.gender == 'male' %} — مرد{% elif member.gender == 'female' %} — زن{% endif %}
+                                {% if member.height_cm %} — {{ member.height_cm }}cm{% endif %}
+                                {% if member.weight_kg %} — {{ member.weight_kg }}kg{% endif %}
                             </span>
                         </div>
                         <form method="post" action="/family/{{ member.id }}/delete" onsubmit="return confirm('این عضو حذف شود؟');">

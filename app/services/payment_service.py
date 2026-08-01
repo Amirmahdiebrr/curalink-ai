@@ -1,11 +1,5 @@
 """
 app/services/payment_service.py
-
-Bridges billing_service + zarinpal_service با جدول Payment. علاوه بر
-خرید اشتراک، پرداخت pay-per-use برای تحلیل آزمایش/برنامه‌غذایی/
-آماده‌سازی ویزیت را هم مدیریت می‌کند: قبل از ریدایرکت به درگاه، داده‌ی
-لازم برای انجام واقعی کار در pending_action_store ذخیره می‌شود و بعد
-از verify موفق، همان کار واقعاً اجرا می‌شود.
 """
 
 from datetime import datetime
@@ -15,7 +9,8 @@ from sqlalchemy.orm import Session
 from app.models import (
     Payment, Plan, User,
     PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_FAILED,
-    PURPOSE_SUBSCRIPTION, PURPOSE_EXAM_ANALYSIS, PURPOSE_DIET_PLAN, PURPOSE_VISIT_PREP,
+    PURPOSE_SUBSCRIPTION, PURPOSE_EXAM_ANALYSIS, PURPOSE_DIET_PLAN,
+    PURPOSE_VISIT_PREP, PURPOSE_WORKOUT_PLAN,
 )
 from app.services import zarinpal_service
 from app.services import pending_action_store
@@ -99,11 +94,6 @@ async def start_service_payment(
     description: str,
     pending_data: dict,
 ) -> dict:
-    """
-    شروع پرداخت pay-per-use. pending_data باید دقیقاً همان کلیدهایی را
-    داشته باشد که تابع اجرای واقعی آن سرویس (start_background_job /
-    generate_and_save_diet_plan / generate_and_save_visit_prep) انتظار دارد.
-    """
     result = await start_payment(db, user=user, purpose=purpose, amount=amount, description=description)
     pending_action_store.save(result["payment_id"], pending_data)
     return result
@@ -182,6 +172,12 @@ async def _apply_payment_effect(db: Session, payment: Payment) -> None:
             record = await generate_and_save_visit_prep(db, **action["data"])
             pending_action_store.update(payment.id, result_type="visit_prep_record", result_id=record.id)
             logger.info(f"[Payment] Visit-prep summary generated: payment_id={payment.id}, record_id={record.id}")
+
+        elif payment.purpose == PURPOSE_WORKOUT_PLAN:
+            from app.routers.workout import generate_and_save_workout_plan
+            record = await generate_and_save_workout_plan(db, **action["data"])
+            pending_action_store.update(payment.id, result_type="workout_record", result_id=record.id)
+            logger.info(f"[Payment] Workout plan generated: payment_id={payment.id}, record_id={record.id}")
 
         else:
             logger.warning(f"[Payment] WARNING: unknown purpose '{payment.purpose}' for payment_id={payment.id}")

@@ -1,9 +1,5 @@
 """
 app/routers/auth.py
-
-ثبت‌نام (انتخاب نوع حساب + بیمار/پزشک/سازمان)، ورود، خروج، پروفایل،
-تایید ایمیل، تایید موبایل (OTP)، فراموشی رمز عبور، تغییر ایمیل/رمز،
-آواتار، و حذف حساب توسط خود کاربر — کاملاً مستقل از وردپرس.
 """
 
 import uuid
@@ -42,6 +38,7 @@ from app.services.avatar_service import save_avatar, AvatarError
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.crypto import encrypt_value, decrypt_value
 from app.core.limiter import limiter
+from app.core.health_profile import BLOOD_TYPE_OPTIONS
 from app.config import DOCTOR_DOCS_MAX_SIZE_MB, DOCTOR_DOCS_ALLOWED_EXTENSIONS
 from app.core.logging_config import get_logger
 
@@ -66,11 +63,22 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
     return get_user_by_id(db, user_id)
 
 
+def _parse_int(value):
+    if value and str(value).strip().isdigit():
+        return int(str(value).strip())
+    return None
+
+
+def _parse_float(value):
+    if value and str(value).strip():
+        try:
+            return float(str(value).strip())
+        except ValueError:
+            return None
+    return None
+
+
 def _save_doctor_document(content: bytes, filename: str) -> str:
-    """
-    اعتبارسنجی و ذخیره‌ی فایل مدرک نظام پزشکی روی دیسک.
-    در صورت نامعتبر بودن فرمت/حجم/محتوا، AuthError پرتاب می‌کند.
-    """
     if not filename or not content:
         raise AuthError("فایل مدرک نظام پزشکی ارسال نشده است.")
 
@@ -96,10 +104,6 @@ def _save_doctor_document(content: bytes, filename: str) -> str:
     return str(filepath)
 
 
-# ==========================
-# انتخاب نوع حساب (اولین قدم ثبت‌نام)
-# ==========================
-
 @router.get("/register")
 async def register_choose_page(request: Request):
     return templates.TemplateResponse(
@@ -109,17 +113,16 @@ async def register_choose_page(request: Request):
     )
 
 
-# ==========================
-# ثبت‌نام (بیمار)
-# ==========================
-
 @router.get("/register/patient")
 async def register_patient_page(request: Request):
     csrf_token = get_or_create_csrf_token(request)
     return templates.TemplateResponse(
         request,
         "register.html",
-        {"request": request, "error": None, "csrf_token": csrf_token, "user": None}
+        {
+            "request": request, "error": None, "csrf_token": csrf_token, "user": None,
+            "blood_type_options": BLOOD_TYPE_OPTIONS,
+        }
     )
 
 
@@ -133,6 +136,17 @@ async def register_patient_submit(
     phone: str = Form(...),
     password: str = Form(...),
     password_confirm: str = Form(...),
+    age: str = Form(None),
+    gender: str = Form(None),
+    height_cm: str = Form(None),
+    weight_kg: str = Form(None),
+    blood_type: str = Form(None),
+    chronic_diseases: str = Form(None),
+    allergies: str = Form(None),
+    current_medications: str = Form(None),
+    surgeries_history: str = Form(None),
+    smoking_status: str = Form(None),
+    activity_level: str = Form(None),
     csrf_token: str = Form(...),
     db: Session = Depends(get_db),
 ):
@@ -143,14 +157,14 @@ async def register_patient_submit(
         return templates.TemplateResponse(
             request,
             "register.html",
-            {"request": request, "error": "خطای اعتبارسنجی امنیتی. لطفاً دوباره تلاش کنید.", "csrf_token": new_token, "user": None}
+            {"request": request, "error": "خطای اعتبارسنجی امنیتی. لطفاً دوباره تلاش کنید.", "csrf_token": new_token, "user": None, "blood_type_options": BLOOD_TYPE_OPTIONS}
         )
 
     if password != password_confirm:
         return templates.TemplateResponse(
             request,
             "register.html",
-            {"request": request, "error": "رمز عبور و تکرار آن یکسان نیستند.", "csrf_token": new_token, "user": None}
+            {"request": request, "error": "رمز عبور و تکرار آن یکسان نیستند.", "csrf_token": new_token, "user": None, "blood_type_options": BLOOD_TYPE_OPTIONS}
         )
 
     try:
@@ -165,8 +179,25 @@ async def register_patient_submit(
         return templates.TemplateResponse(
             request,
             "register.html",
-            {"request": request, "error": str(e), "csrf_token": new_token, "user": None}
+            {"request": request, "error": str(e), "csrf_token": new_token, "user": None, "blood_type_options": BLOOD_TYPE_OPTIONS}
         )
+
+    age_value = _parse_int(age)
+    if age_value is not None and not (0 <= age_value <= 120):
+        age_value = None
+
+    user.age = age_value
+    user.gender = gender or None
+    user.height_cm = _parse_int(height_cm)
+    user.weight_kg = _parse_float(weight_kg)
+    user.blood_type = blood_type or None
+    user.chronic_diseases = (chronic_diseases or "").strip()[:800] or None
+    user.allergies = (allergies or "").strip()[:500] or None
+    user.current_medications = (current_medications or "").strip()[:500] or None
+    user.surgeries_history = (surgeries_history or "").strip()[:500] or None
+    user.smoking_status = smoking_status or None
+    user.activity_level = activity_level or None
+    db.commit()
 
     try:
         verify_token = start_email_verification(db, user)
@@ -178,10 +209,6 @@ async def register_patient_submit(
 
     return RedirectResponse(url="/billing/plans", status_code=303)
 
-
-# ==========================
-# ثبت‌نام (پزشک) — عکس پروفایل اجباری
-# ==========================
 
 @router.get("/register/doctor")
 async def register_doctor_page(request: Request):
@@ -281,10 +308,6 @@ async def register_doctor_submit(
     )
 
 
-# ==========================
-# ثبت‌نام (سازمان: کلینیک/آزمایشگاه/بیمارستان)
-# ==========================
-
 @router.get("/register/org")
 async def register_org_page(request: Request):
     csrf_token = get_or_create_csrf_token(request)
@@ -362,10 +385,6 @@ async def register_org_submit(
     return RedirectResponse(url="/billing/plans", status_code=303)
 
 
-# ==========================
-# ورود
-# ==========================
-
 @router.get("/login")
 async def login_page(request: Request):
     csrf_token = get_or_create_csrf_token(request)
@@ -410,19 +429,11 @@ async def login_submit(
     return RedirectResponse(url="/", status_code=303)
 
 
-# ==========================
-# خروج
-# ==========================
-
 @router.get("/logout")
 async def logout(request: Request):
     request.session.clear()
     return RedirectResponse(url="/", status_code=303)
 
-
-# ==========================
-# تایید ایمیل
-# ==========================
 
 @router.get("/verify-email")
 async def verify_email(request: Request, uid: int, token: str, db: Session = Depends(get_db)):
@@ -477,10 +488,6 @@ async def resend_email_verification(
 
     return RedirectResponse(url="/profile", status_code=303)
 
-
-# ==========================
-# تایید موبایل (OTP)
-# ==========================
 
 @router.get("/verify-phone")
 async def verify_phone_page(request: Request, db: Session = Depends(get_db)):
@@ -568,10 +575,6 @@ async def verify_phone_verify(
 
     return RedirectResponse(url="/profile", status_code=303)
 
-
-# ==========================
-# فراموشی رمز عبور
-# ==========================
 
 @router.get("/forgot-password")
 async def forgot_password_page(request: Request):
@@ -673,10 +676,6 @@ async def reset_password_submit(
     return RedirectResponse(url="/login", status_code=303)
 
 
-# ==========================
-# پروفایل
-# ==========================
-
 @router.get("/profile")
 async def profile_page(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
@@ -698,6 +697,7 @@ async def profile_page(request: Request, db: Session = Depends(get_db)):
             "saved": False,
             "error": None,
             "csrf_token": csrf_token,
+            "blood_type_options": BLOOD_TYPE_OPTIONS,
         }
     )
 
@@ -711,6 +711,15 @@ async def profile_update(
     national_id: str = Form(None),
     address: str = Form(None),
     phone: str = Form(None),
+    height_cm: str = Form(None),
+    weight_kg: str = Form(None),
+    blood_type: str = Form(None),
+    chronic_diseases: str = Form(None),
+    allergies: str = Form(None),
+    current_medications: str = Form(None),
+    surgeries_history: str = Form(None),
+    smoking_status: str = Form(None),
+    activity_level: str = Form(None),
     csrf_token: str = Form(...),
     db: Session = Depends(get_db),
 ):
@@ -733,6 +742,7 @@ async def profile_update(
                 "saved": False,
                 "error": "خطای اعتبارسنجی امنیتی. لطفاً دوباره تلاش کنید.",
                 "csrf_token": new_token,
+                "blood_type_options": BLOOD_TYPE_OPTIONS,
             }
         )
 
@@ -754,6 +764,7 @@ async def profile_update(
                     "saved": False,
                     "error": "سن وارد شده معتبر نیست.",
                     "csrf_token": new_token,
+                    "blood_type_options": BLOOD_TYPE_OPTIONS,
                 }
             )
     else:
@@ -762,6 +773,16 @@ async def profile_update(
     user.gender = gender or None
     user.national_id = encrypt_value(national_id.strip()) if national_id and national_id.strip() else None
     user.address = address or None
+
+    user.height_cm = _parse_int(height_cm)
+    user.weight_kg = _parse_float(weight_kg)
+    user.blood_type = blood_type or None
+    user.chronic_diseases = (chronic_diseases or "").strip()[:800] or None
+    user.allergies = (allergies or "").strip()[:500] or None
+    user.current_medications = (current_medications or "").strip()[:500] or None
+    user.surgeries_history = (surgeries_history or "").strip()[:500] or None
+    user.smoking_status = smoking_status or None
+    user.activity_level = activity_level or None
 
     if phone and phone.strip() and phone.strip() != user.phone:
         new_phone = phone.strip()
@@ -779,6 +800,7 @@ async def profile_update(
                     "saved": False,
                     "error": "این شماره موبایل قبلاً توسط حساب دیگری ثبت شده است.",
                     "csrf_token": new_token,
+                    "blood_type_options": BLOOD_TYPE_OPTIONS,
                 }
             )
 
@@ -800,13 +822,10 @@ async def profile_update(
             "saved": True,
             "error": None,
             "csrf_token": new_token2,
+            "blood_type_options": BLOOD_TYPE_OPTIONS,
         }
     )
 
-
-# ==========================
-# آواتار (اختیاری برای همه)
-# ==========================
 
 @router.post("/profile/avatar")
 async def profile_avatar_upload(
@@ -833,10 +852,6 @@ async def profile_avatar_upload(
     return RedirectResponse(url="/profile", status_code=303)
 
 
-# ==========================
-# تغییر ایمیل / رمز عبور
-# ==========================
-
 @router.post("/profile/change-email")
 async def profile_change_email(
     request: Request,
@@ -857,7 +872,7 @@ async def profile_change_email(
         return templates.TemplateResponse(
             request, "profile.html",
             {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
-             "saved": False, "error": "خطای اعتبارسنجی امنیتی.", "csrf_token": new_token}
+             "saved": False, "error": "خطای اعتبارسنجی امنیتی.", "csrf_token": new_token, "blood_type_options": BLOOD_TYPE_OPTIONS}
         )
 
     try:
@@ -868,7 +883,7 @@ async def profile_change_email(
         return templates.TemplateResponse(
             request, "profile.html",
             {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
-             "saved": False, "error": str(e), "csrf_token": new_token}
+             "saved": False, "error": str(e), "csrf_token": new_token, "blood_type_options": BLOOD_TYPE_OPTIONS}
         )
 
     return RedirectResponse(url="/profile", status_code=303)
@@ -894,14 +909,14 @@ async def profile_change_password(
         return templates.TemplateResponse(
             request, "profile.html",
             {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
-             "saved": False, "error": "خطای اعتبارسنجی امنیتی.", "csrf_token": new_token}
+             "saved": False, "error": "خطای اعتبارسنجی امنیتی.", "csrf_token": new_token, "blood_type_options": BLOOD_TYPE_OPTIONS}
         )
 
     if new_password != new_password_confirm:
         return templates.TemplateResponse(
             request, "profile.html",
             {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
-             "saved": False, "error": "رمز عبور جدید و تکرار آن یکسان نیستند.", "csrf_token": new_token}
+             "saved": False, "error": "رمز عبور جدید و تکرار آن یکسان نیستند.", "csrf_token": new_token, "blood_type_options": BLOOD_TYPE_OPTIONS}
         )
 
     try:
@@ -910,15 +925,11 @@ async def profile_change_password(
         return templates.TemplateResponse(
             request, "profile.html",
             {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
-             "saved": False, "error": str(e), "csrf_token": new_token}
+             "saved": False, "error": str(e), "csrf_token": new_token, "blood_type_options": BLOOD_TYPE_OPTIONS}
         )
 
     return RedirectResponse(url="/profile", status_code=303)
 
-
-# ==========================
-# حذف حساب توسط خود کاربر
-# ==========================
 
 @router.post("/profile/delete")
 async def profile_delete_account(
@@ -939,7 +950,7 @@ async def profile_delete_account(
         return templates.TemplateResponse(
             request, "profile.html",
             {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
-             "saved": False, "error": "خطای اعتبارسنجی امنیتی.", "csrf_token": new_token}
+             "saved": False, "error": "خطای اعتبارسنجی امنیتی.", "csrf_token": new_token, "blood_type_options": BLOOD_TYPE_OPTIONS}
         )
 
     email = user.email
@@ -950,7 +961,7 @@ async def profile_delete_account(
         return templates.TemplateResponse(
             request, "profile.html",
             {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
-             "saved": False, "error": str(e), "csrf_token": new_token}
+             "saved": False, "error": str(e), "csrf_token": new_token, "blood_type_options": BLOOD_TYPE_OPTIONS}
         )
 
     background_tasks.add_task(email_service.send_account_deleted_notice, email, False)

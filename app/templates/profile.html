@@ -33,8 +33,8 @@
 
             <div class="cl-profile-card">
 
-                <h3 class="cl-profile-card-title">اطلاعات تکمیلی</h3>
-                <p class="cl-profile-card-sub">این اطلاعات صرفاً برای تحلیل دقیق‌تر آزمایشات و یادآوری‌های شما استفاده می‌شود.</p>
+                <h3 class="cl-profile-card-title">اطلاعات تکمیلی و سلامت</h3>
+                <p class="cl-profile-card-sub">این اطلاعات صرفاً برای تحلیل دقیق‌تر آزمایشات، برنامه غذایی و برنامه ورزشی شما استفاده می‌شود.</p>
 
                 <form method="post" action="/profile" class="cl-auth-fields">
 
@@ -59,6 +59,70 @@
                                 <option value="other" {% if user.gender == 'other' %}selected{% endif %}>سایر</option>
                             </select>
                         </div>
+                    </div>
+
+                    <div class="cl-field-row">
+                        <div class="cl-field">
+                            <label for="height_cm">قد (سانتی‌متر)</label>
+                            <input type="number" id="height_cm" name="height_cm" min="0" max="260" value="{{ user.height_cm or '' }}">
+                        </div>
+                        <div class="cl-field">
+                            <label for="weight_kg">وزن (کیلوگرم)</label>
+                            <input type="number" step="0.1" id="weight_kg" name="weight_kg" min="0" max="400" value="{{ user.weight_kg or '' }}">
+                        </div>
+                    </div>
+
+                    <div class="cl-field-row">
+                        <div class="cl-field">
+                            <label for="blood_type">گروه خونی</label>
+                            <select id="blood_type" name="blood_type">
+                                <option value="">— نامشخص —</option>
+                                {% for bt in blood_type_options %}
+                                <option value="{{ bt }}" {% if user.blood_type == bt %}selected{% endif %}>{{ bt }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="cl-field">
+                            <label for="smoking_status">وضعیت سیگار</label>
+                            <select id="smoking_status" name="smoking_status">
+                                <option value="">— نامشخص —</option>
+                                <option value="none" {% if user.smoking_status == 'none' %}selected{% endif %}>غیرسیگاری</option>
+                                <option value="occasional" {% if user.smoking_status == 'occasional' %}selected{% endif %}>گاه‌به‌گاه</option>
+                                <option value="regular" {% if user.smoking_status == 'regular' %}selected{% endif %}>سیگاری منظم</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="cl-field">
+                        <label for="activity_level">سطح فعالیت بدنی</label>
+                        <select id="activity_level" name="activity_level">
+                            <option value="">— نامشخص —</option>
+                            <option value="sedentary" {% if user.activity_level == 'sedentary' %}selected{% endif %}>کم‌تحرک</option>
+                            <option value="light" {% if user.activity_level == 'light' %}selected{% endif %}>فعالیت سبک</option>
+                            <option value="moderate" {% if user.activity_level == 'moderate' %}selected{% endif %}>فعالیت متوسط</option>
+                            <option value="active" {% if user.activity_level == 'active' %}selected{% endif %}>فعال</option>
+                            <option value="very_active" {% if user.activity_level == 'very_active' %}selected{% endif %}>بسیار فعال / ورزشکار</option>
+                        </select>
+                    </div>
+
+                    <div class="cl-field">
+                        <label for="chronic_diseases">سابقه بیماری‌های مزمن</label>
+                        <textarea id="chronic_diseases" name="chronic_diseases" rows="2" maxlength="800">{{ user.chronic_diseases or '' }}</textarea>
+                    </div>
+
+                    <div class="cl-field">
+                        <label for="allergies">حساسیت‌ها</label>
+                        <textarea id="allergies" name="allergies" rows="2" maxlength="500">{{ user.allergies or '' }}</textarea>
+                    </div>
+
+                    <div class="cl-field">
+                        <label for="current_medications">داروهای مصرفی فعلی</label>
+                        <textarea id="current_medications" name="current_medications" rows="2" maxlength="500">{{ user.current_medications or '' }}</textarea>
+                    </div>
+
+                    <div class="cl-field">
+                        <label for="surgeries_history">سابقه جراحی</label>
+                        <textarea id="surgeries_history" name="surgeries_history" rows="2" maxlength="500">{{ user.surgeries_history or '' }}</textarea>
                     </div>
 
                     <div class="cl-field">

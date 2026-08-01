@@ -1,12 +1,5 @@
 """
 app/scripts/seed_billing.py
-
-One-time script to populate ServicePricing and Plan tables with the
-agreed-upon prices. Safe to re-run: it upserts by key instead of
-duplicating rows.
-
-Run with:
-    python -m app.scripts.seed_billing
 """
 
 from app.database import SessionLocal, init_db
@@ -17,12 +10,7 @@ setup_logging()
 logger = get_logger(__name__)
 
 
-# ==========================
-# Pay-per-use service prices (Toman)
-# ==========================
-
 SERVICE_PRICES = [
-    # exam_type analyses
     {"service_key": "blood", "price": 70_000, "doctor_share": None},
     {"service_key": "urine", "price": 70_000, "doctor_share": None},
     {"service_key": "biochemistry", "price": 70_000, "doctor_share": None},
@@ -34,29 +22,22 @@ SERVICE_PRICES = [
     {"service_key": "hse", "price": 190_000, "doctor_share": None},
     {"service_key": "other", "price": 80_000, "doctor_share": None},
 
-    # other patient services
     {"service_key": "diet_plan", "price": 200_000, "doctor_share": None},
     {"service_key": "visit_prep", "price": 50_000, "doctor_share": None},
+    {"service_key": "workout_plan", "price": 180_000, "doctor_share": None},
 
-    # doctor review, paid by a non-subscribed patient
-    # (doctor_share = how much of this goes to the reviewing doctor)
     {"service_key": "doctor_review", "price": 80_000, "doctor_share": 60_000},
 ]
 
 
-# ==========================
-# Subscription plans
-# ==========================
-
 PLANS = [
-    # ---- patient ----
     {
         "code": "patient_weekly",
         "role": "patient",
         "name_fa": "اشتراک هفتگی بیمار",
         "price": 250_000,
         "billing_period_days": 7,
-        "usage_limit": None,  # unlimited exams/visit-prep; diet capped separately in code
+        "usage_limit": None,
     },
     {
         "code": "patient_monthly",
@@ -66,18 +47,14 @@ PLANS = [
         "billing_period_days": 30,
         "usage_limit": None,
     },
-
-    # ---- doctor ----
     {
         "code": "doctor_monthly",
         "role": "doctor",
         "name_fa": "اشتراک ماهانه پزشک",
         "price": 700_000,
         "billing_period_days": 30,
-        "usage_limit": None,  # unlimited report reviews
+        "usage_limit": None,
     },
-
-    # ---- organization ----
     {
         "code": "org_small_monthly",
         "role": "org_admin",
@@ -105,10 +82,8 @@ PLANS = [
 ]
 
 
-# سقف تعداد برنامه‌ی غذایی در هفته، حتی برای مشترکین (هفتگی یا ماهانه).
-# این عدد را کد سرویس (نه دیتابیس) هنگام تولید برنامه چک می‌کند؛ اینجا
-# فقط برای مستندسازی/رفرنس نگه‌داری می‌شود.
 DIET_PLAN_WEEKLY_CAP_FOR_SUBSCRIBERS = 4
+WORKOUT_PLAN_WEEKLY_CAP_FOR_SUBSCRIBERS = 4
 
 
 def upsert_service_pricing(db):
@@ -161,7 +136,7 @@ def upsert_plans(db):
 
 
 def main():
-    init_db()  # ensures new tables (ServicePricing, Plan, ...) exist
+    init_db()
 
     db = SessionLocal()
     try:

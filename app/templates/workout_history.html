@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}تاریخچه برنامه‌های ورزشی | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="cl-profile-section">
+    <div class="container">
+
+        <div class="cl-profile-header">
+            <div class="cl-profile-avatar">
+                {{ (user.display_name or user.nicename or "?")[0] }}
+            </div>
+            <div>
+                <h1>تاریخچه برنامه‌های ورزشی</h1>
+                <p>{{ records|length }} برنامه ثبت‌شده</p>
+            </div>
+        </div>
+
+        {% if records|length == 0 %}
+
+        <div class="cl-history-empty">
+            <p>هنوز هیچ برنامه ورزشی تولید نکرده‌اید.</p>
+            <a href="/workout" class="btn btn-solid">تولید اولین برنامه ورزشی</a>
+        </div>
+
+        {% else %}
+
+        <div class="cl-history-list">
+            {% for record in records %}
+            <div class="cl-history-item">
+                <a href="/workout/history/{{ record.id }}" class="cl-history-item-main" style="flex:1; min-width:0;">
+                    <span class="cl-history-badge">
+                        {% if record.family_member %}{{ record.family_member.name }}{% else %}خودم{% endif %}
+                    </span>
+                    <span class="cl-history-filename">
+                        {{ record.goal or "برنامه ورزشی" }} — {{ record.days_per_week or '?' }} روز در هفته
+                    </span>
+                </a>
+
+                <div style="display:flex; align-items:center; gap:12px; flex-shrink:0;">
+                    <span class="cl-history-date">{{ record.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
+                    <a href="/workout/pdf/{{ record.id }}" target="_blank" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px; gap:6px;" title="دانلود PDF">
+                        <span class="material-symbols-outlined" style="font-size:16px;">picture_as_pdf</span>
+                        PDF
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% endif %}
+
+        <div class="result-actions">
+            <a href="/workout" class="btn btn-solid">تولید برنامه ورزشی جدید</a>
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

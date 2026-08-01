@@ -1,12 +1,5 @@
 """
 app/services/billing_service.py
-
-Core billing logic: service pricing lookup, subscription status
-checks, weekly usage caps, and organization quota tracking.
-
-نکته: کاربران با نقش platform_admin از تمام سرویس‌های پولی به‌صورت
-رایگان و نامحدود استفاده می‌کنند (برای تست و نظارت کامل روی سیستم،
-بدون نیاز به درگاه پرداخت فعال).
 """
 
 from datetime import datetime, timedelta
@@ -18,6 +11,7 @@ from app.models import (
     Plan,
     Subscription,
     DietPlanRecord,
+    WorkoutPlanRecord,
     OrganizationMember,
     User,
     SUBSCRIPTION_ACTIVE,
@@ -26,6 +20,7 @@ from app.models import (
 
 
 DIET_PLAN_WEEKLY_CAP_FOR_SUBSCRIBERS = 4
+WORKOUT_PLAN_WEEKLY_CAP_FOR_SUBSCRIBERS = 4
 
 PATIENT_SUBSCRIPTION_CODES = ("patient_weekly", "patient_monthly")
 DOCTOR_SUBSCRIPTION_CODES = ("doctor_monthly",)
@@ -36,18 +31,10 @@ class BillingError(Exception):
     pass
 
 
-# ==========================
-# Platform-admin bypass
-# ==========================
-
 def _is_platform_admin(db: Session, user_id: int) -> bool:
     user = db.query(User).filter(User.id == user_id).first()
     return bool(user and user.role == ROLE_PLATFORM_ADMIN)
 
-
-# ==========================
-# Pricing lookups
-# ==========================
 
 def get_service_price(db: Session, service_key: str) -> int:
     pricing = db.query(ServicePricing).filter(ServicePricing.service_key == service_key).first()
@@ -74,10 +61,6 @@ def get_doctor_review_pricing(db: Session) -> dict:
 def get_plan_by_code(db: Session, code: str) -> Plan | None:
     return db.query(Plan).filter(Plan.code == code, Plan.is_active.is_(True)).first()
 
-
-# ==========================
-# Subscription status
-# ==========================
 
 def _expire_stale_subscriptions(db: Session, user_id: int):
     now = datetime.utcnow()
@@ -152,26 +135,11 @@ def create_subscription(db: Session, user_id: int, plan: Plan) -> Subscription:
     return subscription
 
 
-# ==========================
-# Patient: exam analysis access (شخصی یا از طریق سازمان)
-# ==========================
-
 def patient_can_use_free(db: Session, user_id: int) -> bool:
     return patient_has_active_subscription(db, user_id) is not None
 
 
 def check_exam_access(db: Session, user_id: int, exam_type: str) -> dict:
-    """
-    خروجی:
-    {
-        "free": bool,
-        "requires_payment": bool,
-        "price": int | None,
-        "reason": str,
-        "org_covered": bool,
-        "org_user_id": int | None,
-    }
-    """
 
     if _is_platform_admin(db, user_id):
         return {
@@ -216,10 +184,6 @@ def check_visit_prep_access(db: Session, user_id: int) -> dict:
     return {"free": False, "requires_payment": True, "price": price, "reason": "no_active_subscription"}
 
 
-# ==========================
-# Patient: diet plan access (سقف هفتگی جدا)
-# ==========================
-
 def _diet_plans_used_this_week(db: Session, user_id: int) -> int:
     week_ago = datetime.utcnow() - timedelta(days=7)
 
@@ -258,9 +222,43 @@ def check_diet_plan_access(db: Session, user_id: int) -> dict:
     return {"free": False, "requires_payment": True, "price": price, "reason": "no_active_subscription"}
 
 
-# ==========================
-# Organization quota
-# ==========================
+def _workout_plans_used_this_week(db: Session, user_id: int) -> int:
+    week_ago = datetime.utcnow() - timedelta(days=7)
+
+    return (
+        db.query(WorkoutPlanRecord)
+        .filter(
+            WorkoutPlanRecord.user_id == user_id,
+            WorkoutPlanRecord.created_at >= week_ago,
+        )
+        .count()
+    )
+
+
+def check_workout_plan_access(db: Session, user_id: int) -> dict:
+
+    if _is_platform_admin(db, user_id):
+        return {"free": True, "requires_payment": False, "price": None, "reason": "platform_admin_free_access"}
+
+    subscription = patient_has_active_subscription(db, user_id)
+
+    if subscription:
+        used = _workout_plans_used_this_week(db, user_id)
+
+        if used < WORKOUT_PLAN_WEEKLY_CAP_FOR_SUBSCRIBERS:
+            return {"free": True, "requires_payment": False, "price": None, "reason": "covered_by_subscription"}
+
+        price = get_service_price(db, "workout_plan")
+        return {
+            "free": False,
+            "requires_payment": True,
+            "price": price,
+            "reason": f"سقف {WORKOUT_PLAN_WEEKLY_CAP_FOR_SUBSCRIBERS} برنامه‌ی رایگان در هفته پر شده است.",
+        }
+
+    price = get_service_price(db, "workout_plan")
+    return {"free": False, "requires_payment": True, "price": price, "reason": "no_active_subscription"}
+
 
 def get_organization_for_member(db: Session, member_user_id: int) -> int | None:
     link = (
@@ -296,10 +294,6 @@ def increment_organization_usage(db: Session, org_user_id: int) -> None:
         subscription.usage_count += 1
         db.commit()
 
-
-# ==========================
-# Doctor review access
-# ==========================
 
 def patient_review_is_free(db: Session, patient_user_id: int) -> bool:
     return patient_has_active_subscription(db, patient_user_id) is not None

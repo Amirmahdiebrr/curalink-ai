@@ -1,9 +1,5 @@
 """
 app/services/family_service.py
-
-CRUD helpers for a user's family member profiles, used when
-uploading files or generating reports (diet, visit-prep) on behalf
-of someone other than the logged-in user themselves.
 """
 
 from sqlalchemy.orm import Session
@@ -35,6 +31,15 @@ def create_family_member(
     relation: str | None,
     age: int | None,
     gender: str | None,
+    height_cm: int | None = None,
+    weight_kg: float | None = None,
+    blood_type: str | None = None,
+    chronic_diseases: str | None = None,
+    allergies: str | None = None,
+    current_medications: str | None = None,
+    surgeries_history: str | None = None,
+    smoking_status: str | None = None,
+    activity_level: str | None = None,
 ) -> FamilyMember:
 
     member = FamilyMember(
@@ -43,9 +48,56 @@ def create_family_member(
         relation=relation,
         age=age,
         gender=gender,
+        height_cm=height_cm,
+        weight_kg=weight_kg,
+        blood_type=blood_type or None,
+        chronic_diseases=chronic_diseases,
+        allergies=allergies,
+        current_medications=current_medications,
+        surgeries_history=surgeries_history,
+        smoking_status=smoking_status or None,
+        activity_level=activity_level or None,
     )
 
     db.add(member)
+    db.commit()
+    db.refresh(member)
+
+    return member
+
+
+def update_family_member(
+    db: Session,
+    member: FamilyMember,
+    name: str,
+    relation: str | None,
+    age: int | None,
+    gender: str | None,
+    height_cm: int | None,
+    weight_kg: float | None,
+    blood_type: str | None,
+    chronic_diseases: str | None,
+    allergies: str | None,
+    current_medications: str | None,
+    surgeries_history: str | None,
+    smoking_status: str | None,
+    activity_level: str | None,
+) -> FamilyMember:
+
+    member.name = name
+    member.relation = relation
+    member.age = age
+    member.gender = gender
+    member.height_cm = height_cm
+    member.weight_kg = weight_kg
+    member.blood_type = blood_type or None
+    member.chronic_diseases = chronic_diseases
+    member.allergies = allergies
+    member.current_medications = current_medications
+    member.surgeries_history = surgeries_history
+    member.smoking_status = smoking_status or None
+    member.activity_level = activity_level or None
+
     db.commit()
     db.refresh(member)
 

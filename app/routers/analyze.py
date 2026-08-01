@@ -24,6 +24,7 @@ from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.limiter import limiter
 from app.core.constants import MAX_FILES_PER_REQUEST, MAX_TOTAL_UPLOAD_SIZE_MB
 from app.core.exam_types import EXAM_TYPE_LABELS, VALID_EXAM_TYPES
+from app.core.health_profile import person_health_fields
 from app.models import PURPOSE_EXAM_ANALYSIS
 from app.services.billing_service import check_exam_access, increment_organization_usage, BillingError
 from app.services.payment_service import start_service_payment, PaymentError
@@ -40,11 +41,6 @@ service = ReportService()
 
 
 def _encode_file_data(file_data: list[tuple[bytes, str]]) -> list[list[str]]:
-    """
-    بایت خام فایل‌ها را به base64 تبدیل می‌کند تا payload به‌صورت
-    JSON-safe باشد؛ چه برای job در حال اجرا، چه برای صف انتظار
-    پرداخت که در دیتابیس پرسیست می‌شود.
-    """
     return [[base64.b64encode(content).decode("ascii"), filename] for content, filename in file_data]
 
 
@@ -57,8 +53,7 @@ async def run_job(
     files: list[tuple[bytes, str]],
     exam_type: str,
     symptoms: str | None,
-    patient_age: int | None,
-    patient_gender: str | None,
+    health_profile_fields: dict | None,
     user_id: int | None,
     family_member_id: int | None,
 ):
@@ -73,8 +68,7 @@ async def run_job(
             files,
             exam_type=exam_type,
             symptoms=symptoms,
-            patient_age=patient_age,
-            patient_gender=patient_gender,
+            health_profile_fields=health_profile_fields,
             on_stage=on_stage,
         )
         update_job(job_id, status="done", stage="done", result=result)
@@ -109,15 +103,6 @@ async def run_job(
 
 
 async def start_background_job(payload: dict) -> str:
-    """
-    یک job جدید می‌سازد و پردازش را به‌صورت asyncio task شروع می‌کند.
-    هم از روت /analyze (مسیر رایگان) و هم از payment_service (بعد از
-    پرداخت موفق pay-per-use) صدا زده می‌شود.
-
-    payload["file_data"] همیشه لیستی از [base64_string, filename] است
-    (نه بایت خام)، چون ممکن است این payload از pending_action_store
-    (که در دیتابیس ذخیره می‌شود) بازخوانی شده باشد.
-    """
     job_id = create_job(payload.get("exam_type"), user_id=payload.get("user_id"))
 
     decoded_file_data = _decode_file_data(payload["file_data"])
@@ -127,8 +112,7 @@ async def start_background_job(payload: dict) -> str:
         decoded_file_data,
         payload.get("exam_type"),
         payload.get("symptoms"),
-        payload.get("patient_age"),
-        payload.get("patient_gender"),
+        payload.get("health_profile_fields"),
         payload.get("user_id"),
         payload.get("family_member_id"),
     ))
@@ -177,8 +161,7 @@ async def analyze(
         )
 
     user_id = current_user.id
-    patient_age = current_user.age
-    patient_gender = current_user.gender
+    person = current_user
 
     resolved_family_member_id = None
 
@@ -192,17 +175,17 @@ async def analyze(
             member = get_family_member_for_user(db, fm_id, user_id)
             if member:
                 resolved_family_member_id = member.id
-                patient_age = member.age
-                patient_gender = member.gender
+                person = member
             else:
                 logger.info(f"[Analyze] family_member_id={fm_id} not found for user_id={user_id}, ignoring")
+
+    health_profile_fields = person_health_fields(person)
 
     logger.info(f"[Analyze] exam_type received: {exam_type}")
     logger.info(f"[Analyze] file count received: {len(files)}")
     logger.info(f"[Analyze] symptoms provided: {bool(symptoms and symptoms.strip())}")
     logger.info(f"[Analyze] user_id: {user_id}")
     logger.info(f"[Analyze] family_member_id resolved: {resolved_family_member_id}")
-    logger.info(f"[Analyze] patient_age/gender used: {patient_age} / {patient_gender}")
 
     file_data = []
     total_size_mb = 0.0
@@ -232,8 +215,7 @@ async def analyze(
         "file_data": encoded_file_data,
         "exam_type": exam_type,
         "symptoms": symptoms,
-        "patient_age": patient_age,
-        "patient_gender": patient_gender,
+        "health_profile_fields": health_profile_fields,
         "user_id": user_id,
         "family_member_id": resolved_family_member_id,
     }
