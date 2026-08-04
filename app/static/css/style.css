@@ -4681,3 +4681,190 @@ pre{
 .cl-summary-grid > *, .cl-care-path > *, .cl-services-care-grid > *{
     min-width:0;
 }
+/* ============================================================
+   SPRINT A1 — CONSOLIDATION PATCH
+   ============================================================ */
+
+@media print{
+    .cl-ai-doctor{ display:none !important; }
+}
+
+.cl-header-icon-btn{
+    width:38px; height:38px;
+    border-radius:var(--radius-full);
+    border:1px solid var(--color-border);
+    background:var(--color-surface);
+    color:var(--color-secondary);
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:background var(--motion-canonical), color var(--motion-canonical),
+               box-shadow var(--motion-canonical), transform var(--motion-canonical);
+}
+.cl-header-icon-btn:hover{
+    background:var(--color-light-blue);
+    color:var(--color-primary);
+    box-shadow:var(--shadow-sm);
+    transform:translateY(-1px);
+}
+/* ============================================================
+   SPRINT A2 — JOURNEY, BOOKING, PROFILE, NOTIFICATIONS
+   ============================================================ */
+
+/* ---- 15.1 Profile tabs (reuses .cl-tabs from Phase 9) ---- */
+.cl-profile-tabs-wrap{ display:grid; grid-template-columns:220px 1fr; gap:var(--space-6); align-items:start; }
+.cl-profile-tabs-nav{ display:flex; flex-direction:column; gap:4px; position:sticky; top:100px; }
+.cl-profile-tab-link{
+    display:flex; align-items:center; gap:10px;
+    padding:11px 16px; border-radius:var(--radius-md);
+    font-size:13.5px; font-weight:700; color:var(--color-text-secondary);
+    cursor:pointer; border:none; background:transparent; text-align:right; width:100%;
+    transition:background var(--motion-canonical), color var(--motion-canonical);
+}
+.cl-profile-tab-link .material-symbols-outlined{ font-size:18px; }
+.cl-profile-tab-link:hover{ background:var(--color-light-blue); color:var(--color-primary); }
+.cl-profile-tab-link.is-active{ background:var(--gradient-primary); color:#fff; box-shadow:var(--shadow-sm); }
+.cl-profile-tab-link.is-danger{ color:var(--color-danger); }
+.cl-profile-tab-link.is-danger:hover{ background:var(--color-danger-bg); }
+
+@media(max-width:900px){
+    .cl-profile-tabs-wrap{ grid-template-columns:1fr; }
+    .cl-profile-tabs-nav{ flex-direction:row; overflow-x:auto; position:static; padding-bottom:4px; }
+    .cl-profile-tab-link{ width:auto; white-space:nowrap; }
+}
+
+
+/* ---- 15.2 Switch toggle (settings) ---- */
+.cl-switch-row{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 0; border-bottom:1px solid var(--color-border);
+}
+.cl-switch-row:last-child{ border-bottom:none; }
+.cl-switch-row strong{ display:block; font-size:13.5px; color:var(--color-secondary); }
+.cl-switch-row span{ font-size:12px; color:var(--color-text-secondary); }
+.cl-switch{
+    position:relative; width:44px; height:24px; flex-shrink:0;
+    border-radius:var(--radius-full); background:var(--color-border);
+    cursor:pointer; transition:background var(--motion-canonical); border:none;
+}
+.cl-switch::after{
+    content:""; position:absolute; top:2px; right:2px; width:20px; height:20px;
+    border-radius:50%; background:#fff; box-shadow:var(--shadow-sm);
+    transition:transform var(--motion-canonical);
+}
+.cl-switch.is-on{ background:var(--gradient-primary); }
+.cl-switch.is-on::after{ transform:translateX(-20px); }
+
+
+/* ---- 15.3 Care Plan ---- */
+.cl-care-plan-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:var(--space-4); }
+.cl-goal-card{
+    background:var(--color-surface); border:1px solid var(--color-border);
+    border-radius:var(--radius-lg); padding:var(--space-5);
+    display:flex; align-items:flex-start; gap:14px;
+}
+.cl-goal-check{
+    width:26px; height:26px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; margin-top:2px;
+    border:2px solid var(--color-border); color:transparent;
+}
+.cl-goal-card.is-done .cl-goal-check{ background:var(--color-success); border-color:var(--color-success); color:#fff; }
+.cl-goal-card.is-done strong{ text-decoration:line-through; color:var(--color-text-secondary); }
+.cl-goal-body strong{ display:block; font-size:14px; color:var(--color-secondary); margin-bottom:3px; }
+.cl-goal-body span{ font-size:12px; color:var(--color-text-secondary); }
+
+@media(max-width:700px){ .cl-care-plan-grid{ grid-template-columns:1fr; } }
+
+
+/* ---- 15.4 Home Healthcare service card extras (extends .cl-care-service-card) ---- */
+.cl-care-service-meta{ display:flex; gap:10px; margin-top:8px; flex-wrap:wrap; }
+.cl-care-service-meta span{
+    font-size:10.5px; color:var(--color-text-muted); display:flex; align-items:center; gap:4px;
+}
+.cl-care-service-meta .material-symbols-outlined{ font-size:14px; }
+.cl-care-service-book-btn{ margin-top:12px; width:100%; }
+
+
+/* ---- 15.5 Booking stepper (client-side, graceful placeholder) ---- */
+.cl-stepper{ display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--space-6); }
+.cl-stepper-step{ display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; text-align:center; }
+.cl-stepper-dot{
+    width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-mono); font-weight:800; font-size:13px;
+    background:var(--color-border); color:var(--color-text-secondary);
+    transition:background var(--motion-canonical), color var(--motion-canonical);
+}
+.cl-stepper-step.is-active .cl-stepper-dot{ background:var(--gradient-primary); color:#fff; }
+.cl-stepper-step.is-done .cl-stepper-dot{ background:var(--color-success); color:#fff; }
+.cl-stepper-step span.cl-stepper-label{ font-size:11px; color:var(--color-text-secondary); }
+.cl-stepper-line{ flex:1; height:2px; background:var(--color-border); margin-top:-22px; }
+
+.cl-booking-panel{ display:none; }
+.cl-booking-panel.is-active{ display:block; animation:cl-fade-in var(--duration-base) var(--ease-out); }
+
+.cl-booking-option{
+    display:flex; align-items:center; gap:12px; padding:14px 16px;
+    border:1.5px solid var(--color-border); border-radius:var(--radius-md);
+    cursor:pointer; margin-bottom:10px; transition:border-color var(--motion-canonical), background var(--motion-canonical);
+}
+.cl-booking-option:hover{ border-color:var(--color-accent); }
+.cl-booking-option.is-selected{ border-color:var(--color-primary); background:var(--color-light-blue); }
+.cl-booking-option-icon{
+    width:38px; height:38px; border-radius:var(--radius-sm); background:var(--color-light-blue);
+    color:var(--color-primary); display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+
+.cl-booking-footer{ display:flex; justify-content:space-between; gap:10px; margin-top:var(--space-6); }
+
+
+/* ---- 15.6 Booking dashboard widget ---- */
+.cl-booking-list{ display:flex; flex-direction:column; gap:10px; }
+.cl-booking-item{
+    display:flex; align-items:center; gap:14px;
+    background:var(--color-surface); border:1px solid var(--color-border);
+    border-radius:var(--radius-lg); padding:14px 18px;
+}
+.cl-booking-item-icon{
+    width:40px; height:40px; border-radius:var(--radius-sm); background:var(--color-light-blue);
+    color:var(--color-primary); display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+
+
+/* ---- 15.7 Notification Center drawer (extends .cl-drawer from Phase 9) ---- */
+.cl-notif-drawer-tabs{ display:flex; gap:6px; flex-wrap:wrap; margin-bottom:var(--space-5); }
+.cl-notif-group-title{ font-size:12px; font-weight:800; color:var(--color-text-muted); margin:18px 0 8px; }
+.cl-notif-group-title:first-child{ margin-top:0; }
+.cl-notif-drawer-item{
+    display:flex; align-items:flex-start; gap:12px; padding:12px 0;
+    border-bottom:1px solid var(--color-border); position:relative;
+}
+.cl-notif-drawer-item.is-unread::before{
+    content:""; position:absolute; right:-16px; top:16px; width:7px; height:7px;
+    border-radius:50%; background:var(--color-primary);
+}
+.cl-notif-badge-unread{
+    position:absolute; top:-4px; left:-4px; background:var(--color-danger); color:#fff;
+    font-size:10px; font-weight:800; min-width:16px; height:16px; border-radius:var(--radius-full);
+    display:flex; align-items:center; justify-content:center; padding:0 4px;
+}
+
+
+/* ---- 15.8 Education widget (reusable, graceful placeholder) ---- */
+.cl-edu-widget-card{
+    background:var(--color-surface); border:1px solid var(--color-border);
+    border-radius:var(--radius-lg); padding:var(--space-5);
+    display:flex; align-items:center; gap:14px;
+}
+.cl-edu-widget-icon{
+    width:44px; height:44px; border-radius:var(--radius-sm); background:var(--color-light-blue);
+    color:var(--color-primary); display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+
+
+/* ---- 15.9 Global search drawer ---- */
+.cl-search-recent-tag{
+    display:inline-flex; align-items:center; gap:6px; background:var(--color-light-blue);
+    color:var(--color-secondary); font-size:12px; font-weight:600; padding:6px 12px;
+    border-radius:var(--radius-full); margin:4px 4px 0 0; cursor:pointer;
+}

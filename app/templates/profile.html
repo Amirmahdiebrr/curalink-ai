@@ -11,9 +11,7 @@
             {% if user.avatar_path %}
             <img src="{{ user.avatar_path }}" alt="عکس پروفایل" class="cl-profile-avatar" style="object-fit:cover;">
             {% else %}
-            <div class="cl-profile-avatar">
-                {{ (user.display_name or "?")[0] }}
-            </div>
+            <div class="cl-profile-avatar">{{ (user.display_name or "?")[0] }}</div>
             {% endif %}
             <div>
                 <h1>{{ user.display_name }}</h1>
@@ -21,224 +19,291 @@
             </div>
         </div>
 
-        {% if error %}
-        <div class="cl-auth-alert cl-auth-alert-error">{{ error }}</div>
-        {% endif %}
+        {% if error %}<div class="cl-auth-alert cl-auth-alert-error">{{ error }}</div>{% endif %}
+        {% if saved %}<div class="cl-auth-alert cl-auth-alert-success">تغییرات با موفقیت ذخیره شد.</div>{% endif %}
 
-        {% if saved %}
-        <div class="cl-auth-alert cl-auth-alert-success">تغییرات با موفقیت ذخیره شد.</div>
-        {% endif %}
+        <div class="cl-profile-tabs-wrap">
 
-        <div class="cl-profile-grid">
+            <nav class="cl-profile-tabs-nav">
+                <button type="button" class="cl-profile-tab-link is-active" data-tab="personal"><span class="material-symbols-outlined">badge</span> اطلاعات شخصی</button>
+                <button type="button" class="cl-profile-tab-link" data-tab="health"><span class="material-symbols-outlined">monitor_heart</span> نمای سلامت</button>
+                <button type="button" class="cl-profile-tab-link" data-tab="preferences"><span class="material-symbols-outlined">tune</span> ترجیحات و اعلان‌ها</button>
+                <button type="button" class="cl-profile-tab-link" data-tab="security"><span class="material-symbols-outlined">lock</span> امنیت حساب</button>
+                <button type="button" class="cl-profile-tab-link is-danger" data-tab="danger"><span class="material-symbols-outlined">warning</span> حذف حساب</button>
+            </nav>
 
-            <div class="cl-profile-card">
+            <div class="cl-profile-tabs-content">
 
-                <h3 class="cl-profile-card-title">اطلاعات تکمیلی و سلامت</h3>
-                <p class="cl-profile-card-sub">این اطلاعات صرفاً برای تحلیل دقیق‌تر آزمایشات، برنامه غذایی و برنامه ورزشی شما استفاده می‌شود.</p>
+                <!-- ===== Personal Information ===== -->
+                <div class="cl-tab-panel is-active" data-panel="personal">
 
-                <form method="post" action="/profile" class="cl-auth-fields">
+                    <div class="cl-profile-grid">
 
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <div class="cl-profile-card">
+                            <h3 class="cl-profile-card-title">اطلاعات شخصی</h3>
+                            <p class="cl-profile-card-sub">این اطلاعات صرفاً برای تحلیل دقیق‌تر آزمایشات، برنامه غذایی و برنامه ورزشی شما استفاده می‌شود.</p>
 
-                    <div class="cl-field">
-                        <label for="display_name">نام و نام خانوادگی</label>
-                        <input type="text" id="display_name" name="display_name" value="{{ user.display_name or '' }}">
-                    </div>
+                            <form method="post" action="/profile" class="cl-auth-fields">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
-                    <div class="cl-field-row">
-                        <div class="cl-field">
-                            <label for="age">سن</label>
-                            <input type="number" id="age" name="age" min="0" max="120" value="{{ user.age or '' }}" placeholder="مثلاً ۳۰">
+                                <div class="cl-field">
+                                    <label for="display_name">نام و نام خانوادگی</label>
+                                    <input type="text" id="display_name" name="display_name" value="{{ user.display_name or '' }}">
+                                </div>
+
+                                <div class="cl-field-row">
+                                    <div class="cl-field">
+                                        <label for="age">سن</label>
+                                        <input type="number" id="age" name="age" min="0" max="120" value="{{ user.age or '' }}">
+                                    </div>
+                                    <div class="cl-field">
+                                        <label for="gender">جنسیت</label>
+                                        <select id="gender" name="gender">
+                                            <option value="" {% if not user.gender %}selected{% endif %}>— انتخاب کنید —</option>
+                                            <option value="female" {% if user.gender == 'female' %}selected{% endif %}>زن</option>
+                                            <option value="male" {% if user.gender == 'male' %}selected{% endif %}>مرد</option>
+                                            <option value="other" {% if user.gender == 'other' %}selected{% endif %}>سایر</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="cl-field">
+                                    <label for="phone">شماره موبایل</label>
+                                    <input type="text" id="phone" name="phone" value="{{ user.phone or '' }}">
+                                    {% if not user.phone_verified %}<p class="cl-field-hint">⚠️ این شماره هنوز تایید نشده است.</p>{% endif %}
+                                </div>
+
+                                <div class="cl-field">
+                                    <label for="national_id">کد ملی</label>
+                                    <input type="text" id="national_id" name="national_id" value="{{ national_id_display or '' }}">
+                                </div>
+
+                                <div class="cl-field">
+                                    <label for="address">آدرس</label>
+                                    <input type="text" id="address" name="address" value="{{ user.address or '' }}">
+                                </div>
+
+                                <button type="submit" class="cl-auth-submit">ذخیره تغییرات</button>
+                            </form>
                         </div>
-                        <div class="cl-field">
-                            <label for="gender">جنسیت</label>
-                            <select id="gender" name="gender">
-                                <option value="" {% if not user.gender %}selected{% endif %}>— انتخاب کنید —</option>
-                                <option value="female" {% if user.gender == 'female' %}selected{% endif %}>زن</option>
-                                <option value="male" {% if user.gender == 'male' %}selected{% endif %}>مرد</option>
-                                <option value="other" {% if user.gender == 'other' %}selected{% endif %}>سایر</option>
-                            </select>
+
+                        <div class="cl-profile-card">
+                            <h3 class="cl-profile-card-title">عکس پروفایل</h3>
+                            <form method="post" action="/profile/avatar" enctype="multipart/form-data" class="cl-auth-fields">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <div class="cl-field"><input type="file" name="avatar" accept=".png,.jpg,.jpeg" required></div>
+                                <button type="submit" class="cl-auth-submit">آپلود عکس جدید</button>
+                            </form>
+
+                            <hr style="margin:24px 0; border:none; border-top:1px solid var(--color-border);">
+
+                            <h3 class="cl-profile-card-title">حساب کاربری</h3>
+                            <div class="cl-info-row">
+                                <span class="cl-info-label">ایمیل</span>
+                                <span class="cl-info-value">{{ user.email }}</span>
+                                <span class="cl-badge {% if user.email_verified %}cl-badge-success{% else %}cl-badge-warning{% endif %}">
+                                    {% if user.email_verified %}تایید‌شده{% else %}تایید‌نشده{% endif %}
+                                </span>
+                            </div>
+                            <div class="cl-info-row">
+                                <span class="cl-info-label">نقش کاربری</span>
+                                <span class="cl-info-value">
+                                    {% if user.role == 'doctor' %}پزشک{% elif user.role == 'org_admin' %}مدیر سازمان{% elif user.role == 'platform_admin' %}ادمین پلتفرم{% else %}بیمار{% endif %}
+                                </span>
+                            </div>
+
+                            <!-- ===== Emergency contact / preferred hospital+lab — placeholders (no backend fields exist yet) ===== -->
+                            <hr style="margin:24px 0; border:none; border-top:1px solid var(--color-border);">
+                            <h3 class="cl-profile-card-title">مخاطب اضطراری و مراکز درمانی ترجیحی</h3>
+                            <div class="cl-empty-state cl-empty-state-sm">
+                                <span class="material-symbols-outlined cl-empty-state-icon">local_hospital</span>
+                                <h3>به‌زودی</h3>
+                                <p>ثبت مخاطب اضطراری، بیمارستان و آزمایشگاه ترجیحی در نسخه‌های بعدی فعال می‌شود.</p>
+                            </div>
                         </div>
+
                     </div>
-
-                    <div class="cl-field-row">
-                        <div class="cl-field">
-                            <label for="height_cm">قد (سانتی‌متر)</label>
-                            <input type="number" id="height_cm" name="height_cm" min="0" max="260" value="{{ user.height_cm or '' }}">
-                        </div>
-                        <div class="cl-field">
-                            <label for="weight_kg">وزن (کیلوگرم)</label>
-                            <input type="number" step="0.1" id="weight_kg" name="weight_kg" min="0" max="400" value="{{ user.weight_kg or '' }}">
-                        </div>
-                    </div>
-
-                    <div class="cl-field-row">
-                        <div class="cl-field">
-                            <label for="blood_type">گروه خونی</label>
-                            <select id="blood_type" name="blood_type">
-                                <option value="">— نامشخص —</option>
-                                {% for bt in blood_type_options %}
-                                <option value="{{ bt }}" {% if user.blood_type == bt %}selected{% endif %}>{{ bt }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="cl-field">
-                            <label for="smoking_status">وضعیت سیگار</label>
-                            <select id="smoking_status" name="smoking_status">
-                                <option value="">— نامشخص —</option>
-                                <option value="none" {% if user.smoking_status == 'none' %}selected{% endif %}>غیرسیگاری</option>
-                                <option value="occasional" {% if user.smoking_status == 'occasional' %}selected{% endif %}>گاه‌به‌گاه</option>
-                                <option value="regular" {% if user.smoking_status == 'regular' %}selected{% endif %}>سیگاری منظم</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="cl-field">
-                        <label for="activity_level">سطح فعالیت بدنی</label>
-                        <select id="activity_level" name="activity_level">
-                            <option value="">— نامشخص —</option>
-                            <option value="sedentary" {% if user.activity_level == 'sedentary' %}selected{% endif %}>کم‌تحرک</option>
-                            <option value="light" {% if user.activity_level == 'light' %}selected{% endif %}>فعالیت سبک</option>
-                            <option value="moderate" {% if user.activity_level == 'moderate' %}selected{% endif %}>فعالیت متوسط</option>
-                            <option value="active" {% if user.activity_level == 'active' %}selected{% endif %}>فعال</option>
-                            <option value="very_active" {% if user.activity_level == 'very_active' %}selected{% endif %}>بسیار فعال / ورزشکار</option>
-                        </select>
-                    </div>
-
-                    <div class="cl-field">
-                        <label for="chronic_diseases">سابقه بیماری‌های مزمن</label>
-                        <textarea id="chronic_diseases" name="chronic_diseases" rows="2" maxlength="800">{{ user.chronic_diseases or '' }}</textarea>
-                    </div>
-
-                    <div class="cl-field">
-                        <label for="allergies">حساسیت‌ها</label>
-                        <textarea id="allergies" name="allergies" rows="2" maxlength="500">{{ user.allergies or '' }}</textarea>
-                    </div>
-
-                    <div class="cl-field">
-                        <label for="current_medications">داروهای مصرفی فعلی</label>
-                        <textarea id="current_medications" name="current_medications" rows="2" maxlength="500">{{ user.current_medications or '' }}</textarea>
-                    </div>
-
-                    <div class="cl-field">
-                        <label for="surgeries_history">سابقه جراحی</label>
-                        <textarea id="surgeries_history" name="surgeries_history" rows="2" maxlength="500">{{ user.surgeries_history or '' }}</textarea>
-                    </div>
-
-                    <div class="cl-field">
-                        <label for="phone">شماره موبایل (برای یادآوری پیامکی)</label>
-                        <input type="text" id="phone" name="phone" value="{{ user.phone or '' }}" placeholder="مثلاً: 09121234567">
-                        {% if not user.phone_verified %}
-                        <p class="cl-field-hint">⚠️ این شماره هنوز تایید نشده است.</p>
-                        {% endif %}
-                    </div>
-
-                    <div class="cl-field">
-                        <label for="national_id">کد ملی</label>
-                        <input type="text" id="national_id" name="national_id" value="{{ national_id_display or '' }}" placeholder="کد ملی خود را وارد کنید">
-                    </div>
-
-                    <div class="cl-field">
-                        <label for="address">آدرس</label>
-                        <input type="text" id="address" name="address" value="{{ user.address or '' }}" placeholder="آدرس محل سکونت">
-                    </div>
-
-                    <button type="submit" class="cl-auth-submit">ذخیره تغییرات</button>
-
-                </form>
-
-            </div>
-
-            <div class="cl-profile-card cl-profile-card-info">
-
-                <h3 class="cl-profile-card-title">عکس پروفایل</h3>
-
-                <form method="post" action="/profile/avatar" enctype="multipart/form-data" class="cl-auth-fields">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <div class="cl-field">
-                        <input type="file" name="avatar" accept=".png,.jpg,.jpeg" required>
-                    </div>
-                    <button type="submit" class="cl-auth-submit">آپلود عکس جدید</button>
-                </form>
-
-                <hr style="margin:24px 0; border:none; border-top:1px solid var(--line);">
-
-                <h3 class="cl-profile-card-title">حساب کاربری</h3>
-
-                <div class="cl-info-row">
-                    <span class="cl-info-label">ایمیل</span>
-                    <span class="cl-info-value">{{ user.email }}</span>
-                    <span class="cl-info-value">{% if user.email_verified %}✅ تایید‌شده{% else %}⚠️ تایید‌نشده{% endif %}</span>
                 </div>
 
-                <div class="cl-info-row">
-                    <span class="cl-info-label">نقش کاربری</span>
-                    <span class="cl-info-value">
-                        {% if user.role == 'doctor' %}پزشک
-                        {% elif user.role == 'org_admin' %}مدیر سازمان
-                        {% elif user.role == 'platform_admin' %}ادمین پلتفرم
-                        {% else %}بیمار{% endif %}
-                    </span>
+                <!-- ===== Health Overview ===== -->
+                <div class="cl-tab-panel" data-panel="health">
+
+                    <div class="cl-profile-card" style="margin-bottom:24px;">
+                        <h3 class="cl-profile-card-title">پروفایل سلامت</h3>
+                        <p class="cl-profile-card-sub">این اطلاعات مستقیماً در تحلیل آزمایش، برنامه غذایی و برنامه ورزشی شما استفاده می‌شود.</p>
+
+                        <form method="post" action="/profile" class="cl-auth-fields">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <input type="hidden" name="display_name" value="{{ user.display_name or '' }}">
+                            <input type="hidden" name="age" value="{{ user.age or '' }}">
+                            <input type="hidden" name="gender" value="{{ user.gender or '' }}">
+                            <input type="hidden" name="phone" value="{{ user.phone or '' }}">
+                            <input type="hidden" name="national_id" value="{{ national_id_display or '' }}">
+                            <input type="hidden" name="address" value="{{ user.address or '' }}">
+
+                            <div class="cl-field-row">
+                                <div class="cl-field">
+                                    <label for="height_cm">قد (سانتی‌متر)</label>
+                                    <input type="number" id="height_cm" name="height_cm" min="0" max="260" value="{{ user.height_cm or '' }}">
+                                </div>
+                                <div class="cl-field">
+                                    <label for="weight_kg">وزن (کیلوگرم)</label>
+                                    <input type="number" step="0.1" id="weight_kg" name="weight_kg" min="0" max="400" value="{{ user.weight_kg or '' }}">
+                                </div>
+                            </div>
+
+                            <div class="cl-field-row">
+                                <div class="cl-field">
+                                    <label for="blood_type">گروه خونی</label>
+                                    <select id="blood_type" name="blood_type">
+                                        <option value="">— نامشخص —</option>
+                                        {% for bt in blood_type_options %}
+                                        <option value="{{ bt }}" {% if user.blood_type == bt %}selected{% endif %}>{{ bt }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="cl-field">
+                                    <label for="smoking_status">وضعیت سیگار</label>
+                                    <select id="smoking_status" name="smoking_status">
+                                        <option value="">— نامشخص —</option>
+                                        <option value="none" {% if user.smoking_status == 'none' %}selected{% endif %}>غیرسیگاری</option>
+                                        <option value="occasional" {% if user.smoking_status == 'occasional' %}selected{% endif %}>گاه‌به‌گاه</option>
+                                        <option value="regular" {% if user.smoking_status == 'regular' %}selected{% endif %}>سیگاری منظم</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="cl-field">
+                                <label for="activity_level">سطح فعالیت بدنی</label>
+                                <select id="activity_level" name="activity_level">
+                                    <option value="">— نامشخص —</option>
+                                    <option value="sedentary" {% if user.activity_level == 'sedentary' %}selected{% endif %}>کم‌تحرک</option>
+                                    <option value="light" {% if user.activity_level == 'light' %}selected{% endif %}>فعالیت سبک</option>
+                                    <option value="moderate" {% if user.activity_level == 'moderate' %}selected{% endif %}>فعالیت متوسط</option>
+                                    <option value="active" {% if user.activity_level == 'active' %}selected{% endif %}>فعال</option>
+                                    <option value="very_active" {% if user.activity_level == 'very_active' %}selected{% endif %}>بسیار فعال / ورزشکار</option>
+                                </select>
+                            </div>
+
+                            <div class="cl-field">
+                                <label for="chronic_diseases">سابقه بیماری‌های مزمن</label>
+                                <textarea id="chronic_diseases" name="chronic_diseases" rows="2" maxlength="800">{{ user.chronic_diseases or '' }}</textarea>
+                            </div>
+                            <div class="cl-field">
+                                <label for="allergies">حساسیت‌ها</label>
+                                <textarea id="allergies" name="allergies" rows="2" maxlength="500">{{ user.allergies or '' }}</textarea>
+                            </div>
+                            <div class="cl-field">
+                                <label for="current_medications">داروهای مصرفی فعلی</label>
+                                <textarea id="current_medications" name="current_medications" rows="2" maxlength="500">{{ user.current_medications or '' }}</textarea>
+                            </div>
+                            <div class="cl-field">
+                                <label for="surgeries_history">سابقه جراحی</label>
+                                <textarea id="surgeries_history" name="surgeries_history" rows="2" maxlength="500">{{ user.surgeries_history or '' }}</textarea>
+                            </div>
+
+                            <button type="submit" class="cl-auth-submit">ذخیره پروفایل سلامت</button>
+                        </form>
+                    </div>
+
+                    {% include "_journey_widget.html" %}
+
+                </div>
+
+                <!-- ===== Preferences & Notifications (UI-only; not persisted server-side) ===== -->
+                <div class="cl-tab-panel" data-panel="preferences">
+                    <div class="cl-profile-card">
+                        <h3 class="cl-profile-card-title">اعلان‌ها</h3>
+                        <p class="cl-profile-card-sub">این تنظیمات فعلاً فقط نمایشی است و در نسخه‌ی بعدی به سیستم اعلان‌رسانی متصل می‌شود.</p>
+
+                        <div class="cl-switch-row">
+                            <div><strong>یادآوری تکرار آزمایش</strong><span>هنگام فرارسیدن موعد آزمایش، به شما اطلاع می‌دهیم.</span></div>
+                            <button type="button" class="cl-switch is-on" data-switch></button>
+                        </div>
+                        <div class="cl-switch-row">
+                            <div><strong>اعلان نتیجه‌ی بررسی پزشک</strong><span>وقتی پزشک نظر خود را ثبت کند.</span></div>
+                            <button type="button" class="cl-switch is-on" data-switch></button>
+                        </div>
+                        <div class="cl-switch-row">
+                            <div><strong>ایمیل خبرنامه سلامت</strong><span>نکات آموزشی دوره‌ای.</span></div>
+                            <button type="button" class="cl-switch" data-switch></button>
+                        </div>
+                    </div>
+
+                    <div class="cl-profile-card" style="margin-top:20px;">
+                        <h3 class="cl-profile-card-title">ظاهر و زبان</h3>
+                        <div class="cl-switch-row">
+                            <div><strong>زبان رابط کاربری</strong><span>فعلاً فقط فارسی در دسترس است.</span></div>
+                            <span class="cl-badge cl-badge-neutral">فارسی</span>
+                        </div>
+                        <div class="cl-switch-row">
+                            <div><strong>حالت تیره</strong><span>در نسخه‌ی بعدی اضافه می‌شود.</span></div>
+                            <span class="cl-badge cl-badge-neutral">به‌زودی</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== Security ===== -->
+                <div class="cl-tab-panel" data-panel="security">
+                    <div class="cl-profile-grid">
+                        <div class="cl-profile-card">
+                            <h3 class="cl-profile-card-title">تغییر ایمیل</h3>
+                            <form method="post" action="/profile/change-email" class="cl-auth-fields">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <div class="cl-field"><label for="new_email">ایمیل جدید</label><input type="email" id="new_email" name="new_email" required></div>
+                                <div class="cl-field"><label for="current_password_email">رمز عبور فعلی</label><input type="password" id="current_password_email" name="current_password" required></div>
+                                <button type="submit" class="cl-auth-submit">تغییر ایمیل</button>
+                            </form>
+                        </div>
+
+                        <div class="cl-profile-card">
+                            <h3 class="cl-profile-card-title">تغییر رمز عبور</h3>
+                            <form method="post" action="/profile/change-password" class="cl-auth-fields">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <div class="cl-field"><label for="current_password_pw">رمز عبور فعلی</label><input type="password" id="current_password_pw" name="current_password" required></div>
+                                <div class="cl-field"><label for="new_password">رمز عبور جدید</label><input type="password" id="new_password" name="new_password" required></div>
+                                <div class="cl-field"><label for="new_password_confirm">تکرار رمز عبور جدید</label><input type="password" id="new_password_confirm" name="new_password_confirm" required></div>
+                                <button type="submit" class="cl-auth-submit">تغییر رمز عبور</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== Danger zone ===== -->
+                <div class="cl-tab-panel" data-panel="danger">
+                    <div class="cl-profile-card" style="border:1px solid var(--color-danger-bg);">
+                        <h3 class="cl-profile-card-title" style="color:var(--color-danger);">حذف حساب کاربری</h3>
+                        <p class="cl-profile-card-sub">این عملیات غیرقابل بازگشت است و تمام اطلاعات شما حذف می‌شود.</p>
+                        <form method="post" action="/profile/delete" class="cl-auth-fields" onsubmit="return confirm('آیا مطمئن هستید؟ این عملیات غیرقابل بازگشت است.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <div class="cl-field"><label for="current_password_delete">رمز عبور برای تایید</label><input type="password" id="current_password_delete" name="current_password" required></div>
+                            <button type="submit" class="cl-btn cl-btn-danger">حذف حساب کاربری من</button>
+                        </form>
+                    </div>
                 </div>
 
             </div>
-
-        </div>
-
-        <div class="cl-profile-grid" style="margin-top:24px;">
-
-            <div class="cl-profile-card">
-                <h3 class="cl-profile-card-title">تغییر ایمیل</h3>
-                <form method="post" action="/profile/change-email" class="cl-auth-fields">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <div class="cl-field">
-                        <label for="new_email">ایمیل جدید</label>
-                        <input type="email" id="new_email" name="new_email" required>
-                    </div>
-                    <div class="cl-field">
-                        <label for="current_password_email">رمز عبور فعلی</label>
-                        <input type="password" id="current_password_email" name="current_password" required>
-                    </div>
-                    <button type="submit" class="cl-auth-submit">تغییر ایمیل</button>
-                </form>
-            </div>
-
-            <div class="cl-profile-card">
-                <h3 class="cl-profile-card-title">تغییر رمز عبور</h3>
-                <form method="post" action="/profile/change-password" class="cl-auth-fields">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <div class="cl-field">
-                        <label for="current_password_pw">رمز عبور فعلی</label>
-                        <input type="password" id="current_password_pw" name="current_password" required>
-                    </div>
-                    <div class="cl-field">
-                        <label for="new_password">رمز عبور جدید</label>
-                        <input type="password" id="new_password" name="new_password" required>
-                    </div>
-                    <div class="cl-field">
-                        <label for="new_password_confirm">تکرار رمز عبور جدید</label>
-                        <input type="password" id="new_password_confirm" name="new_password_confirm" required>
-                    </div>
-                    <button type="submit" class="cl-auth-submit">تغییر رمز عبور</button>
-                </form>
-            </div>
-
-        </div>
-
-        <div class="cl-profile-card" style="margin-top:24px; border:1px solid #FEECEC;">
-            <h3 class="cl-profile-card-title" style="color:var(--warn);">حذف حساب کاربری</h3>
-            <p class="cl-profile-card-sub">این عملیات غیرقابل بازگشت است و تمام اطلاعات شما حذف می‌شود.</p>
-            <form method="post" action="/profile/delete" class="cl-auth-fields" onsubmit="return confirm('آیا مطمئن هستید؟ این عملیات غیرقابل بازگشت است.');">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <div class="cl-field">
-                    <label for="current_password_delete">رمز عبور برای تایید</label>
-                    <input type="password" id="current_password_delete" name="current_password" required>
-                </div>
-                <button type="submit" class="btn btn-outline" style="border-color:var(--warn); color:var(--warn);">حذف حساب کاربری من</button>
-            </form>
         </div>
 
     </div>
 </section>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+    document.querySelectorAll('.cl-profile-tab-link').forEach(function(btn){
+        btn.addEventListener('click', function(){
+            document.querySelectorAll('.cl-profile-tab-link').forEach(function(b){ b.classList.remove('is-active'); });
+            document.querySelectorAll('.cl-tab-panel').forEach(function(p){ p.classList.remove('is-active'); });
+            btn.classList.add('is-active');
+            document.querySelector('.cl-tab-panel[data-panel="' + btn.getAttribute('data-tab') + '"]').classList.add('is-active');
+        });
+    });
+    document.querySelectorAll('[data-switch]').forEach(function(sw){
+        sw.addEventListener('click', function(){ sw.classList.toggle('is-on'); });
+    });
+})();
+</script>
 {% endblock %}

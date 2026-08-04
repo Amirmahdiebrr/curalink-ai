@@ -25,6 +25,8 @@
 
 <body>
 
+    <a href="#main-content" class="cl-skip-link">رفتن به محتوای اصلی</a>
+
     <div class="cl-dna-bg" aria-hidden="true">
         <svg viewBox="0 0 120 1260" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
             <path class="cl-dna-strand cl-dna-strand-a" d="M60,0 C120,60 0,120 60,180 C120,240 0,300 60,360 C120,420 0,480 60,540 C120,600 0,660 60,720 C120,780 0,840 60,900 C120,960 0,1020 60,1080 C120,1140 0,1200 60,1260"/>
@@ -183,10 +185,10 @@
             </nav>
 
             <div class="cl-header-actions" aria-hidden="false">
-                <button type="button" class="cl-header-icon-btn" aria-label="جستجو" title="جستجو (به‌زودی)" aria-disabled="true">
+                <button type="button" class="cl-icon-btn" aria-label="جستجو" title="جستجو (به‌زودی)" aria-disabled="true">
                     <span class="material-symbols-outlined">search</span>
                 </button>
-                <button type="button" class="cl-header-icon-btn cl-header-lang-btn" aria-label="تغییر زبان" title="تغییر زبان (به‌زودی)" aria-disabled="true">
+                <button type="button" class="cl-icon-btn cl-header-lang-btn" aria-label="تغییر زبان" title="تغییر زبان (به‌زودی)" aria-disabled="true">
                     FA
                 </button>
             </div>
@@ -208,7 +210,7 @@
         </div>
     </header>
 
-    <main>
+    <main id="main-content">
         {% block content %}{% endblock %}
     </main>
 
@@ -330,16 +332,12 @@
             });
         });
 
-        /* Phase 2: scroll-reactive header glass state (visual only) */
         const navbar = document.getElementById('cl-navbar');
         if (navbar) {
             let ticking = false;
             function updateScrollState(){
-                if (window.scrollY > 12) {
-                    navbar.classList.add('is-scrolled');
-                } else {
-                    navbar.classList.remove('is-scrolled');
-                }
+                if (window.scrollY > 12) navbar.classList.add('is-scrolled');
+                else navbar.classList.remove('is-scrolled');
                 ticking = false;
             }
             window.addEventListener('scroll', function(){

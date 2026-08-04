@@ -2,6 +2,15 @@
 
 {% block title %}CuraLink AI | تحلیل هوشمند آزمایشات و همراه سلامت شما{% endblock %}
 
+{% set ns3 = namespace(chart_test=None) %}
+{% if user %}
+{% for tr in user.test_results %}
+    {% if tr.value_numeric is not none and ns3.chart_test is none %}
+        {% set ns3.chart_test = tr.test_name %}
+    {% endif %}
+{% endfor %}
+{% endif %}
+
 {% block content %}
 
 {% if user %}
@@ -44,13 +53,6 @@
 
 {% set recent_analyses = user.analyses[:5] %}
 {% set last_upload = user.analyses[0] if user.analyses else None %}
-
-{% set ns3 = namespace(chart_test=None) %}
-{% for tr in user.test_results %}
-    {% if tr.value_numeric is not none and ns3.chart_test is none %}
-        {% set ns3.chart_test = tr.test_name %}
-    {% endif %}
-{% endfor %}
 
 {% set timeline_pool = (user.analyses[:4] + user.diet_plans[:4] + user.workout_plans[:4] + user.visit_preps[:4]) %}
 {% set timeline_items = timeline_pool | sort(attribute='created_at', reverse=True) %}
@@ -358,6 +360,48 @@
                     <strong>نمونه‌گیری آزمایش در منزل</strong>
                     <span>این خدمت هنوز در دسترس نیست</span>
                 </div>
+            </div>
+        </div>
+<!-- ===== Care Plan ===== -->
+        <div class="cl-dash-section cl-reveal">
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">checklist</span> برنامه مراقبتی شما</h2>
+            <div class="cl-care-plan-grid">
+                <div class="cl-goal-card {% if not due_followups %}is-done{% endif %}">
+                    <span class="cl-goal-check"><span class="material-symbols-outlined" style="font-size:16px;">check</span></span>
+                    <div class="cl-goal-body"><strong>پیگیری آزمایش‌های دوره‌ای</strong><span>{% if due_followups %}موعد یک یا چند آزمایش فرا رسیده{% else %}همه‌چیز به‌روز است{% endif %}</span></div>
+                </div>
+                <div class="cl-goal-card {% if j_has_lifestyle %}is-done{% endif %}">
+                    <span class="cl-goal-check"><span class="material-symbols-outlined" style="font-size:16px;">check</span></span>
+                    <div class="cl-goal-body"><strong>برنامه غذایی و ورزشی</strong><span>{% if j_has_lifestyle %}تولید شده{% else %}هنوز ساخته نشده{% endif %}</span></div>
+                </div>
+                <div class="cl-goal-card">
+                    <span class="cl-goal-check"></span>
+                    <div class="cl-goal-body"><strong>هیدراتاسیون روزانه</strong><span>حداقل ۸ لیوان آب در روز</span></div>
+                </div>
+                <div class="cl-goal-card">
+                    <span class="cl-goal-check"></span>
+                    <div class="cl-goal-body"><strong>خواب کافی</strong><span>۷ تا ۸ ساعت خواب شبانه</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Booking dashboard widget (empty — no backend appointments exist) ===== -->
+        <div class="cl-dash-section cl-reveal">
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">calendar_month</span> نوبت‌های من</h2>
+            <div class="cl-empty-state cl-empty-state-sm">
+                <span class="material-symbols-outlined cl-empty-state-icon">event_busy</span>
+                <h3>نوبتی رزرو نکرده‌اید</h3>
+                <p>رزرو آنلاین نوبت پزشک و خدمات مراقبتی به‌زودی فعال می‌شود.</p>
+                <button type="button" class="cl-btn cl-btn-outline cl-btn-sm" data-open-booking>مشاهده‌ی پیش‌نمایش رزرو</button>
+            </div>
+        </div>
+
+        <!-- ===== Education widget ===== -->
+        <div class="cl-dash-section cl-reveal">
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">school</span> آموزش سلامت</h2>
+            <div class="cl-edu-widget-card">
+                <span class="cl-edu-widget-icon"><span class="material-symbols-outlined">auto_stories</span></span>
+                <div><strong>محتوای آموزشی به‌زودی</strong><br><span class="cl-text-caption">درس‌های شخصی‌سازی‌شده بر اساس نتایج آزمایش شما در نسخه‌ی بعدی اضافه می‌شود.</span></div>
             </div>
         </div>
 
