@@ -78,24 +78,80 @@
         </div>
         {% endif %}
 
-        <div class="cl-chat-box" id="diet-chat-box" data-csrf="{{ csrf_token }}">
+        <div class="cl-ai-doctor"
+             id="ai-doctor"
+             data-endpoint="/diet/chat"
+             data-payload-type="diet"
+             data-plan-store="diet-plan-raw-store"
+             data-csrf="{{ csrf_token }}">
 
-            <div class="cl-chat-header">
-                <span class="cl-chat-header-icon"><span class="material-symbols-outlined">forum</span></span>
-                <div>
-                    <strong>پرسش و پاسخ درباره‌ی این برنامه غذایی</strong>
-                    <small>سوالات مرتبط با همین برنامه را بپرسید</small>
+            <div class="cl-ai-doctor-main">
+
+                <div class="cl-ai-doctor-header">
+                    <div class="cl-ai-doctor-header-info">
+                        <span class="cl-ai-doctor-avatar"><span class="material-symbols-outlined">nutrition</span></span>
+                        <div>
+                            <strong>دستیار تغذیه CuraLink</strong>
+                            <small>پرسش و پاسخ درباره‌ی همین برنامه غذایی</small>
+                        </div>
+                    </div>
+                    <button type="button" class="cl-ai-context-toggle" aria-label="نمایش اطلاعات زمینه‌ای">
+                        <span class="material-symbols-outlined">info</span>
+                    </button>
                 </div>
+
+                <div class="cl-ai-doctor-messages" id="diet-chat-messages">
+                    <div class="cl-ai-welcome" id="diet-chat-empty">
+                        <div class="cl-ai-welcome-icon"><span class="material-symbols-outlined">nutrition</span></div>
+                        <h3>سوالی درباره‌ی برنامه غذایی دارید؟</h3>
+                        <p>می‌توانید درباره‌ی وعده‌ها، جایگزین‌ها یا دلیل توصیه‌ها بپرسید.</p>
+                        <div class="cl-ai-suggested-prompts">
+                            <button type="button" class="cl-prompt-chip" data-prompt="برنامه هفتگی را خلاصه کن">خلاصه‌ی برنامه هفتگی</button>
+                            <button type="button" class="cl-prompt-chip" data-prompt="آیا می‌توانم شام را حذف کنم؟">حذف یک وعده</button>
+                            <button type="button" class="cl-prompt-chip" data-prompt="جایگزین سالم برای میان‌وعده پیشنهاد بده">جایگزین میان‌وعده</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cl-ai-doctor-composer">
+                    <form>
+                        <input type="text" placeholder="مثلاً: آیا می‌توانم شام را حذف کنم؟" autocomplete="off">
+                        <button type="submit">ارسال</button>
+                    </form>
+                </div>
+
             </div>
 
-            <div class="cl-chat-messages" id="diet-chat-messages">
-                <div class="cl-chat-empty" id="diet-chat-empty">سوال خود را درباره‌ی این برنامه غذایی بپرسید...</div>
-            </div>
+            <aside class="cl-ai-doctor-context">
 
-            <form class="cl-chat-input-row" id="diet-chat-form">
-                <input type="text" id="diet-chat-input" class="cl-chat-input" placeholder="مثلاً: آیا می‌توانم شام را حذف کنم؟" autocomplete="off">
-                <button type="submit" class="cl-chat-send-btn">ارسال</button>
-            </form>
+                <button type="button" class="cl-ai-context-close" aria-label="بستن">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+
+                <div class="cl-context-card">
+                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">psychology_alt</span> آنچه دستیار می‌داند</h4>
+                    <div class="cl-context-fact-row">
+                        <span class="cl-context-fact-label">فرد</span>
+                        <span class="cl-context-fact-value">{% if selected_family_member_id %}عضو خانواده{% else %}خودم{% endif %}</span>
+                    </div>
+                    <div class="cl-context-fact-row">
+                        <span class="cl-context-fact-label">شرایط خاص ثبت‌شده</span>
+                        <span class="cl-context-fact-value">{% if context_value %}دارد{% else %}ندارد{% endif %}</span>
+                    </div>
+                </div>
+
+                <div class="cl-context-card">
+                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">bolt</span> اقدامات سریع</h4>
+                    <div class="cl-context-actions">
+                        <a href="/diet/history" class="cl-context-action-link"><span class="material-symbols-outlined">history</span> تاریخچه برنامه‌های غذایی</a>
+                        <a href="/workout" class="cl-context-action-link"><span class="material-symbols-outlined">fitness_center</span> برنامه ورزشی متناسب</a>
+                        {% if diet_record_id %}
+                        <a href="/diet/pdf/{{ diet_record_id }}" target="_blank" class="cl-context-action-link"><span class="material-symbols-outlined">picture_as_pdf</span> دانلود PDF</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </aside>
 
         </div>
 
@@ -113,122 +169,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-(function () {
-
-    const chatBox = document.getElementById("diet-chat-box");
-
-    if (!chatBox) {
-        return;
-    }
-
-    const csrfToken = chatBox.getAttribute("data-csrf") || "";
-    const dietPlanText = document.getElementById("diet-plan-raw-store").value;
-
-    const messagesEl = document.getElementById("diet-chat-messages");
-    const emptyEl = document.getElementById("diet-chat-empty");
-    const form = document.getElementById("diet-chat-form");
-    const input = document.getElementById("diet-chat-input");
-    const sendBtn = form.querySelector("button[type='submit']");
-
-    let conversation = [];
-
-    function scrollToBottom() {
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-
-    function addMessage(role, text) {
-        if (emptyEl) {
-            emptyEl.remove();
-        }
-
-        const bubble = document.createElement("div");
-        bubble.className = "cl-chat-msg " + (role === "user" ? "cl-chat-msg-user" : "cl-chat-msg-ai");
-        bubble.textContent = text;
-
-        messagesEl.appendChild(bubble);
-        scrollToBottom();
-    }
-
-    function addError(text) {
-        const bubble = document.createElement("div");
-        bubble.className = "cl-chat-msg cl-chat-msg-error";
-        bubble.textContent = text;
-
-        messagesEl.appendChild(bubble);
-        scrollToBottom();
-    }
-
-    function addTyping() {
-        const typing = document.createElement("div");
-        typing.className = "cl-chat-typing";
-        typing.id = "diet-chat-typing";
-        typing.textContent = "در حال نوشتن پاسخ...";
-
-        messagesEl.appendChild(typing);
-        scrollToBottom();
-    }
-
-    function removeTyping() {
-        const typing = document.getElementById("diet-chat-typing");
-        if (typing) {
-            typing.remove();
-        }
-    }
-
-    form.addEventListener("submit", async function (e) {
-        e.preventDefault();
-
-        const question = input.value.trim();
-
-        if (!question) {
-            return;
-        }
-
-        addMessage("user", question);
-        conversation.push({ role: "user", content: question });
-
-        input.value = "";
-        input.disabled = true;
-        sendBtn.disabled = true;
-
-        addTyping();
-
-        try {
-            const res = await fetch("/diet/chat", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-Token": csrfToken,
-                },
-                body: JSON.stringify({
-                    diet_plan_text: dietPlanText,
-                    question: question,
-                    history: conversation,
-                })
-            });
-
-            const data = await res.json();
-
-            removeTyping();
-
-            if (!res.ok) {
-                addError(data.error || "خطایی رخ داد. لطفاً دوباره تلاش کنید.");
-            } else {
-                addMessage("ai", data.answer);
-                conversation.push({ role: "assistant", content: data.answer });
-            }
-
-        } catch (err) {
-            removeTyping();
-            addError("ارتباط با سرور برقرار نشد. لطفاً دوباره تلاش کنید.");
-        } finally {
-            input.disabled = false;
-            sendBtn.disabled = false;
-            input.focus();
-        }
-    });
-
-})();
-</script>
+<script src="/static/js/ai-doctor.js"></script>
 {% endblock %}

@@ -1,0 +1,69 @@
+{#
+    app/templates/_journey_widget.html
+
+    Reusable "Care Journey" mini-widget. Include on any page that
+    already has `user` in its render context (every page in this
+    app does, via get_current_user). No new Python/route needed.
+
+    Usage: {% include "_journey_widget.html" %}
+#}
+{% if user %}
+{% set jw_analyses = user.analyses %}
+{% set jw_diet = user.diet_plans %}
+{% set jw_workout = user.workout_plans %}
+{% set jw_has_activity = (jw_analyses|length) > 0 %}
+
+{% set jw_stage = 'upload' %}
+{% if jw_has_activity %}
+    {% set jw_stage = 'analysis' %}
+    {% if (jw_diet|length) > 0 or (jw_workout|length) > 0 %}
+        {% set jw_stage = 'lifestyle' %}
+    {% endif %}
+    {% set jw_reviewed = jw_analyses | selectattr('review_status', 'equalto', 'reviewed') | list %}
+    {% set jw_awaiting = jw_analyses | selectattr('review_status', 'equalto', 'awaiting_doctor') | list %}
+    {% if jw_awaiting|length > 0 %}
+        {% set jw_stage = 'consultation' %}
+    {% elif jw_reviewed|length > 0 %}
+        {% set jw_stage = 'followup' %}
+    {% endif %}
+{% endif %}
+
+{% set jw_stage_labels = {
+    'upload': 'آپلود اولین آزمایش',
+    'analysis': 'تحلیل هوش مصنوعی',
+    'lifestyle': 'توصیه‌های سبک زندگی',
+    'consultation': 'در انتظار بررسی پزشک',
+    'followup': 'پیگیری و مانیتورینگ'
+} %}
+
+<div class="cl-journey-widget">
+    <div class="cl-journey-widget-head">
+        <span class="material-symbols-outlined cl-icon-md">route</span>
+        <div>
+            <strong>سفر سلامت شما</strong>
+            <span class="cl-text-caption">مرحله‌ی فعلی: {{ jw_stage_labels.get(jw_stage) }}</span>
+        </div>
+    </div>
+
+    {% if jw_has_activity %}
+    <div class="cl-journey-widget-body">
+        <div class="cl-journey-widget-row">
+            <span class="cl-text-caption">آخرین آپلود</span>
+            <span class="cl-value-mono" style="font-size:12.5px;">{{ jw_analyses[0].created_at.strftime("%Y-%m-%d") }}</span>
+        </div>
+        {% if due_followups is defined and due_followups %}
+        <div class="cl-journey-widget-row">
+            <span class="cl-text-caption">کار پیش‌رو</span>
+            <span class="cl-badge cl-badge-warning">{{ due_followups[0].test_name }}</span>
+        </div>
+        {% endif %}
+    </div>
+    <a href="/#upload" class="cl-context-action-link" style="margin-top:10px;">
+        <span class="material-symbols-outlined">arrow_forward</span> مشاهده‌ی کامل سفر سلامت در داشبورد
+    </a>
+    {% else %}
+    <p class="cl-text-caption" style="margin:10px 0 0;">هنوز سفر سلامت شما شروع نشده. اولین آزمایش را آپلود کنید.</p>
+    <a href="/#upload" class="cl-btn cl-btn-primary cl-btn-sm" style="margin-top:10px;">شروع سفر سلامت</a>
+    {% endif %}
+</div>
+{% endif %}

@@ -8,151 +8,461 @@
 
 {% block content %}
 
-<section class="result-section">
+{% set ns = namespace(total=0, normal=0, severe=0, mild=0, severe_names=[]) %}
+{% for group in organ_groups %}
+    {% for item in group['items'] %}
+        {% set ns.total = ns.total + 1 %}
+        {% if item.status == 'normal' %}
+            {% set ns.normal = ns.normal + 1 %}
+        {% endif %}
+        {% if item.bar and item.bar.severity == 'severe' %}
+            {% set ns.severe = ns.severe + 1 %}
+            {% set ns.severe_names = ns.severe_names + [item.name] %}
+        {% elif item.bar and item.bar.severity == 'mild' %}
+            {% set ns.mild = ns.mild + 1 %}
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+
+{% set health_score = ((ns.normal / ns.total * 100) | round(0, 'common') | int) if ns.total > 0 else None %}
+{% set score_circumference = 326.726 %}
+{% set score_offset = score_circumference - (score_circumference * (health_score or 0) / 100) %}
+
+{% if health_score is none %}
+    {% set score_class = 'cl-score-empty' %}
+{% elif health_score >= 80 %}
+    {% set score_class = 'cl-score-good' %}
+{% elif health_score >= 60 %}
+    {% set score_class = 'cl-score-warning' %}
+{% elif health_score >= 40 %}
+    {% set score_class = 'cl-score-orange' %}
+{% else %}
+    {% set score_class = 'cl-score-danger' %}
+{% endif %}
+
+<section class="cl-result-hero">
     <div class="container">
 
-        <h1 class="result-title">نتیجه تحلیل آزمایش</h1>
+        <div class="cl-result-topbar cl-reveal">
+            <div>
+                <p class="cl-result-eyebrow">
+                    <span class="material-symbols-outlined cl-icon-sm">smart_toy</span>
+                    گزارش تحلیل هوش مصنوعی
+                </p>
+                <h1 class="result-title" style="margin:0;">نتیجه تحلیل آزمایش شما</h1>
+            </div>
+
+            <div class="cl-result-status-chip">
+                <span class="cl-status-dot"></span>
+                تحلیل تکمیل شد
+            </div>
+        </div>
 
         {% if result.exam_type_mismatch %}
-        <div class="cl-auth-alert cl-auth-alert-error" style="text-align:right; margin-bottom:24px; line-height:2;">
-            ⚠️ شما نوع آزمایش را <strong>«{{ result.requested_exam_type_label }}»</strong> انتخاب کرده بودید،
-            اما سیستم تشخیص داد که این مدرک در واقع از نوع <strong>«{{ result.detected_exam_type_label }}»</strong> است.
-            تحلیل بر همین اساس (نوع تشخیص‌داده‌شده) انجام شده است.
+        <div class="cl-alert cl-alert-warning cl-reveal" style="margin-bottom:20px;">
+            <span class="material-symbols-outlined cl-icon-md">info</span>
+            <div>
+                شما نوع آزمایش را <strong>«{{ result.requested_exam_type_label }}»</strong> انتخاب کرده بودید،
+                اما سیستم تشخیص داد این مدرک از نوع <strong>«{{ result.detected_exam_type_label }}»</strong> است.
+                تحلیل بر همین اساس انجام شده است.
+            </div>
         </div>
         {% endif %}
 
         {% if result.ocr_warning %}
-        <div class="cl-auth-alert cl-auth-alert-error" style="text-align:right; margin-bottom:24px; line-height:2;">
-            {{ result.ocr_warning }}
+        <div class="cl-alert cl-alert-warning cl-reveal" style="margin-bottom:20px;">
+            <span class="material-symbols-outlined cl-icon-md">warning</span>
+            <div>{{ result.ocr_warning }}</div>
         </div>
         {% endif %}
 
-        {% if result.symptoms %}
-        <div class="result-card">
-            <h2>شرح علائم و سابقه‌ی وارد‌شده توسط شما</h2>
-            <p style="margin:0; line-height:2;">{{ result.symptoms }}</p>
+        {% if ns.severe > 0 %}
+        <div class="cl-alert cl-alert-danger cl-reveal" style="margin-bottom:20px;">
+            <span class="material-symbols-outlined cl-icon-md">emergency</span>
+            <div>
+                <strong>{{ ns.severe }} مورد نیاز به توجه ویژه دارد:</strong>
+                {{ ns.severe_names | join('، ') }}.
+                توصیه می‌شود نتیجه را حتماً با پزشک خود در میان بگذارید.
+            </div>
         </div>
         {% endif %}
 
-        {% if organ_groups %}
-        <div class="result-card">
-            <h2>نمای بصری آزمایش‌ها بر اساس ارگان</h2>
+        <!-- ===== Top Summary ===== -->
+        <div class="cl-summary-grid cl-reveal">
 
-            <div class="cl-organ-groups">
-                {% for group in organ_groups %}
-                <div class="cl-organ-group">
-                    <h3 class="cl-organ-group-title">
-                        <span class="cl-organ-icon"><span class="material-symbols-outlined">{{ group.icon }}</span></span>
-                        {{ group.label }}
-                    </h3>
-
-                    <div class="cl-organ-items">
-                        {% for item in group['items'] %}
-                        <div class="cl-organ-item cl-organ-item-{{ item.status or 'normal' }}">
-                            <div class="cl-organ-item-head">
-                                <span class="cl-organ-item-name">{{ item.name }}</span>
-                                <span class="cl-organ-item-value">{{ item.value }} {{ item.unit }}</span>
-                                <span class="cl-organ-item-badge">{{ item.status_label }}</span>
-                            </div>
-
-                            {% if item.bar %}
-                            <div class="cl-organ-bar-wrap">
-                                <div class="cl-organ-bar-track">
-                                    <div class="cl-organ-bar-zone-low" style="right:0; width:{{ item.bar.range_start_pct }}%;"></div>
-                                    <div class="cl-organ-bar-range" style="right:{{ 100 - item.bar.range_end_pct }}%; left:{{ item.bar.range_start_pct }}%;"></div>
-                                    <div class="cl-organ-bar-zone-high" style="right:{{ item.bar.range_end_pct }}%; width:{{ 100 - item.bar.range_end_pct }}%;"></div>
-                                    <div class="cl-organ-bar-tick" style="right:{{ item.bar.range_start_pct }}%;"></div>
-                                    <div class="cl-organ-bar-tick" style="right:{{ item.bar.range_end_pct }}%;"></div>
-                                    <div class="cl-organ-bar-marker{% if item.bar.severity %} cl-organ-bar-marker-{{ item.bar.severity }}{% endif %}" style="right:{{ item.bar.value_pct }}%;">
-                                        <span class="cl-organ-bar-value-tag">{{ item.bar.value_label }}</span>
-                                    </div>
-                                </div>
-                                <div class="cl-organ-bar-scale-labels">
-                                    <span class="cl-organ-bar-scale-edge">{{ item.bar.range_min_label }}</span>
-                                    <span class="cl-organ-bar-range-label">بازه مرجع: {{ item.reference_range }}</span>
-                                    <span class="cl-organ-bar-scale-edge">{{ item.bar.range_max_label }}</span>
-                                </div>
-                            </div>
-                            {% else %}
-                            <span class="cl-organ-bar-range-label">بازه مرجع: {{ item.reference_range }}</span>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
+            <div class="cl-health-score-card {{ score_class }}">
+                {% if health_score is not none %}
+                <div class="cl-score-ring-wrap">
+                    <svg viewBox="0 0 120 120" class="cl-score-ring" role="img" aria-label="امتیاز سلامت: {{ health_score }} از ۱۰۰">
+                        <circle cx="60" cy="60" r="52" class="cl-score-ring-track"/>
+                        <circle cx="60" cy="60" r="52" class="cl-score-ring-value"
+                                stroke-dasharray="{{ score_circumference }}"
+                                stroke-dashoffset="{{ score_circumference }}"
+                                data-target-offset="{{ score_offset }}"/>
+                    </svg>
+                    <div class="cl-score-ring-center">
+                        <span class="cl-score-number" data-count-to="{{ health_score }}">0</span>
+                        <span class="cl-score-total">/ ۱۰۰</span>
                     </div>
                 </div>
-                {% endfor %}
+                <p class="cl-score-label">امتیاز کلی سلامت آزمایش</p>
+                <p class="cl-score-caption">{{ ns.normal }} از {{ ns.total }} پارامتر در محدوده طبیعی</p>
+                {% else %}
+                <div class="cl-score-ring-wrap cl-score-ring-empty">
+                    <span class="material-symbols-outlined cl-icon-xl">insights</span>
+                </div>
+                <p class="cl-score-label">امتیاز سلامت در دسترس نیست</p>
+                <p class="cl-score-caption">این نوع گزارش مقدار عددی ساختاریافته ندارد؛ نتیجه در قالب تحلیل متنی ارائه شده است.</p>
+                {% endif %}
             </div>
+
+            <div class="cl-summary-stats">
+
+                <div class="cl-card-stat cl-lift-on-hover">
+                    <span class="material-symbols-outlined cl-icon-md cl-stat-icon">person</span>
+                    <span class="cl-stat-value" style="font-size:16px; background:none; -webkit-text-fill-color:initial; color:var(--color-secondary);">{{ user.display_name if user else "کاربر" }}</span>
+                    <span class="cl-stat-label">نام بیمار</span>
+                </div>
+
+                <div class="cl-card-stat cl-lift-on-hover">
+                    <span class="material-symbols-outlined cl-icon-md cl-stat-icon">description</span>
+                    <span class="cl-stat-value" style="font-size:14px; background:none; -webkit-text-fill-color:initial; color:var(--color-secondary); word-break:break-word;">{{ result.filename or "—" }}</span>
+                    <span class="cl-stat-label">فایل تحلیل‌شده</span>
+                </div>
+
+                <div class="cl-card-stat cl-lift-on-hover">
+                    <span class="material-symbols-outlined cl-icon-md cl-stat-icon">verified</span>
+                    <span class="cl-stat-value" style="font-size:16px; background:none; -webkit-text-fill-color:initial; color:var(--color-success);">
+                        {% if result.ocr_warning %}نیاز به بررسی{% else %}مطلوب{% endif %}
+                    </span>
+                    <span class="cl-stat-label">کیفیت استخراج متن</span>
+                </div>
+
+                <div class="cl-card-stat cl-lift-on-hover">
+                    <span class="material-symbols-outlined cl-icon-md cl-stat-icon">bolt</span>
+                    <span class="cl-stat-value" style="font-size:16px; background:none; -webkit-text-fill-color:initial; color:var(--color-secondary);">تکمیل‌شده</span>
+                    <span class="cl-stat-label">وضعیت پردازش</span>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+<section class="cl-section-content" style="padding-top:0;">
+    <div class="container">
+
+        {% if result.symptoms %}
+        <div class="cl-card-glass cl-reveal" style="margin-bottom:24px;">
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">edit_note</span> شرح علائم و سابقه‌ی وارد‌شده توسط شما</h2>
+            <p style="margin:0; line-height:2; color:var(--color-text-primary);">{{ result.symptoms }}</p>
         </div>
         {% endif %}
 
-        <div class="result-card">
-            <h2>تحلیل پزشکی هوش مصنوعی</h2>
-            <div class="analysis-content">
-                {{ result.analysis_html | safe }}
-            </div>
+        <!-- ===== AI Summary (structured client-side from the real analysis text) ===== -->
+        <div class="cl-ai-summary-card cl-reveal" id="cl-ai-summary-card">
+            <h2 class="cl-block-title">
+                <span class="cl-ai-summary-badge"><span class="material-symbols-outlined">auto_awesome</span></span>
+                خلاصه‌ی هوش مصنوعی
+            </h2>
+            <div id="cl-ai-summary-content" class="cl-ai-summary-body"></div>
         </div>
 
+        <!-- raw AI narrative (source of truth — progressively enhanced into cards above/below by JS) -->
+        <div class="analysis-content cl-ai-raw-content" id="cl-ai-raw-content">
+            {{ result.analysis_html | safe }}
+        </div>
+
+        <!-- ===== AI Insights (auto-built from the remaining sections of the same analysis) ===== -->
+        <div id="cl-ai-insights-section" class="cl-insights-section" style="display:none;">
+            <h2 class="cl-block-title cl-reveal"><span class="material-symbols-outlined cl-icon-md">psychology</span> یافته‌ها و توصیه‌های هوش مصنوعی</h2>
+            <div class="cl-insights-grid" id="cl-ai-insights-grid"></div>
+        </div>
+
+        <!-- ===== Lab Parameters ===== -->
+        {% if organ_groups %}
+        <div class="cl-params-section">
+            <h2 class="cl-block-title cl-reveal"><span class="material-symbols-outlined cl-icon-md">biotech</span> مقادیر آزمایش به تفکیک ارگان</h2>
+
+            {% for group in organ_groups %}
+            <div class="cl-organ-block cl-reveal">
+                <h3 class="cl-organ-block-title">
+                    <span class="cl-organ-block-icon"><span class="material-symbols-outlined">{{ group.icon }}</span></span>
+                    {{ group.label }}
+                </h3>
+
+                <div class="cl-param-grid">
+                    {% for item in group['items'] %}
+                    {% set is_severe = item.bar and item.bar.severity == 'severe' %}
+                    {% set is_mild = item.bar and item.bar.severity == 'mild' %}
+                    <div class="cl-param-card
+                        {% if item.status == 'normal' %}cl-param-normal
+                        {% elif is_severe %}cl-param-critical
+                        {% elif is_mild %}cl-param-borderline
+                        {% else %}cl-param-info{% endif %}">
+
+                        <div class="cl-param-head">
+                            <span class="cl-param-name">{{ item.name }}</span>
+                            {% if item.status == 'normal' %}
+                            <span class="cl-badge cl-badge-success">طبیعی</span>
+                            {% elif is_severe %}
+                            <span class="cl-badge cl-badge-danger">{{ item.status_label }} — قابل‌توجه</span>
+                            {% elif is_mild %}
+                            <span class="cl-badge cl-badge-warning">{{ item.status_label }} — خفیف</span>
+                            {% else %}
+                            <span class="cl-badge cl-badge-info">{{ item.status_label }}</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="cl-param-value-row">
+                            <span class="cl-param-value">{{ item.value }}</span>
+                            <span class="cl-param-unit">{{ item.unit }}</span>
+                        </div>
+
+                        {% if item.bar %}
+                        <div class="cl-param-bar-wrap">
+                            <div class="cl-organ-bar-track">
+                                <div class="cl-organ-bar-zone-low" style="right:0; width:{{ item.bar.range_start_pct }}%;"></div>
+                                <div class="cl-organ-bar-range" style="right:{{ 100 - item.bar.range_end_pct }}%; left:{{ item.bar.range_start_pct }}%;"></div>
+                                <div class="cl-organ-bar-zone-high" style="right:{{ item.bar.range_end_pct }}%; width:{{ 100 - item.bar.range_end_pct }}%;"></div>
+                                <div class="cl-organ-bar-tick" style="right:{{ item.bar.range_start_pct }}%;"></div>
+                                <div class="cl-organ-bar-tick" style="right:{{ item.bar.range_end_pct }}%;"></div>
+                                <div class="cl-organ-bar-marker{% if item.bar.severity %} cl-organ-bar-marker-{{ item.bar.severity }}{% endif %}" style="right:{{ item.bar.value_pct }}%;">
+                                    <span class="cl-organ-bar-value-tag">{{ item.bar.value_label }}</span>
+                                </div>
+                            </div>
+                            <div class="cl-param-range-labels">
+                                <span>{{ item.bar.range_min_label }}</span>
+                                <span class="cl-text-muted">بازه مرجع</span>
+                                <span>{{ item.bar.range_max_label }}</span>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="cl-param-range-plain">بازه مرجع: {{ item.reference_range }}</p>
+                        {% endif %}
+
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- ===== Doctor review ===== -->
         {% if record_id %}
-        <div class="result-card">
-            <h2>بررسی توسط پزشک</h2>
+        <div class="cl-card-glass cl-reveal" style="margin-bottom:28px;">
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">medical_services</span> بررسی توسط پزشک</h2>
 
             {% if result.review_status == 'reviewed' %}
-            <p style="margin:0 0 12px; color:#0E9C74; font-weight:700;">✅ این گزارش توسط پزشک بررسی شده است.</p>
-            <div style="white-space:pre-wrap; line-height:2;">{{ result.doctor_opinion_text }}</div>
+            <p class="cl-badge cl-badge-success" style="margin-bottom:14px;">این گزارش توسط پزشک بررسی شده است</p>
+            <div style="white-space:pre-wrap; line-height:2; color:var(--color-text-primary);">{{ result.doctor_opinion_text }}</div>
 
             {% elif result.review_status == 'awaiting_doctor' %}
-            <p style="margin:0; color:#8CA0B3;">⏳ این گزارش برای بررسی توسط پزشک ارسال شده و در انتظار پاسخ است.</p>
+            <p class="cl-badge cl-badge-info">در انتظار بررسی پزشک</p>
 
             {% else %}
-            <p style="margin:0 0 16px; color:#8CA0B3;">می‌توانید این گزارش را برای بررسی توسط یک پزشک متخصص ارسال کنید.</p>
+            <p style="margin:0 0 16px; color:var(--color-text-secondary);">می‌توانید این گزارش را برای بررسی توسط یک پزشک متخصص ارسال کنید.</p>
             <form method="post" action="/history/{{ record_id }}/request-review">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <button type="submit" class="btn btn-solid">درخواست بررسی توسط پزشک</button>
+                <button type="submit" class="cl-btn cl-btn-primary">درخواست بررسی توسط پزشک</button>
             </form>
             {% endif %}
         </div>
         {% endif %}
 
-        <details class="ocr-details">
+        <!-- ===== Next Actions ===== -->
+        <div class="cl-next-actions-section cl-reveal">
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">task_alt</span> گام‌های بعدی پیشنهادی</h2>
+
+            <div class="cl-grid-3">
+
+                <a href="#chat-box" class="cl-action-card cl-card-interactive">
+                    <span class="cl-action-icon"><span class="material-symbols-outlined">forum</span></span>
+                    <strong>پرسش از دستیار AI</strong>
+                    <span>سوال خود را درباره‌ی این گزارش بپرسید</span>
+                </a>
+
+                <a href="/diet" class="cl-action-card cl-card-interactive">
+                    <span class="cl-action-icon"><span class="material-symbols-outlined">nutrition</span></span>
+                    <strong>برنامه غذایی متناسب</strong>
+                    <span>بر اساس همین نتایج، رژیم شخصی‌سازی‌شده بگیرید</span>
+                </a>
+
+                <a href="/workout" class="cl-action-card cl-card-interactive">
+                    <span class="cl-action-icon"><span class="material-symbols-outlined">fitness_center</span></span>
+                    <strong>برنامه ورزشی متناسب</strong>
+                    <span>برنامه‌ی تمرینی هماهنگ با وضعیت سلامتی</span>
+                </a>
+
+                <a href="/visit-prep" class="cl-action-card cl-card-interactive">
+                    <span class="cl-action-icon"><span class="material-symbols-outlined">assignment</span></span>
+                    <strong>آماده‌سازی ویزیت پزشک</strong>
+                    <span>خلاصه‌ای آماده برای مراجعه‌ی حضوری</span>
+                </a>
+
+                <a href="/trends" class="cl-action-card cl-card-interactive">
+                    <span class="cl-action-icon"><span class="material-symbols-outlined">trending_up</span></span>
+                    <strong>پیگیری روند</strong>
+                    <span>مقایسه‌ی این نتایج با آزمایش‌های بعدی</span>
+                </a>
+
+                <a href="/history" class="cl-action-card cl-card-interactive">
+                    <span class="cl-action-icon"><span class="material-symbols-outlined">folder_shared</span></span>
+                    <strong>تاریخچه‌ی کامل</strong>
+                    <span>مشاهده‌ی همه‌ی تحلیل‌های قبلی</span>
+                </a>
+
+            </div>
+        </div>
+
+        <details class="ocr-details cl-reveal" style="margin-top:24px;">
             <summary>مشاهده متن خام استخراج‌شده (OCR)</summary>
             <pre>{{ result.ocr }}</pre>
         </details>
 
         {% if job_id or record_id %}
-        <div class="cl-chat-box" id="chat-box" data-job-id="{{ job_id or '' }}" data-record-id="{{ record_id or '' }}" data-csrf="{{ csrf_token }}">
+        <div class="cl-ai-doctor" id="ai-doctor" data-endpoint="/chat" data-payload-type="report" data-job-id="{{ job_id or '' }}" data-record-id="{{ record_id or '' }}" data-csrf="{{ csrf_token }}">
+            <div class="cl-ai-doctor-main">
+                <div class="cl-ai-doctor-header">
+                    <div class="cl-ai-doctor-header-info">
+                        <span class="cl-ai-doctor-avatar"><span class="material-symbols-outlined">stethoscope</span></span>
+                        <div>
+                            <strong>دستیار پزشکی CuraLink</strong>
+                            <small>پرسش و پاسخ درباره‌ی همین گزارش</small>
+                        </div>
+                    </div>
+                    <button type="button" class="cl-ai-context-toggle" aria-label="نمایش اطلاعات زمینه‌ای">
+                        <span class="material-symbols-outlined">info</span>
+                    </button>
+                </div>
 
-            <div class="cl-chat-header">
-                <span class="cl-chat-header-icon"><span class="material-symbols-outlined">forum</span></span>
-                <div>
-                    <strong>پرسش و پاسخ درباره‌ی این آزمایش</strong>
-                    <small>فقط سوالات مرتبط با این گزارش و مسائل پزشکی پاسخ داده می‌شود</small>
+                <div class="cl-ai-doctor-messages" id="chat-messages">
+                    <div class="cl-ai-welcome" id="chat-empty">
+                        <div class="cl-ai-welcome-icon"><span class="material-symbols-outlined">health_and_safety</span></div>
+                        <h3>چه چیزی می‌خواهید بدانید؟</h3>
+                        <p>می‌توانید درباره‌ی مقادیر این گزارش، معنای پزشکی آن‌ها، یا نکات پیگیری سوال بپرسید.</p>
+                        <div class="cl-ai-suggested-prompts">
+                            <button type="button" class="cl-prompt-chip" data-prompt="این آزمایش را برایم ساده توضیح بده">این آزمایش را ساده توضیح بده</button>
+                            <button type="button" class="cl-prompt-chip" data-prompt="کدام مقادیر غیرطبیعی هستند و چرا؟">کدام مقادیر غیرطبیعی‌اند؟</button>
+                            <button type="button" class="cl-prompt-chip" data-prompt="آیا باید به پزشک مراجعه کنم؟">آیا باید به پزشک مراجعه کنم؟</button>
+                            <button type="button" class="cl-prompt-chip" data-prompt="چه تغییری در سبک زندگی توصیه می‌شود؟">توصیه‌ی سبک زندگی</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cl-ai-doctor-composer">
+                    <form>
+                        <input type="text" placeholder="مثلاً: این عدد هموگلوبین بالا چه معنی‌ای دارد؟" autocomplete="off">
+                        <button type="submit">ارسال</button>
+                    </form>
                 </div>
             </div>
 
-            <div class="cl-chat-messages" id="chat-messages">
-                <div class="cl-chat-empty" id="chat-empty">سوال خود را درباره‌ی این آزمایش بپرسید...</div>
-            </div>
+            <aside class="cl-ai-doctor-context">
+                <button type="button" class="cl-ai-context-close" aria-label="بستن">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
 
-            <form class="cl-chat-input-row" id="chat-form">
-                <input type="text" id="chat-input" class="cl-chat-input" placeholder="مثلاً: این عدد هموگلوبین بالا چه معنی‌ای دارد؟" autocomplete="off">
-                <button type="submit" class="cl-chat-send-btn">ارسال</button>
-            </form>
+                {% if organ_groups %}
+                <div class="cl-context-card">
+                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">monitor_heart</span> وضعیت این گزارش</h4>
+                    {% set cctx = namespace(total=0, abnormal=0) %}
+                    {% for group in organ_groups %}{% for item in group['items'] %}
+                        {% set cctx.total = cctx.total + 1 %}
+                        {% if item.status != 'normal' %}{% set cctx.abnormal = cctx.abnormal + 1 %}{% endif %}
+                    {% endfor %}{% endfor %}
+                    <div class="cl-context-mini-score">
+                        <span class="cl-context-mini-score-ring" style="background:{% if cctx.abnormal == 0 %}var(--color-success){% elif cctx.abnormal <= 2 %}var(--color-warning){% else %}var(--color-danger){% endif %};">{{ cctx.total - cctx.abnormal }}/{{ cctx.total }}</span>
+                        <span class="cl-text-caption">پارامتر در محدوده‌ی طبیعی</span>
+                    </div>
+                </div>
+                {% endif %}
 
+                <div class="cl-context-card">
+                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">psychology_alt</span> آنچه دستیار می‌داند</h4>
+                    <div class="cl-context-fact-row">
+                        <span class="cl-context-fact-label">نوع آزمایش</span>
+                        <span class="cl-context-fact-value">{{ result.exam_type }}</span>
+                    </div>
+                    <div class="cl-context-fact-row">
+                        <span class="cl-context-fact-label">علائم ثبت‌شده</span>
+                        <span class="cl-context-fact-value">{% if result.symptoms %}دارد{% else %}ندارد{% endif %}</span>
+                    </div>
+                    {% if organ_groups %}
+                    <div class="cl-context-fact-row">
+                        <span class="cl-context-fact-label">موارد نیازمند توجه</span>
+                        <span class="cl-context-fact-value">{{ cctx.abnormal }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if organ_groups %}
+                <div class="cl-context-card cl-context-reference">
+                    <details>
+                        <summary class="cl-context-card-title"><span class="material-symbols-outlined">library_books</span> بازه‌های مرجع این گزارش</summary>
+                        <div style="margin-top:10px;">
+                            {% for group in organ_groups %}{% for item in group['items'] %}
+                            <div class="cl-context-reference-row">
+                                <span>{{ item.name }}</span>
+                                <span>{{ item.reference_range }}</span>
+                            </div>
+                            {% endfor %}{% endfor %}
+                        </div>
+                    </details>
+                </div>
+                {% endif %}
+
+                <div class="cl-context-card">
+                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">bolt</span> اقدامات سریع</h4>
+                    <div class="cl-context-actions">
+                        <a href="/diet" class="cl-context-action-link"><span class="material-symbols-outlined">nutrition</span> برنامه غذایی متناسب</a>
+                        <a href="/workout" class="cl-context-action-link"><span class="material-symbols-outlined">fitness_center</span> برنامه ورزشی متناسب</a>
+                        <a href="/visit-prep" class="cl-context-action-link"><span class="material-symbols-outlined">assignment</span> آماده‌سازی ویزیت</a>
+                        <a href="/history" class="cl-context-action-link"><span class="material-symbols-outlined">folder_shared</span> تاریخچه‌ی کامل</a>
+                    </div>
+                </div>
+            </aside>
         </div>
         {% endif %}
 
-        <div class="result-actions" style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
-            {% if job_id %}
-            <a href="/result/{{ job_id }}/pdf" class="btn btn-outline" target="_blank">
-                <span class="material-symbols-outlined" style="font-size:18px;">download</span>
-                دانلود PDF
-            </a>
-            {% elif record_id %}
-            <a href="/history/{{ record_id }}/pdf" class="btn btn-outline" target="_blank">
-                <span class="material-symbols-outlined" style="font-size:18px;">download</span>
-                دانلود PDF
-            </a>
-            {% endif %}
+        <!-- ===== Download / Share section ===== -->
+        <div class="cl-download-section cl-reveal">
+            <div class="cl-grid-4">
+
+                {% if job_id %}
+                <a href="/result/{{ job_id }}/pdf" target="_blank" class="cl-download-card cl-card-interactive">
+                    <span class="material-symbols-outlined cl-icon-lg">picture_as_pdf</span>
+                    <strong>دانلود PDF</strong>
+                </a>
+                {% elif record_id %}
+                <a href="/history/{{ record_id }}/pdf" target="_blank" class="cl-download-card cl-card-interactive">
+                    <span class="material-symbols-outlined cl-icon-lg">picture_as_pdf</span>
+                    <strong>دانلود PDF</strong>
+                </a>
+                {% endif %}
+
+                <button type="button" class="cl-download-card cl-card-interactive" id="cl-print-btn">
+                    <span class="material-symbols-outlined cl-icon-lg">print</span>
+                    <strong>چاپ گزارش</strong>
+                </button>
+
+                <button type="button" class="cl-download-card cl-card-interactive" id="cl-share-btn">
+                    <span class="material-symbols-outlined cl-icon-lg">ios_share</span>
+                    <strong>اشتراک‌گذاری لینک</strong>
+                </button>
+
+                <a href="/history" class="cl-download-card cl-card-interactive">
+                    <span class="material-symbols-outlined cl-icon-lg">folder_shared</span>
+                    <strong>تاریخچه گزارش‌ها</strong>
+                </a>
+
+            </div>
+        </div>
+
+        <div class="result-actions">
             <a href="/" class="btn btn-solid">تحلیل آزمایش جدید</a>
         </div>
 
@@ -165,121 +475,176 @@
 <script>
 (function () {
 
-    const chatBox = document.getElementById("chat-box");
-
-    if (!chatBox) {
-        return;
-    }
-
-    const jobId = chatBox.getAttribute("data-job-id") || null;
-    const recordId = chatBox.getAttribute("data-record-id") || null;
-    const csrfToken = chatBox.getAttribute("data-csrf") || "";
-
-    const messagesEl = document.getElementById("chat-messages");
-    const emptyEl = document.getElementById("chat-empty");
-    const form = document.getElementById("chat-form");
-    const input = document.getElementById("chat-input");
-    const sendBtn = form.querySelector("button[type='submit']");
-
-    let conversation = [];
-
-    function scrollToBottom() {
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-
-    function addMessage(role, text) {
-        if (emptyEl) {
-            emptyEl.remove();
-        }
-
-        const bubble = document.createElement("div");
-        bubble.className = "cl-chat-msg " + (role === "user" ? "cl-chat-msg-user" : "cl-chat-msg-ai");
-        bubble.textContent = text;
-
-        messagesEl.appendChild(bubble);
-        scrollToBottom();
-    }
-
-    function addError(text) {
-        const bubble = document.createElement("div");
-        bubble.className = "cl-chat-msg cl-chat-msg-error";
-        bubble.textContent = text;
-
-        messagesEl.appendChild(bubble);
-        scrollToBottom();
-    }
-
-    function addTyping() {
-        const typing = document.createElement("div");
-        typing.className = "cl-chat-typing";
-        typing.id = "chat-typing";
-        typing.textContent = "در حال نوشتن پاسخ...";
-
-        messagesEl.appendChild(typing);
-        scrollToBottom();
-    }
-
-    function removeTyping() {
-        const typing = document.getElementById("chat-typing");
-        if (typing) {
-            typing.remove();
-        }
-    }
-
-    form.addEventListener("submit", async function (e) {
-        e.preventDefault();
-
-        const question = input.value.trim();
-
-        if (!question) {
+    /* ===== Scroll reveal (same pattern as landing page) ===== */
+    function initReveal(){
+        var els = document.querySelectorAll('.cl-reveal:not(.is-visible)');
+        if (!('IntersectionObserver' in window) || !els.length) {
+            els.forEach(function(el){ el.classList.add('is-visible'); });
             return;
         }
-
-        addMessage("user", question);
-        conversation.push({ role: "user", content: question });
-
-        input.value = "";
-        input.disabled = true;
-        sendBtn.disabled = true;
-
-        addTyping();
-
-        try {
-            const res = await fetch("/chat", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-Token": csrfToken,
-                },
-                body: JSON.stringify({
-                    job_id: jobId,
-                    record_id: recordId ? parseInt(recordId, 10) : null,
-                    question: question,
-                    history: conversation,
-                })
+        var observer = new IntersectionObserver(function(entries){
+            entries.forEach(function(entry){
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target);
+                }
             });
+        }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+        els.forEach(function(el){ observer.observe(el); });
+    }
+    initReveal();
 
-            const data = await res.json();
+    /* ===== Health score ring + number animation ===== */
+    var ring = document.querySelector('.cl-score-ring-value');
+    var scoreNumberEl = document.querySelector('.cl-score-number');
 
-            removeTyping();
-
-            if (!res.ok) {
-                addError(data.error || "خطایی رخ داد. لطفاً دوباره تلاش کنید.");
-            } else {
-                addMessage("ai", data.answer);
-                conversation.push({ role: "assistant", content: data.answer });
-            }
-
-        } catch (err) {
-            removeTyping();
-            addError("ارتباط با سرور برقرار نشد. لطفاً دوباره تلاش کنید.");
-        } finally {
-            input.disabled = false;
-            sendBtn.disabled = false;
-            input.focus();
+    function animateScore(){
+        if (ring) {
+            var target = ring.getAttribute('data-target-offset');
+            requestAnimationFrame(function(){
+                ring.style.transition = 'stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1)';
+                ring.style.strokeDashoffset = target;
+            });
         }
-    });
+        if (scoreNumberEl) {
+            var target = parseInt(scoreNumberEl.getAttribute('data-count-to'), 10) || 0;
+            var start = null;
+            var duration = 1100;
+            function step(ts){
+                if (!start) start = ts;
+                var progress = Math.min((ts - start) / duration, 1);
+                var eased = 1 - Math.pow(1 - progress, 3);
+                scoreNumberEl.textContent = Math.floor(eased * target).toLocaleString('fa-IR');
+                if (progress < 1) requestAnimationFrame(step);
+                else scoreNumberEl.textContent = target.toLocaleString('fa-IR');
+            }
+            requestAnimationFrame(step);
+        }
+    }
+
+    var scoreCard = document.querySelector('.cl-health-score-card');
+    if (scoreCard && 'IntersectionObserver' in window) {
+        var scoreObserver = new IntersectionObserver(function(entries){
+            entries.forEach(function(entry){
+                if (entry.isIntersecting) {
+                    animateScore();
+                    scoreObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.3 });
+        scoreObserver.observe(scoreCard);
+    } else {
+        animateScore();
+    }
+
+    /* ===== Restructure the AI narrative into a Summary card + Insight cards.
+       This ONLY reorganizes the exact HTML CuraLink's AI already returned
+       (result.analysis_html rendered inside #cl-ai-raw-content) — no new
+       data is invented, no backend call is made. ===== */
+    (function buildAISections(){
+        var raw = document.getElementById('cl-ai-raw-content');
+        var summaryCard = document.getElementById('cl-ai-summary-card');
+        var summaryTarget = document.getElementById('cl-ai-summary-content');
+        var insightsSection = document.getElementById('cl-ai-insights-section');
+        var insightsTarget = document.getElementById('cl-ai-insights-grid');
+
+        if (!raw || !summaryTarget || !insightsTarget) return;
+
+        var headings = raw.querySelectorAll(':scope > h1');
+        if (!headings.length) return; // no structured sections found — leave raw content as the fallback
+
+        var sections = [];
+        var current = null;
+        Array.prototype.forEach.call(raw.childNodes, function(node){
+            if (node.nodeType === 1 && node.tagName === 'H1') {
+                current = { title: node.textContent.trim(), nodes: [] };
+                sections.push(current);
+            } else if (current) {
+                current.nodes.push(node);
+            }
+        });
+
+        if (!sections.length) return;
+
+        function pickIcon(title){
+            var map = [
+                [/غیرطبیعی|خطر|ریسک|هشدار/, 'warning'],
+                [/علت/, 'psychology'],
+                [/بیماری|محتمل/, 'medical_information'],
+                [/توصیه|پیشنهاد/, 'lightbulb'],
+                [/پیگیری|بازبینی/, 'schedule'],
+                [/آزمایش/, 'science'],
+                [/یافته/, 'search']
+            ];
+            for (var i = 0; i < map.length; i++) {
+                if (map[i][0].test(title)) return map[i][1];
+            }
+            return 'insights';
+        }
+
+        sections.forEach(function(sec, idx){
+            var wrap = document.createElement('div');
+            sec.nodes.forEach(function(n){ wrap.appendChild(n.cloneNode(true)); });
+
+            if (idx === 0) {
+                var h = document.createElement('h3');
+                h.className = 'cl-ai-summary-title';
+                h.textContent = sec.title;
+                summaryTarget.appendChild(h);
+                summaryTarget.appendChild(wrap);
+            } else {
+                var card = document.createElement('div');
+                card.className = 'cl-insight-card cl-reveal';
+
+                var iconWrap = document.createElement('div');
+                iconWrap.className = 'cl-insight-icon';
+                iconWrap.innerHTML = '<span class="material-symbols-outlined">' + pickIcon(sec.title) + '</span>';
+
+                var titleEl = document.createElement('h4');
+                titleEl.className = 'cl-insight-title';
+                titleEl.textContent = sec.title;
+
+                card.appendChild(iconWrap);
+                card.appendChild(titleEl);
+                card.appendChild(wrap);
+                insightsTarget.appendChild(card);
+            }
+        });
+
+        raw.style.display = 'none';
+        if (summaryCard) summaryCard.classList.add('has-content');
+        if (insightsTarget.children.length) {
+            insightsSection.style.display = '';
+        }
+
+        initReveal();
+    })();
+
+    /* ===== Print & Share (client-side only, no backend calls) ===== */
+    var printBtn = document.getElementById('cl-print-btn');
+    if (printBtn) {
+        printBtn.addEventListener('click', function(){ window.print(); });
+    }
+
+    var shareBtn = document.getElementById('cl-share-btn');
+    if (shareBtn) {
+        shareBtn.addEventListener('click', async function(){
+            var url = window.location.href;
+            if (navigator.share) {
+                try { await navigator.share({ title: 'گزارش تحلیل CuraLink', url: url }); }
+                catch (e) { /* user cancelled — no-op */ }
+            } else if (navigator.clipboard) {
+                try {
+                    await navigator.clipboard.writeText(url);
+                    shareBtn.querySelector('strong').textContent = 'لینک کپی شد!';
+                    setTimeout(function(){ shareBtn.querySelector('strong').textContent = 'اشتراک‌گذاری لینک'; }, 2000);
+                } catch (e) { /* clipboard unavailable — no-op */ }
+            }
+        });
+    }
 
 })();
 </script>
+
+<script src="/static/js/ai-doctor.js"></script>
 {% endblock %}

@@ -117,24 +117,84 @@
         </div>
         {% endif %}
 
-        <div class="cl-chat-box" id="workout-chat-box" data-csrf="{{ csrf_token }}">
+        <div class="cl-ai-doctor"
+             id="ai-doctor"
+             data-endpoint="/workout/chat"
+             data-payload-type="workout"
+             data-plan-store="workout-plan-raw-store"
+             data-csrf="{{ csrf_token }}">
 
-            <div class="cl-chat-header">
-                <span class="cl-chat-header-icon"><span class="material-symbols-outlined">forum</span></span>
-                <div>
-                    <strong>پرسش و پاسخ درباره‌ی این برنامه ورزشی</strong>
-                    <small>سوالات مرتبط با همین برنامه را بپرسید</small>
+            <div class="cl-ai-doctor-main">
+
+                <div class="cl-ai-doctor-header">
+                    <div class="cl-ai-doctor-header-info">
+                        <span class="cl-ai-doctor-avatar"><span class="material-symbols-outlined">fitness_center</span></span>
+                        <div>
+                            <strong>دستیار تمرینی CuraLink</strong>
+                            <small>پرسش و پاسخ درباره‌ی همین برنامه ورزشی</small>
+                        </div>
+                    </div>
+                    <button type="button" class="cl-ai-context-toggle" aria-label="نمایش اطلاعات زمینه‌ای">
+                        <span class="material-symbols-outlined">info</span>
+                    </button>
                 </div>
+
+                <div class="cl-ai-doctor-messages" id="workout-chat-messages">
+                    <div class="cl-ai-welcome" id="workout-chat-empty">
+                        <div class="cl-ai-welcome-icon"><span class="material-symbols-outlined">exercise</span></div>
+                        <h3>سوالی درباره‌ی برنامه ورزشی دارید؟</h3>
+                        <p>می‌توانید درباره‌ی حرکات، شدت تمرین یا جایگزین‌ها بپرسید.</p>
+                        <div class="cl-ai-suggested-prompts">
+                            <button type="button" class="cl-prompt-chip" data-prompt="اگر یک روز نتوانم تمرین کنم چه کنم؟">اگر یک روز جا بماند؟</button>
+                            <button type="button" class="cl-prompt-chip" data-prompt="حرکت جایگزین برای زانو درد پیشنهاد بده">حرکت جایگزین (زانو درد)</button>
+                            <button type="button" class="cl-prompt-chip" data-prompt="شدت تمرین را کمی کاهش بده">کاهش شدت تمرین</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cl-ai-doctor-composer">
+                    <form>
+                        <input type="text" placeholder="مثلاً: اگر یک روز نتوانم تمرین کنم چه کار کنم؟" autocomplete="off">
+                        <button type="submit">ارسال</button>
+                    </form>
+                </div>
+
             </div>
 
-            <div class="cl-chat-messages" id="workout-chat-messages">
-                <div class="cl-chat-empty" id="workout-chat-empty">سوال خود را درباره‌ی این برنامه ورزشی بپرسید...</div>
-            </div>
+            <aside class="cl-ai-doctor-context">
 
-            <form class="cl-chat-input-row" id="workout-chat-form">
-                <input type="text" id="workout-chat-input" class="cl-chat-input" placeholder="مثلاً: اگر یک روز نتوانم تمرین کنم چه کار کنم؟" autocomplete="off">
-                <button type="submit" class="cl-chat-send-btn">ارسال</button>
-            </form>
+                <button type="button" class="cl-ai-context-close" aria-label="بستن">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+
+                <div class="cl-context-card">
+                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">psychology_alt</span> آنچه دستیار می‌داند</h4>
+                    <div class="cl-context-fact-row">
+                        <span class="cl-context-fact-label">هدف تمرینی</span>
+                        <span class="cl-context-fact-value">{{ goal_value }}</span>
+                    </div>
+                    <div class="cl-context-fact-row">
+                        <span class="cl-context-fact-label">سطح آمادگی</span>
+                        <span class="cl-context-fact-value">{{ fitness_level_value }}</span>
+                    </div>
+                    <div class="cl-context-fact-row">
+                        <span class="cl-context-fact-label">محدودیت جسمی</span>
+                        <span class="cl-context-fact-value">{% if injuries_value %}دارد{% else %}ندارد{% endif %}</span>
+                    </div>
+                </div>
+
+                <div class="cl-context-card">
+                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">bolt</span> اقدامات سریع</h4>
+                    <div class="cl-context-actions">
+                        <a href="/workout/history" class="cl-context-action-link"><span class="material-symbols-outlined">history</span> تاریخچه برنامه‌های ورزشی</a>
+                        <a href="/diet" class="cl-context-action-link"><span class="material-symbols-outlined">nutrition</span> برنامه غذایی متناسب</a>
+                        {% if workout_record_id %}
+                        <a href="/workout/pdf/{{ workout_record_id }}" target="_blank" class="cl-context-action-link"><span class="material-symbols-outlined">picture_as_pdf</span> دانلود PDF</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </aside>
 
         </div>
 
@@ -152,110 +212,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-(function () {
-
-    const chatBox = document.getElementById("workout-chat-box");
-
-    if (!chatBox) {
-        return;
-    }
-
-    const csrfToken = chatBox.getAttribute("data-csrf") || "";
-    const planText = document.getElementById("workout-plan-raw-store").value;
-
-    const messagesEl = document.getElementById("workout-chat-messages");
-    const emptyEl = document.getElementById("workout-chat-empty");
-    const form = document.getElementById("workout-chat-form");
-    const input = document.getElementById("workout-chat-input");
-    const sendBtn = form.querySelector("button[type='submit']");
-
-    let conversation = [];
-
-    function scrollToBottom() {
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-
-    function addMessage(role, text) {
-        if (emptyEl) emptyEl.remove();
-        const bubble = document.createElement("div");
-        bubble.className = "cl-chat-msg " + (role === "user" ? "cl-chat-msg-user" : "cl-chat-msg-ai");
-        bubble.textContent = text;
-        messagesEl.appendChild(bubble);
-        scrollToBottom();
-    }
-
-    function addError(text) {
-        const bubble = document.createElement("div");
-        bubble.className = "cl-chat-msg cl-chat-msg-error";
-        bubble.textContent = text;
-        messagesEl.appendChild(bubble);
-        scrollToBottom();
-    }
-
-    function addTyping() {
-        const typing = document.createElement("div");
-        typing.className = "cl-chat-typing";
-        typing.id = "workout-chat-typing";
-        typing.textContent = "در حال نوشتن پاسخ...";
-        messagesEl.appendChild(typing);
-        scrollToBottom();
-    }
-
-    function removeTyping() {
-        const typing = document.getElementById("workout-chat-typing");
-        if (typing) typing.remove();
-    }
-
-    form.addEventListener("submit", async function (e) {
-        e.preventDefault();
-
-        const question = input.value.trim();
-        if (!question) return;
-
-        addMessage("user", question);
-        conversation.push({ role: "user", content: question });
-
-        input.value = "";
-        input.disabled = true;
-        sendBtn.disabled = true;
-
-        addTyping();
-
-        try {
-            const res = await fetch("/workout/chat", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-Token": csrfToken,
-                },
-                body: JSON.stringify({
-                    workout_plan_text: planText,
-                    question: question,
-                    history: conversation,
-                })
-            });
-
-            const data = await res.json();
-            removeTyping();
-
-            if (!res.ok) {
-                addError(data.error || "خطایی رخ داد. لطفاً دوباره تلاش کنید.");
-            } else {
-                addMessage("ai", data.answer);
-                conversation.push({ role: "assistant", content: data.answer });
-            }
-
-        } catch (err) {
-            removeTyping();
-            addError("ارتباط با سرور برقرار نشد. لطفاً دوباره تلاش کنید.");
-        } finally {
-            input.disabled = false;
-            sendBtn.disabled = false;
-            input.focus();
-        }
-    });
-
-})();
-</script>
+<script src="/static/js/ai-doctor.js"></script>
 {% endblock %}

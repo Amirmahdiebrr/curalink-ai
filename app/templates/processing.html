@@ -4,12 +4,15 @@
 
 {% block content %}
 
-<section class="processing-section">
+<section class="processing-section cl-section-content">
     <div class="container">
 
-        <div class="processing-card" id="processing-card" data-job-id="{{ job_id }}">
+        <div class="processing-card cl-reveal is-visible" id="processing-card" data-job-id="{{ job_id }}">
 
-            <div class="loader"></div>
+            <div class="cl-processing-orb">
+                <div class="loader"></div>
+                <span class="material-symbols-outlined cl-processing-orb-icon">biotech</span>
+            </div>
 
             <h1 class="processing-title">در حال تحلیل آزمایش شما</h1>
             <p class="processing-sub">این فرآیند معمولاً کمتر از یک دقیقه طول می‌کشد</p>
@@ -18,18 +21,22 @@
                 <div class="stage-item" data-stage="saving">
                     <span class="stage-dot"></span>
                     <span class="stage-label">آماده‌سازی فایل</span>
+                    <span class="material-symbols-outlined cl-stage-check">check_circle</span>
                 </div>
                 <div class="stage-item" data-stage="ocr">
                     <span class="stage-dot"></span>
                     <span class="stage-label">استخراج متن آزمایش (OCR)</span>
+                    <span class="material-symbols-outlined cl-stage-check">check_circle</span>
                 </div>
                 <div class="stage-item" data-stage="ai">
                     <span class="stage-dot"></span>
                     <span class="stage-label">تحلیل پزشکی با هوش مصنوعی</span>
+                    <span class="material-symbols-outlined cl-stage-check">check_circle</span>
                 </div>
                 <div class="stage-item" data-stage="done">
                     <span class="stage-dot"></span>
                     <span class="stage-label">آماده‌سازی گزارش</span>
+                    <span class="material-symbols-outlined cl-stage-check">check_circle</span>
                 </div>
             </div>
 

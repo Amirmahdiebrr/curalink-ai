@@ -41,7 +41,7 @@
         </svg>
     </div>
 
-    <header class="navbar">
+    <header class="navbar" id="cl-navbar">
         <div class="container navbar-inner">
 
             <a href="/" class="logo">
@@ -51,7 +51,7 @@
             <nav class="cl-mega-nav">
 
                 <a href="/" class="cl-nav-link nav-active">
-                    <span class="material-symbols-outlined" style="font-size:18px;">home</span>
+                    <span class="material-symbols-outlined cl-icon-sm">home</span>
                     خانه
                 </a>
 
@@ -151,14 +151,14 @@
 
                 {% if user %}
                 <a href="/billing/plans" class="cl-nav-link">
-                    <span class="material-symbols-outlined" style="font-size:18px;">workspace_premium</span>
+                    <span class="material-symbols-outlined cl-icon-sm">workspace_premium</span>
                     پلن‌های من
                 </a>
                 {% endif %}
 
                 {% if user and user.role == 'doctor' %}
                 <a href="/doctor/reviews" class="cl-nav-link">
-                    <span class="material-symbols-outlined" style="font-size:18px;">medical_services</span>
+                    <span class="material-symbols-outlined cl-icon-sm">medical_services</span>
                     بررسی گزارش‌ها
                 </a>
                 {% endif %}
@@ -181,6 +181,15 @@
                 {% endif %}
 
             </nav>
+
+            <div class="cl-header-actions" aria-hidden="false">
+                <button type="button" class="cl-header-icon-btn" aria-label="جستجو" title="جستجو (به‌زودی)" aria-disabled="true">
+                    <span class="material-symbols-outlined">search</span>
+                </button>
+                <button type="button" class="cl-header-icon-btn cl-header-lang-btn" aria-label="تغییر زبان" title="تغییر زبان (به‌زودی)" aria-disabled="true">
+                    FA
+                </button>
+            </div>
 
             <div class="navbar-cta">
                 {% if user %}
@@ -229,19 +238,19 @@
                 <div class="footer-col">
                     <h5 class="footer-col-title">راه‌های ارتباطی</h5>
                     <a href="tel:02191694499" class="footer-contact-row">
-                        <span class="material-symbols-outlined">call</span>
+                        <span class="material-symbols-outlined cl-icon-sm">call</span>
                         021-91694499
                     </a>
                     <a href="tel:09913055620" class="footer-contact-row">
-                        <span class="material-symbols-outlined">call</span>
+                        <span class="material-symbols-outlined cl-icon-sm">call</span>
                         09913055620
                     </a>
                     <a href="tel:09929724063" class="footer-contact-row">
-                        <span class="material-symbols-outlined">smartphone</span>
+                        <span class="material-symbols-outlined cl-icon-sm">smartphone</span>
                         09929724063
                     </a>
                     <a href="mailto:info@curalinkcare.com" class="footer-contact-row">
-                        <span class="material-symbols-outlined">mail</span>
+                        <span class="material-symbols-outlined cl-icon-sm">mail</span>
                         info@curalinkcare.com
                     </a>
                 </div>
@@ -249,17 +258,25 @@
                 <div class="footer-col">
                     <h5 class="footer-col-title">شبکه‌های اجتماعی</h5>
                     <a href="https://t.me/curalinkcare" target="_blank" rel="noopener" class="footer-contact-row">
-                        <span class="material-symbols-outlined">send</span>
+                        <span class="material-symbols-outlined cl-icon-sm">send</span>
                         تلگرام: curalinkcare@
                     </a>
                     <a href="https://wa.me/989214728753" target="_blank" rel="noopener" class="footer-contact-row">
-                        <span class="material-symbols-outlined">chat</span>
+                        <span class="material-symbols-outlined cl-icon-sm">chat</span>
                         واتس‌آپ: 09214728753
                     </a>
                     <a href="https://instagram.com/curalink.ir" target="_blank" rel="noopener" class="footer-contact-row">
-                        <span class="material-symbols-outlined">photo_camera</span>
+                        <span class="material-symbols-outlined cl-icon-sm">photo_camera</span>
                         اینستاگرام: curalink.ir@
                     </a>
+                </div>
+
+                <div class="footer-col">
+                    <h5 class="footer-col-title">خدمات پزشکی</h5>
+                    <a href="/#upload">تحلیل آزمایش</a>
+                    <a href="/diet">برنامه غذایی</a>
+                    <a href="/workout">برنامه ورزشی</a>
+                    <a href="/visit-prep">آماده‌سازی ویزیت</a>
                 </div>
 
                 <div class="footer-col">
@@ -312,6 +329,27 @@
                 }
             });
         });
+
+        /* Phase 2: scroll-reactive header glass state (visual only) */
+        const navbar = document.getElementById('cl-navbar');
+        if (navbar) {
+            let ticking = false;
+            function updateScrollState(){
+                if (window.scrollY > 12) {
+                    navbar.classList.add('is-scrolled');
+                } else {
+                    navbar.classList.remove('is-scrolled');
+                }
+                ticking = false;
+            }
+            window.addEventListener('scroll', function(){
+                if (!ticking) {
+                    window.requestAnimationFrame(updateScrollState);
+                    ticking = true;
+                }
+            }, { passive: true });
+            updateScrollState();
+        }
     })();
     </script>
     {% block scripts %}{% endblock %}

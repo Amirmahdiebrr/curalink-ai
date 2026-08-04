@@ -1,51 +1,284 @@
 {% extends "base.html" %}
 
-{% block title %}تاریخچه آزمایشات | CuraLink AI{% endblock %}
+{% block title %}تاریخچه و روند سلامت | CuraLink AI{% endblock %}
 
 {% block content %}
 
-<section class="cl-profile-section">
+{% set has_history = records|length > 0 %}
+
+{% set ns_global = namespace(seen=[], total=0, normal=0) %}
+{% for tr in user.test_results %}
+    {% if tr.value_numeric is not none and tr.test_name not in ns_global.seen %}
+        {% set ns_global.seen = ns_global.seen + [tr.test_name] %}
+        {% set ns_global.total = ns_global.total + 1 %}
+        {% if tr.status == 'normal' %}{% set ns_global.normal = ns_global.normal + 1 %}{% endif %}
+    {% endif %}
+{% endfor %}
+{% set current_score = ((ns_global.normal / ns_global.total * 100) | round(0, 'common') | int) if ns_global.total > 0 else None %}
+
+{% set ns_chrono = namespace(scores=[]) %}
+{% for record in records | reverse %}
+    {% set rns = namespace(total=0, normal=0) %}
+    {% for tr in record.test_results %}
+        {% if tr.value_numeric is not none %}
+            {% set rns.total = rns.total + 1 %}
+            {% if tr.status == 'normal' %}{% set rns.normal = rns.normal + 1 %}{% endif %}
+        {% endif %}
+    {% endfor %}
+    {% if rns.total > 0 %}
+        {% set rscore = (rns.normal / rns.total * 100) | round(0, 'common') | int %}
+        {% set ns_chrono.scores = ns_chrono.scores + [rscore] %}
+    {% endif %}
+{% endfor %}
+
+{% set score_delta = (ns_chrono.scores[-1] - ns_chrono.scores[0]) if ns_chrono.scores|length >= 2 else None %}
+
+<section class="cl-page-wrapper-tight">
     <div class="container">
 
-        <div class="cl-profile-header">
-            <div class="cl-profile-avatar">
-                {{ (user.display_name or user.nicename or "?")[0] }}
-            </div>
+        <div class="cl-hist-header cl-reveal">
             <div>
-                <h1>تاریخچه آزمایشات</h1>
-                <p>{{ records|length }} تحلیل ثبت‌شده</p>
+                <p class="cl-result-eyebrow">
+                    <span class="material-symbols-outlined cl-icon-sm">history_edu</span>
+                    داستان سلامت شما
+                </p>
+                <h1 class="result-title" style="margin:0;">تاریخچه و روند سلامت</h1>
             </div>
         </div>
 
-        {% if records|length == 0 %}
+        {% if not has_history %}
 
-        <div class="cl-history-empty">
-            <p>هنوز هیچ آزمایشی ثبت نکرده‌اید.</p>
-            <a href="/#upload" class="btn btn-solid">شروع اولین تحلیل</a>
+        <!-- ===== Empty state ===== -->
+        <div class="cl-dash-empty cl-reveal">
+            <span class="material-symbols-outlined cl-dash-empty-icon">history_edu</span>
+            <h2>هنوز هیچ آزمایشی ثبت نکرده‌اید</h2>
+            <p>اولین آزمایش خود را آپلود کنید تا داستان سلامت شخصی‌سازی‌شده‌ی شما شکل بگیرد.</p>
+            <a href="/#upload" class="cl-btn cl-btn-primary cl-btn-lg">شروع اولین تحلیل</a>
         </div>
 
         {% else %}
 
-        <div class="cl-history-list">
-            {% for record in records %}
-            <div class="cl-history-item">
-                <a href="/history/{{ record.id }}" class="cl-history-item-main" style="flex:1; min-width:0;">
-                    <span class="cl-history-badge">{{ exam_type_labels.get(record.exam_type, "آزمایش") }}</span>
-                    <span class="cl-history-badge" style="background:linear-gradient(135deg, rgba(108,92,231,.16), rgba(15,182,168,.16));">
-                        {% if record.family_member %}{{ record.family_member.name }}{% else %}خودم{% endif %}
-                    </span>
-                    <span class="cl-history-filename">{{ record.filename }}</span>
-                </a>
+        <!-- ===== Top Overview ===== -->
+        <div class="cl-hist-overview cl-reveal">
 
-                <div style="display:flex; align-items:center; gap:12px; flex-shrink:0;">
-                    <span class="cl-history-date">{{ record.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
-                    <a href="/history/{{ record.id }}/pdf" target="_blank" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px; gap:6px;" title="دانلود PDF">
-                        <span class="material-symbols-outlined" style="font-size:16px;">picture_as_pdf</span>
-                        PDF
-                    </a>
+            <div class="cl-health-score-card {% if current_score is none %}cl-score-empty{% elif current_score >= 80 %}cl-score-good{% elif current_score >= 60 %}cl-score-warning{% elif current_score >= 40 %}cl-score-orange{% else %}cl-score-danger{% endif %}">
+                {% if current_score is not none %}
+                <div class="cl-score-ring-wrap">
+                    <svg viewBox="0 0 120 120" class="cl-score-ring" role="img" aria-label="امتیاز سلامت فعلی: {{ current_score }} از ۱۰۰">
+                        <circle cx="60" cy="60" r="52" class="cl-score-ring-track"/>
+                        <circle cx="60" cy="60" r="52" class="cl-score-ring-value"
+                                stroke-dasharray="326.726"
+                                stroke-dashoffset="326.726"
+                                data-target-offset="{{ 326.726 - (326.726 * current_score / 100) }}"/>
+                    </svg>
+                    <div class="cl-score-ring-center">
+                        <span class="cl-score-number" data-count-to="{{ current_score }}">0</span>
+                        <span class="cl-score-total">/ ۱۰۰</span>
+                    </div>
+                </div>
+                {% else %}
+                <div class="cl-score-ring-wrap cl-score-ring-empty">
+                    <span class="material-symbols-outlined cl-icon-xl">insights</span>
+                </div>
+                {% endif %}
+                <p class="cl-score-label">امتیاز سلامت فعلی</p>
+            </div>
+
+            <div class="cl-summary-stats">
+
+                <div class="cl-card-stat cl-lift-on-hover">
+                    <span class="material-symbols-outlined cl-icon-md cl-stat-icon">event</span>
+                    <span class="cl-stat-value" style="font-size:15px; background:none; -webkit-text-fill-color:initial; color:var(--color-secondary);">{{ records[0].created_at.strftime("%Y-%m-%d") }}</span>
+                    <span class="cl-stat-label">آخرین آزمایش</span>
+                </div>
+
+                <div class="cl-card-stat cl-lift-on-hover">
+                    <span class="material-symbols-outlined cl-icon-md cl-stat-icon">
+                        {% if score_delta is none %}remove{% elif score_delta > 0 %}trending_up{% elif score_delta < 0 %}trending_down{% else %}trending_flat{% endif %}
+                    </span>
+                    <span class="cl-stat-value" style="font-size:16px; background:none; -webkit-text-fill-color:initial;
+                        color:{% if score_delta is none %}var(--color-text-secondary){% elif score_delta > 0 %}var(--color-success){% elif score_delta < 0 %}var(--color-danger){% else %}var(--color-secondary){% endif %};">
+                        {% if score_delta is none %}نامشخص{% elif score_delta > 0 %}+{{ score_delta }}{% else %}{{ score_delta }}{% endif %}
+                    </span>
+                    <span class="cl-stat-label">تغییر نسبت به اولین گزارش</span>
+                </div>
+
+                <div class="cl-card-stat cl-lift-on-hover">
+                    <span class="material-symbols-outlined cl-icon-md cl-stat-icon">folder_copy</span>
+                    <span class="cl-stat-value" data-count-to="{{ records|length }}">0</span>
+                    <span class="cl-stat-label">تعداد گزارش‌ها</span>
+                </div>
+
+                <div class="cl-card-stat cl-lift-on-hover">
+                    <span class="material-symbols-outlined cl-icon-md cl-stat-icon">bloodtype</span>
+                    <span class="cl-stat-value" data-count-to="{{ ns_global.total }}">0</span>
+                    <span class="cl-stat-label">پارامتر پیگیری‌شده</span>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ===== Hidden raw data (read by JS — no backend calls) ===== -->
+        <div id="cl-history-raw-data" style="display:none;" aria-hidden="true">
+            {% for record in records %}
+                {% for tr in record.test_results %}
+                    {% if tr.value_numeric is not none %}
+                    <div class="cl-history-testpoint"
+                         data-record-id="{{ record.id }}"
+                         data-date="{{ record.created_at.strftime('%Y-%m-%d') }}"
+                         data-name="{{ tr.test_name }}"
+                         data-value="{{ tr.value_numeric }}"
+                         data-unit="{{ tr.unit or '' }}"
+                         data-status="{{ tr.status or '' }}"
+                         data-range="{{ tr.reference_range or '' }}"></div>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </div>
+
+        <!-- ===== Smart Filters ===== -->
+        <div class="cl-hist-filters cl-reveal">
+            <div class="cl-hist-filter-search">
+                <span class="material-symbols-outlined cl-icon-sm">search</span>
+                <input type="text" id="cl-hist-search" placeholder="جستجو در نام فایل یا نوع آزمایش...">
+            </div>
+            <div class="cl-chip-row" id="cl-hist-exam-chips">
+                <button type="button" class="cl-chip is-active" data-filter-exam="all">همه انواع</button>
+                {% for exam_key in records | map(attribute='exam_type') | unique | list %}
+                <button type="button" class="cl-chip" data-filter-exam="{{ exam_key }}">{{ exam_type_labels.get(exam_key, exam_key) }}</button>
+                {% endfor %}
+            </div>
+            <div class="cl-chip-row" id="cl-hist-status-chips">
+                <button type="button" class="cl-chip is-active" data-filter-status="all">همه وضعیت‌ها</button>
+                <button type="button" class="cl-chip" data-filter-status="reviewed">بررسی‌شده توسط پزشک</button>
+                <button type="button" class="cl-chip" data-filter-status="awaiting_doctor">در انتظار پزشک</button>
+                <button type="button" class="cl-chip" data-filter-status="not_requested">بدون بررسی پزشک</button>
+            </div>
+        </div>
+
+        <!-- ===== AI Health Story (rule-based narrative built client-side from real data) ===== -->
+        <div class="cl-dash-section cl-reveal" id="cl-story-section" style="display:none;">
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">auto_stories</span> داستان سلامت شما</h2>
+            <div class="cl-story-list" id="cl-story-list"></div>
+        </div>
+
+        <!-- ===== Key Insights ===== -->
+        <div class="cl-dash-section cl-reveal" id="cl-insights-hist-section" style="display:none;">
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">psychology</span> یافته‌های کلیدی</h2>
+            <div class="cl-insights-grid" id="cl-insights-hist-grid"></div>
+        </div>
+
+        <!-- ===== Health Score Evolution chart ===== -->
+        {% if ns_chrono.scores|length >= 2 %}
+        <div class="cl-dash-section cl-reveal">
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">show_chart</span> روند امتیاز سلامت</h2>
+            <div class="cl-card-glass">
+                <div class="cl-dash-chart-wrap">
+                    <canvas id="cl-score-evolution-chart"></canvas>
                 </div>
             </div>
-            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- ===== Trend Detection ===== -->
+        <div class="cl-dash-section cl-reveal" id="cl-trends-hist-section" style="display:none;">
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">query_stats</span> روند شاخص‌های آزمایشگاهی</h2>
+            <div class="cl-trend-grid" id="cl-trend-hist-grid"></div>
+        </div>
+
+        <!-- ===== Compare Reports ===== -->
+        <div class="cl-dash-section cl-reveal" id="cl-compare-section" style="display:none;">
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">compare_arrows</span> مقایسه‌ی دو گزارش</h2>
+
+            <div class="cl-card-glass cl-compare-controls">
+                <div class="cl-input-group">
+                    <label for="cl-compare-a">گزارش اول</label>
+                    <select id="cl-compare-a" class="cl-select cl-input"></select>
+                </div>
+                <span class="material-symbols-outlined cl-compare-arrow">arrow_back</span>
+                <div class="cl-input-group">
+                    <label for="cl-compare-b">گزارش دوم</label>
+                    <select id="cl-compare-b" class="cl-select cl-input"></select>
+                </div>
+                <button type="button" class="cl-btn cl-btn-primary" id="cl-compare-btn">مقایسه کن</button>
+            </div>
+
+            <div class="cl-compare-results" id="cl-compare-results"></div>
+        </div>
+
+        <!-- ===== Timeline ===== -->
+        <div class="cl-dash-section cl-reveal">
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">timeline</span> جدول زمانی گزارش‌ها</h2>
+
+            <div class="cl-hist-timeline" id="cl-hist-timeline">
+                {% for record in records %}
+                {% set rns2 = namespace(total=0, normal=0) %}
+                {% for tr in record.test_results %}
+                    {% if tr.value_numeric is not none %}
+                        {% set rns2.total = rns2.total + 1 %}
+                        {% if tr.status == 'normal' %}{% set rns2.normal = rns2.normal + 1 %}{% endif %}
+                    {% endif %}
+                {% endfor %}
+                {% set node_score = (rns2.normal / rns2.total * 100) | round(0, 'common') | int if rns2.total > 0 else None %}
+
+                <div class="cl-hist-node"
+                     data-exam="{{ record.exam_type }}"
+                     data-status="{{ record.review_status or 'not_requested' }}"
+                     data-search-text="{{ (record.filename or '') ~ ' ' ~ exam_type_labels.get(record.exam_type, record.exam_type or '') }}">
+
+                    <div class="cl-hist-node-dot
+                        {% if node_score is none %}cl-timeline-dot-gold
+                        {% elif node_score >= 80 %}cl-timeline-dot-teal
+                        {% elif node_score >= 50 %}cl-timeline-dot-gold
+                        {% else %}cl-hist-node-dot-danger{% endif %}">
+                        <span class="material-symbols-outlined">science</span>
+                    </div>
+
+                    <div class="cl-hist-node-card cl-card-interactive">
+
+                        <div class="cl-hist-node-head">
+                            <div>
+                                <span class="cl-badge cl-badge-info">{{ exam_type_labels.get(record.exam_type, "آزمایش") }}</span>
+                                {% if record.family_member %}<span class="cl-badge cl-badge-neutral">{{ record.family_member.name }}</span>{% endif %}
+                            </div>
+                            <span class="cl-text-mono cl-text-caption">{{ record.created_at.strftime("%Y-%m-%d") }}</span>
+                        </div>
+
+                        <p class="cl-hist-node-filename">{{ record.filename or "بدون نام فایل" }}</p>
+
+                        <div class="cl-hist-node-foot">
+                            <div class="cl-hist-node-score">
+                                {% if node_score is not none %}
+                                <span class="cl-hist-mini-score
+                                    {% if node_score >= 80 %}cl-hist-mini-score-good
+                                    {% elif node_score >= 50 %}cl-hist-mini-score-warn
+                                    {% else %}cl-hist-mini-score-danger{% endif %}">{{ node_score }}</span>
+                                <span class="cl-text-caption">امتیاز این گزارش</span>
+                                {% else %}
+                                <span class="cl-text-caption">فاقد مقدار عددی ساختاریافته</span>
+                                {% endif %}
+                            </div>
+
+                            {% if record.review_status == 'reviewed' %}
+                            <span class="cl-badge cl-badge-success">بررسی‌شده توسط پزشک</span>
+                            {% elif record.review_status == 'awaiting_doctor' %}
+                            <span class="cl-badge cl-badge-warning">در انتظار پزشک</span>
+                            {% endif %}
+
+                            <a href="/history/{{ record.id }}" class="cl-btn cl-btn-outline cl-btn-sm">
+                                مشاهده گزارش
+                                <span class="material-symbols-outlined cl-icon-sm">arrow_back</span>
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <p class="cl-text-caption" id="cl-hist-empty-filtered" style="display:none; text-align:center; padding:24px;">
+                هیچ گزارشی با این فیلترها پیدا نشد.
+            </p>
         </div>
 
         {% endif %}
@@ -53,4 +286,498 @@
     </div>
 </section>
 
+<!-- ===== Marker detail modal ===== -->
+<div class="cl-modal-overlay" id="cl-marker-modal-overlay" aria-hidden="true">
+    <div class="cl-modal" role="dialog" aria-modal="true" aria-labelledby="cl-marker-modal-title">
+        <button type="button" class="cl-modal-close" id="cl-marker-modal-close" aria-label="بستن">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+        <h3 id="cl-marker-modal-title" class="cl-modal-title"></h3>
+        <div id="cl-marker-modal-body" class="cl-modal-body"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+
+    /* ===== shared reveal (same pattern as other pages) ===== */
+    var revealEls = document.querySelectorAll('.cl-reveal');
+    if ('IntersectionObserver' in window && revealEls.length) {
+        var revealObs = new IntersectionObserver(function(entries){
+            entries.forEach(function(e){ if (e.isIntersecting) { e.target.classList.add('is-visible'); revealObs.unobserve(e.target); } });
+        }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+        revealEls.forEach(function(el){ revealObs.observe(el); });
+    } else {
+        revealEls.forEach(function(el){ el.classList.add('is-visible'); });
+    }
+
+    /* ===== score ring + counters ===== */
+    function animateCount(el){
+        var target = parseInt(el.getAttribute('data-count-to'), 10) || 0;
+        var start = null, duration = 1100;
+        function step(ts){
+            if (!start) start = ts;
+            var p = Math.min((ts - start) / duration, 1);
+            var eased = 1 - Math.pow(1 - p, 3);
+            el.textContent = Math.floor(eased * target).toLocaleString('fa-IR');
+            if (p < 1) requestAnimationFrame(step); else el.textContent = target.toLocaleString('fa-IR');
+        }
+        requestAnimationFrame(step);
+    }
+    document.querySelectorAll('.cl-stat-value[data-count-to]').forEach(function(el){
+        if ('IntersectionObserver' in window) {
+            var obs = new IntersectionObserver(function(entries){
+                entries.forEach(function(e){ if (e.isIntersecting) { animateCount(e.target); obs.unobserve(e.target); } });
+            }, { threshold: 0.4 });
+            obs.observe(el);
+        } else animateCount(el);
+    });
+
+    var ring = document.querySelector('.cl-score-ring-value');
+    var ringNumber = document.querySelector('.cl-score-number');
+    function animateRing(){
+        if (ring) {
+            var target = ring.getAttribute('data-target-offset');
+            requestAnimationFrame(function(){
+                ring.style.transition = 'stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1)';
+                ring.style.strokeDashoffset = target;
+            });
+        }
+        if (ringNumber) animateCount(ringNumber);
+    }
+    var scoreCard = document.querySelector('.cl-health-score-card');
+    if (scoreCard) {
+        if ('IntersectionObserver' in window) {
+            var so = new IntersectionObserver(function(entries){
+                entries.forEach(function(e){ if (e.isIntersecting) { animateRing(); so.unobserve(e.target); } });
+            }, { threshold: 0.3 });
+            so.observe(scoreCard);
+        } else animateRing();
+    }
+
+    /* ===== Collect real test-result data points from the hidden DOM block ===== */
+    var rawPoints = Array.prototype.map.call(document.querySelectorAll('.cl-history-testpoint'), function(el){
+        return {
+            recordId: el.getAttribute('data-record-id'),
+            date: el.getAttribute('data-date'),
+            name: el.getAttribute('data-name'),
+            value: parseFloat(el.getAttribute('data-value')),
+            unit: el.getAttribute('data-unit'),
+            status: el.getAttribute('data-status'),
+            range: el.getAttribute('data-range')
+        };
+    });
+
+    if (!rawPoints.length) return; // nothing structured to build trends/insights/compare from
+
+    var STATUS_LABELS = { high: 'بالا', low: 'پایین', normal: 'طبیعی' };
+
+    function groupByMarker(points){
+        var groups = {};
+        points.forEach(function(p){
+            if (!groups[p.name]) groups[p.name] = [];
+            groups[p.name].push(p);
+        });
+        Object.keys(groups).forEach(function(name){
+            groups[name].sort(function(a, b){ return a.date.localeCompare(b.date); });
+        });
+        return groups;
+    }
+
+    var markerGroups = groupByMarker(rawPoints);
+    var markerNames = Object.keys(markerGroups);
+
+    function buildSparklinePath(values, w, h){
+        if (values.length < 2) return null;
+        var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+        var span = (max - min) || 1;
+        var step = w / (values.length - 1);
+        return values.map(function(v, i){
+            var x = i * step;
+            var y = h - ((v - min) / span) * h;
+            return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
+        }).join(' ');
+    }
+
+    function trendDirection(group){
+        if (group.length < 2) return { direction: 'flat', changeAbs: 0, changePct: 0 };
+        var prev = group[group.length - 2].value;
+        var curr = group[group.length - 1].value;
+        var changeAbs = curr - prev;
+        var changePct = prev !== 0 ? (changeAbs / Math.abs(prev)) * 100 : 0;
+        var direction = changeAbs > 0 ? 'up' : (changeAbs < 0 ? 'down' : 'flat');
+        return { direction: direction, changeAbs: changeAbs, changePct: changePct };
+    }
+
+    function improvementLabel(group){
+        if (group.length < 2) return 'stable';
+        var prevStatus = group[group.length - 2].status;
+        var currStatus = group[group.length - 1].status;
+        if (currStatus === 'normal' && prevStatus !== 'normal') return 'improved';
+        if (currStatus !== 'normal' && prevStatus === 'normal') return 'declined';
+        if (currStatus !== 'normal' && prevStatus !== 'normal') return 'attention';
+        return 'stable';
+    }
+
+    /* ===== Trend Detection section ===== */
+    var trendSection = document.getElementById('cl-trends-hist-section');
+    var trendGrid = document.getElementById('cl-trend-hist-grid');
+
+    markerNames.forEach(function(name){
+        var group = markerGroups[name];
+        var latest = group[group.length - 1];
+        var t = trendDirection(group);
+        var label = improvementLabel(group);
+
+        var badgeClass = 'cl-badge-info', badgeText = 'ثابت';
+        if (label === 'improved') { badgeClass = 'cl-badge-success'; badgeText = 'بهبود یافته'; }
+        else if (label === 'declined') { badgeClass = 'cl-badge-warning'; badgeText = 'نیاز به توجه'; }
+        else if (label === 'attention') { badgeClass = 'cl-badge-danger'; badgeText = 'همچنان خارج از محدوده'; }
+
+        var card = document.createElement('div');
+        card.className = 'cl-trend-card cl-card-interactive';
+        card.setAttribute('data-marker', name);
+
+        var sparkValues = group.map(function(p){ return p.value; });
+        var path = buildSparklinePath(sparkValues, 100, 32);
+
+        card.innerHTML =
+            '<div class="cl-trend-card-head">' +
+                '<strong>' + name + '</strong>' +
+                '<span class="cl-badge ' + badgeClass + '">' + badgeText + '</span>' +
+            '</div>' +
+            '<div class="cl-trend-card-value">' + latest.value + ' <span class="cl-text-caption">' + (latest.unit || '') + '</span></div>' +
+            (path ? '<svg class="cl-sparkline" viewBox="0 0 100 32" preserveAspectRatio="none"><path d="' + path + '"/></svg>' : '<p class="cl-text-caption">داده‌ی کافی برای روند وجود ندارد</p>') +
+            '<div class="cl-trend-card-foot">' +
+                '<span class="material-symbols-outlined cl-icon-sm ' + (t.direction === 'up' ? 'cl-trend-up' : t.direction === 'down' ? 'cl-trend-down' : '') + '">' +
+                    (t.direction === 'up' ? 'trending_up' : t.direction === 'down' ? 'trending_down' : 'trending_flat') +
+                '</span>' +
+                '<span class="cl-text-caption">' + (group.length >= 2 ? Math.abs(t.changeAbs).toFixed(1) + ' نسبت به آزمایش قبلی' : 'اولین ثبت') + '</span>' +
+            '</div>';
+
+        card.addEventListener('click', function(){ openMarkerModal(name); });
+        trendGrid.appendChild(card);
+    });
+
+    if (markerNames.length) trendSection.style.display = '';
+
+    /* ===== Key Insights ===== */
+    var insightsSection = document.getElementById('cl-insights-hist-section');
+    var insightsGrid = document.getElementById('cl-insights-hist-grid');
+
+    var multiPointMarkers = markerNames.filter(function(n){ return markerGroups[n].length >= 2; });
+
+    if (multiPointMarkers.length) {
+        var scored = multiPointMarkers.map(function(n){
+            var t = trendDirection(markerGroups[n]);
+            return { name: n, changeAbs: t.changeAbs, label: improvementLabel(markerGroups[n]) };
+        });
+
+        var mostImproved = scored.filter(function(s){ return s.label === 'improved'; })
+            .sort(function(a,b){ return Math.abs(b.changeAbs) - Math.abs(a.changeAbs); })[0];
+
+        var mostConcerning = scored.filter(function(s){ return s.label === 'attention' || s.label === 'declined'; })
+            .sort(function(a,b){ return Math.abs(b.changeAbs) - Math.abs(a.changeAbs); })[0];
+
+        var largestPositive = scored.filter(function(s){ return s.changeAbs > 0; })
+            .sort(function(a,b){ return b.changeAbs - a.changeAbs; })[0];
+
+        var largestNegative = scored.filter(function(s){ return s.changeAbs < 0; })
+            .sort(function(a,b){ return a.changeAbs - b.changeAbs; })[0];
+
+        function insightCard(icon, title, marker, desc){
+            if (!marker) return null;
+            var el = document.createElement('div');
+            el.className = 'cl-insight-card';
+            el.innerHTML =
+                '<div class="cl-insight-icon"><span class="material-symbols-outlined">' + icon + '</span></div>' +
+                '<h4 class="cl-insight-title">' + title + '</h4>' +
+                '<p>' + marker.name + ' — ' + desc + '</p>';
+            el.addEventListener('click', function(){ openMarkerModal(marker.name); });
+            el.style.cursor = 'pointer';
+            return el;
+        }
+
+        [
+            insightCard('trending_up', 'بیشترین بهبود', mostImproved, 'به محدوده طبیعی بازگشته است'),
+            insightCard('priority_high', 'نیازمند توجه بیشتر', mostConcerning, 'همچنان خارج از محدوده مرجع'),
+            insightCard('arrow_upward', 'بیشترین افزایش عددی', largestPositive, 'نسبت به آزمایش قبلی افزایش یافته'),
+            insightCard('arrow_downward', 'بیشترین کاهش عددی', largestNegative, 'نسبت به آزمایش قبلی کاهش یافته')
+        ].forEach(function(card){ if (card) insightsGrid.appendChild(card); });
+
+        var followupCard = document.createElement('div');
+        followupCard.className = 'cl-insight-card';
+        followupCard.innerHTML =
+            '<div class="cl-insight-icon"><span class="material-symbols-outlined">event_repeat</span></div>' +
+            '<h4 class="cl-insight-title">پیگیری پیشنهادی</h4>' +
+            '<p>' + (mostConcerning ? 'در آزمایش بعدی، به‌طور ویژه ' + mostConcerning.name + ' را پیگیری کنید.' : 'روند فعلی پایدار است؛ ادامه‌ی آزمایش‌های دوره‌ای کافی است.') + '</p>';
+        insightsGrid.appendChild(followupCard);
+
+        insightsSection.style.display = '';
+    }
+
+    /* ===== AI Health Story (rule-based narrative from real trend data) ===== */
+    var storySection = document.getElementById('cl-story-section');
+    var storyList = document.getElementById('cl-story-list');
+
+    var storyMarkers = multiPointMarkers.slice(0, 4);
+    if (storyMarkers.length) {
+        storyMarkers.forEach(function(name){
+            var group = markerGroups[name];
+            var first = group[0], last = group[group.length - 1];
+            var label = improvementLabel(group);
+            var sentence;
+
+            if (label === 'improved') {
+                sentence = 'در بازه‌ی بین ' + first.date + ' تا ' + last.date + '، مقدار ' + name + ' شما از ' + first.value + ' به ' + last.value + ' رسیده و به محدوده‌ی طبیعی بازگشته است.';
+            } else if (label === 'declined') {
+                sentence = 'مقدار ' + name + ' شما که در ' + first.date + ' طبیعی بود، در آخرین آزمایش (' + last.date + ') به ' + last.value + ' تغییر کرده و از محدوده‌ی طبیعی خارج شده است.';
+            } else if (label === 'attention') {
+                sentence = 'مقدار ' + name + ' همچنان از ' + first.date + ' تا ' + last.date + ' خارج از محدوده‌ی طبیعی باقی مانده (از ' + first.value + ' به ' + last.value + ').';
+            } else {
+                sentence = 'مقدار ' + name + ' شما در طول این بازه ثابت و در محدوده‌ی طبیعی باقی مانده است (' + first.value + ' → ' + last.value + ').';
+            }
+
+            var item = document.createElement('div');
+            item.className = 'cl-story-item';
+            item.innerHTML =
+                '<span class="cl-story-icon"><span class="material-symbols-outlined">auto_awesome</span></span>' +
+                '<p>' + sentence + '</p>';
+            storyList.appendChild(item);
+        });
+        storySection.style.display = '';
+    }
+
+    /* ===== Health Score Evolution chart ===== */
+    var evoCanvas = document.getElementById('cl-score-evolution-chart');
+    if (evoCanvas) {
+        var scoreLine = [
+            {% for record in records | reverse %}
+            {% set rns3 = namespace(total=0, normal=0) %}
+            {% for tr in record.test_results %}
+                {% if tr.value_numeric is not none %}
+                    {% set rns3.total = rns3.total + 1 %}
+                    {% if tr.status == 'normal' %}{% set rns3.normal = rns3.normal + 1 %}{% endif %}
+                {% endif %}
+            {% endfor %}
+            {% if rns3.total > 0 %}
+            { date: "{{ record.created_at.strftime('%Y-%m-%d') }}", score: {{ (rns3.normal / rns3.total * 100) | round(0, 'common') | int }} },
+            {% endif %}
+            {% endfor %}
+        ];
+
+        var script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
+        script.onload = function(){
+            new Chart(evoCanvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: scoreLine.map(function(p){ return p.date; }),
+                    datasets: [{
+                        label: 'امتیاز سلامت',
+                        data: scoreLine.map(function(p){ return p.score; }),
+                        borderColor: '#0F6FFF',
+                        backgroundColor: 'rgba(15,111,255,.08)',
+                        tension: 0.35,
+                        fill: true,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#0F6FFF',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: { label: function(ctx){ return 'امتیاز: ' + ctx.parsed.y; } }
+                        }
+                    },
+                    scales: {
+                        y: { min: 0, max: 100, grid: { color: 'rgba(15,111,255,.08)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        };
+        document.body.appendChild(script);
+    }
+
+    /* ===== Compare Reports ===== */
+    var compareSection = document.getElementById('cl-compare-section');
+    var compareA = document.getElementById('cl-compare-a');
+    var compareB = document.getElementById('cl-compare-b');
+    var compareResults = document.getElementById('cl-compare-results');
+
+    var uniqueRecords = [];
+    var seenIds = {};
+    rawPoints.forEach(function(p){
+        if (!seenIds[p.recordId]) {
+            seenIds[p.recordId] = true;
+            uniqueRecords.push({ id: p.recordId, date: p.date });
+        }
+    });
+    uniqueRecords.sort(function(a, b){ return b.date.localeCompare(a.date); });
+
+    if (uniqueRecords.length >= 2) {
+        uniqueRecords.forEach(function(r, idx){
+            var optA = document.createElement('option');
+            optA.value = r.id; optA.textContent = r.date;
+            compareA.appendChild(optA);
+
+            var optB = document.createElement('option');
+            optB.value = r.id; optB.textContent = r.date;
+            compareB.appendChild(optB);
+        });
+        compareA.selectedIndex = 1;
+        compareB.selectedIndex = 0;
+
+        document.getElementById('cl-compare-btn').addEventListener('click', function(){
+            var idA = compareA.value, idB = compareB.value;
+            if (idA === idB) {
+                compareResults.innerHTML = '<p class="cl-text-caption">لطفاً دو گزارش متفاوت انتخاب کنید.</p>';
+                return;
+            }
+            var pointsA = rawPoints.filter(function(p){ return p.recordId === idA; });
+            var pointsB = rawPoints.filter(function(p){ return p.recordId === idB; });
+            var namesA = {}; pointsA.forEach(function(p){ namesA[p.name] = p; });
+
+            var html = '';
+            pointsB.forEach(function(pb){
+                var pa = namesA[pb.name];
+                if (!pa) return;
+                var diff = pb.value - pa.value;
+                var status;
+                if (pb.status === 'normal' && pa.status !== 'normal') status = { cls: 'cl-badge-success', text: 'بهبود یافته' };
+                else if (pb.status !== 'normal' && pa.status === 'normal') status = { cls: 'cl-badge-danger', text: 'نیاز به توجه' };
+                else if (pb.status !== 'normal') status = { cls: 'cl-badge-warning', text: 'همچنان خارج از محدوده' };
+                else status = { cls: 'cl-badge-info', text: 'ثابت' };
+
+                html +=
+                    '<div class="cl-compare-card">' +
+                        '<div class="cl-compare-card-head"><strong>' + pb.name + '</strong><span class="cl-badge ' + status.cls + '">' + status.text + '</span></div>' +
+                        '<div class="cl-compare-values">' +
+                            '<div><span class="cl-text-caption">' + pa.date + '</span><strong>' + pa.value + ' ' + (pa.unit||'') + '</strong></div>' +
+                            '<span class="material-symbols-outlined">arrow_back</span>' +
+                            '<div><span class="cl-text-caption">' + pb.date + '</span><strong>' + pb.value + ' ' + (pb.unit||'') + '</strong></div>' +
+                        '</div>' +
+                        '<p class="cl-text-caption" style="margin:8px 0 0;">تغییر: ' + (diff > 0 ? '+' : '') + diff.toFixed(1) + '</p>' +
+                    '</div>';
+            });
+
+            compareResults.innerHTML = html || '<p class="cl-text-caption">پارامتر مشترکی بین این دو گزارش برای مقایسه پیدا نشد.</p>';
+        });
+
+        compareSection.style.display = '';
+    }
+
+    /* ===== Marker detail modal (reuses existing /trends/data/{name} API) ===== */
+    var modalOverlay = document.getElementById('cl-marker-modal-overlay');
+    var modalTitle = document.getElementById('cl-marker-modal-title');
+    var modalBody = document.getElementById('cl-marker-modal-body');
+    var modalClose = document.getElementById('cl-marker-modal-close');
+
+    var LIFESTYLE_TIPS = {
+        'Glucose': 'کاهش مصرف قند ساده و افزایش فعالیت بدنی می‌تواند کمک‌کننده باشد.',
+        'HbA1c': 'رژیم کم‌قند و ورزش منظم بر این شاخص تاثیرگذار است.',
+        'Vitamin D': 'قرارگیری در معرض نور آفتاب و مصرف منابع غذایی ویتامین D توصیه می‌شود.',
+        'LDL': 'کاهش چربی‌های اشباع و افزایش فیبر غذایی می‌تواند موثر باشد.',
+        'Hemoglobin': 'مصرف منابع غذایی آهن‌دار (گوشت قرمز، عدس، اسفناج) توصیه می‌شود.'
+    };
+
+    function openMarkerModal(name){
+        var group = markerGroups[name] || [];
+        var latest = group[group.length - 1];
+
+        modalTitle.textContent = name;
+
+        var historyRows = group.slice().reverse().map(function(p){
+            return '<div class="cl-modal-history-row"><span>' + p.date + '</span><strong>' + p.value + ' ' + (p.unit||'') + '</strong><span class="cl-badge ' +
+                (p.status === 'normal' ? 'cl-badge-success' : p.status === 'high' ? 'cl-badge-danger' : 'cl-badge-warning') + '">' +
+                (STATUS_LABELS[p.status] || p.status || '—') + '</span></div>';
+        }).join('');
+
+        var tip = LIFESTYLE_TIPS[name] || 'برای توصیه‌های اختصاصی، نتیجه را با پزشک یا متخصص تغذیه خود در میان بگذارید.';
+
+        modalBody.innerHTML =
+            '<div class="cl-modal-section">' +
+                '<span class="cl-text-caption">بازه مرجع</span>' +
+                '<p>' + (latest.range || 'نامشخص') + '</p>' +
+            '</div>' +
+            '<div class="cl-modal-section">' +
+                '<span class="cl-text-caption">تاریخچه‌ی کامل</span>' +
+                '<div class="cl-modal-history-list">' + historyRows + '</div>' +
+            '</div>' +
+            '<div class="cl-modal-section">' +
+                '<span class="cl-text-caption">توصیه‌ی سبک زندگی</span>' +
+                '<p>' + tip + '</p>' +
+            '</div>' +
+            '<a href="/trends" class="cl-btn cl-btn-outline cl-btn-sm" style="margin-top:8px;">مشاهده در صفحه‌ی روند کامل</a>';
+
+        modalOverlay.classList.add('is-open');
+        modalOverlay.setAttribute('aria-hidden', 'false');
+        modalClose.focus();
+    }
+
+    function closeModal(){
+        modalOverlay.classList.remove('is-open');
+        modalOverlay.setAttribute('aria-hidden', 'true');
+    }
+
+    modalClose.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', function(e){ if (e.target === modalOverlay) closeModal(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
+
+    /* ===== Timeline filters (client-side only) ===== */
+    var timelineNodes = document.querySelectorAll('.cl-hist-node');
+    var searchInput = document.getElementById('cl-hist-search');
+    var examChips = document.querySelectorAll('#cl-hist-exam-chips .cl-chip');
+    var statusChips = document.querySelectorAll('#cl-hist-status-chips .cl-chip');
+    var emptyFiltered = document.getElementById('cl-hist-empty-filtered');
+
+    var activeExam = 'all', activeStatus = 'all', activeSearch = '';
+
+    function applyFilters(){
+        var visibleCount = 0;
+        timelineNodes.forEach(function(node){
+            var matchesExam = activeExam === 'all' || node.getAttribute('data-exam') === activeExam;
+            var matchesStatus = activeStatus === 'all' || node.getAttribute('data-status') === activeStatus;
+            var matchesSearch = !activeSearch || node.getAttribute('data-search-text').toLowerCase().indexOf(activeSearch) !== -1;
+            var visible = matchesExam && matchesStatus && matchesSearch;
+            node.style.display = visible ? '' : 'none';
+            if (visible) visibleCount++;
+        });
+        emptyFiltered.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+
+    examChips.forEach(function(chip){
+        chip.addEventListener('click', function(){
+            examChips.forEach(function(c){ c.classList.remove('is-active'); });
+            chip.classList.add('is-active');
+            activeExam = chip.getAttribute('data-filter-exam');
+            applyFilters();
+        });
+    });
+    statusChips.forEach(function(chip){
+        chip.addEventListener('click', function(){
+            statusChips.forEach(function(c){ c.classList.remove('is-active'); });
+            chip.classList.add('is-active');
+            activeStatus = chip.getAttribute('data-filter-status');
+            applyFilters();
+        });
+    });
+    if (searchInput) {
+        searchInput.addEventListener('input', function(){
+            activeSearch = searchInput.value.trim().toLowerCase();
+            applyFilters();
+        });
+    }
+
+})();
+</script>
 {% endblock %}
