@@ -1,3 +1,4 @@
+# main.py
 from app.core.logging_config import setup_logging, get_logger
 
 setup_logging()
@@ -33,6 +34,7 @@ from app.routers.visit_prep import router as visit_prep_router
 from app.routers.workout import router as workout_router
 from app.routers.doctor_review import router as doctor_review_router
 from app.routers.reviews import router as reviews_router
+from app.routers.health_status import router as health_status_router
 
 from app.services.job_store import purge_old_jobs
 from app.services import pending_action_store
@@ -84,6 +86,7 @@ app.include_router(doctor_review_router)
 app.include_router(admin_router)
 app.include_router(payment_router)
 app.include_router(reviews_router)
+app.include_router(health_status_router)
 
 
 async def _job_cleanup_loop():

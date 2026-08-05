@@ -1,3 +1,4 @@
+{# app/templates/base.html #}
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 
@@ -15,8 +16,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
     <link rel="stylesheet" href="/static/css/style.css">
 
     {% block head %}{% endblock %}
@@ -27,22 +26,6 @@
 
     <a href="#main-content" class="cl-skip-link">رفتن به محتوای اصلی</a>
 
-    <div class="cl-dna-bg" aria-hidden="true">
-        <svg viewBox="0 0 120 1260" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
-            <path class="cl-dna-strand cl-dna-strand-a" d="M60,0 C120,60 0,120 60,180 C120,240 0,300 60,360 C120,420 0,480 60,540 C120,600 0,660 60,720 C120,780 0,840 60,900 C120,960 0,1020 60,1080 C120,1140 0,1200 60,1260"/>
-            <path class="cl-dna-strand cl-dna-strand-b" d="M60,0 C0,60 120,120 60,180 C0,240 120,300 60,360 C0,420 120,480 60,540 C0,600 120,660 60,720 C0,780 120,840 60,900 C0,960 120,1020 60,1080 C0,1140 120,1200 60,1260"/>
-            <g class="cl-dna-rungs">
-                <line x1="15" y1="90" x2="105" y2="90"/>
-                <line x1="15" y1="270" x2="105" y2="270"/>
-                <line x1="15" y1="450" x2="105" y2="450"/>
-                <line x1="15" y1="630" x2="105" y2="630"/>
-                <line x1="15" y1="810" x2="105" y2="810"/>
-                <line x1="15" y1="990" x2="105" y2="990"/>
-                <line x1="15" y1="1170" x2="105" y2="1170"/>
-            </g>
-        </svg>
-    </div>
-
     <header class="navbar" id="cl-navbar">
         <div class="container navbar-inner">
 
@@ -52,14 +35,14 @@
 
             <nav class="cl-mega-nav">
 
-                <a href="/" class="cl-nav-link nav-active">
+                <a href="/" class="cl-nav-link nav-active" data-i18n="nav_home">
                     <span class="material-symbols-outlined cl-icon-sm">home</span>
                     خانه
                 </a>
 
                 {% if user %}
                 <div class="cl-mega-item">
-                    <button type="button" class="cl-mega-trigger">
+                    <button type="button" class="cl-mega-trigger" data-i18n="nav_services">
                         سرویس‌های سلامت
                         <span class="material-symbols-outlined cl-mega-caret">expand_more</span>
                     </button>
@@ -68,59 +51,64 @@
                             <a href="/#upload" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">science</span></span>
                                 <span>
-                                    <strong>تحلیل آزمایش</strong>
-                                    <small>آپلود و تفسیر هوشمند نتایج</small>
+                                    <strong data-i18n="nav_svc_analyze">تحلیل آزمایش</strong>
+                                    <small data-i18n="nav_svc_analyze_sub">آپلود و تفسیر هوشمند نتایج</small>
                                 </span>
                             </a>
                             <a href="/history" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">folder_shared</span></span>
                                 <span>
-                                    <strong>تاریخچه آزمایش‌ها</strong>
-                                    <small>مشاهده تحلیل‌های قبلی</small>
+                                    <strong data-i18n="nav_svc_history">تاریخچه آزمایش‌ها</strong>
+                                    <small data-i18n="nav_svc_history_sub">مشاهده تحلیل‌های قبلی</small>
                                 </span>
                             </a>
                             <a href="/trends" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">trending_up</span></span>
                                 <span>
-                                    <strong>روند آزمایش‌ها</strong>
-                                    <small>مقایسه مقادیر در طول زمان</small>
+                                    <strong data-i18n="nav_svc_trends">روند آزمایش‌ها</strong>
+                                    <small data-i18n="nav_svc_trends_sub">مقایسه مقادیر در طول زمان</small>
                                 </span>
                             </a>
                             <a href="/diet" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">nutrition</span></span>
                                 <span>
-                                    <strong>برنامه غذایی</strong>
-                                    <small>شخصی‌سازی‌شده بر اساس آزمایش‌ها</small>
+                                    <strong data-i18n="nav_svc_diet">برنامه غذایی</strong>
+                                    <small data-i18n="nav_svc_diet_sub">شخصی‌سازی‌شده بر اساس آزمایش‌ها</small>
                                 </span>
                             </a>
                             <a href="/workout" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">fitness_center</span></span>
                                 <span>
-                                    <strong>برنامه ورزشی</strong>
-                                    <small>بدنسازی، کاردیو و فیتنس شخصی‌سازی‌شده</small>
+                                    <strong data-i18n="nav_svc_workout">برنامه ورزشی</strong>
+                                    <small data-i18n="nav_svc_workout_sub">بدنسازی، کاردیو و فیتنس شخصی‌سازی‌شده</small>
                                 </span>
                             </a>
                             <a href="/visit-prep" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">assignment</span></span>
                                 <span>
-                                    <strong>آماده‌سازی ویزیت</strong>
-                                    <small>خلاصه‌ای آماده قبل از مراجعه به پزشک</small>
+                                    <strong data-i18n="nav_svc_visit">آماده‌سازی ویزیت</strong>
+                                    <small data-i18n="nav_svc_visit_sub">خلاصه‌ای آماده قبل از مراجعه به پزشک</small>
                                 </span>
                             </a>
                             <a href="/family" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">diversity_3</span></span>
                                 <span>
-                                    <strong>خانواده</strong>
-                                    <small>مدیریت آزمایش‌های اعضای خانواده</small>
+                                    <strong data-i18n="nav_svc_family">خانواده</strong>
+                                    <small data-i18n="nav_svc_family_sub">مدیریت آزمایش‌های اعضای خانواده</small>
                                 </span>
                             </a>
                         </div>
                     </div>
                 </div>
+
+                <a href="/health-status" class="cl-nav-link" data-i18n="nav_health_status">
+                    <span class="material-symbols-outlined cl-icon-sm">monitor_heart</span>
+                    وضعیت سلامت من
+                </a>
                 {% endif %}
 
                 <div class="cl-mega-item">
-                    <button type="button" class="cl-mega-trigger">
+                    <button type="button" class="cl-mega-trigger" data-i18n="nav_about">
                         درباره کیورالینک
                         <span class="material-symbols-outlined cl-mega-caret">expand_more</span>
                     </button>
@@ -129,37 +117,30 @@
                             <a href="https://curalinkcare.com/about/" target="_blank" rel="noopener" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">apartment</span></span>
                                 <span>
-                                    <strong>درباره ما</strong>
-                                    <small>آشنایی با تیم و ماموریت CuraLink</small>
+                                    <strong data-i18n="nav_about_us">درباره ما</strong>
+                                    <small data-i18n="nav_about_us_sub">آشنایی با تیم و ماموریت CuraLink</small>
                                 </span>
                             </a>
                             <a href="https://curalinkcare.com/our-services/" target="_blank" rel="noopener" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">dashboard</span></span>
                                 <span>
-                                    <strong>خدمات ما</strong>
-                                    <small>معرفی کامل قابلیت‌های پلتفرم</small>
+                                    <strong data-i18n="nav_our_services">خدمات ما</strong>
+                                    <small data-i18n="nav_our_services_sub">معرفی کامل قابلیت‌های پلتفرم</small>
                                 </span>
                             </a>
                             <a href="https://curalinkcare.com/contact/" target="_blank" rel="noopener" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">support_agent</span></span>
                                 <span>
-                                    <strong>تماس با ما</strong>
-                                    <small>پشتیبانی و ارتباط مستقیم</small>
+                                    <strong data-i18n="nav_contact">تماس با ما</strong>
+                                    <small data-i18n="nav_contact_sub">پشتیبانی و ارتباط مستقیم</small>
                                 </span>
                             </a>
                         </div>
                     </div>
                 </div>
 
-                {% if user %}
-                <a href="/billing/plans" class="cl-nav-link">
-                    <span class="material-symbols-outlined cl-icon-sm">workspace_premium</span>
-                    پلن‌های من
-                </a>
-                {% endif %}
-
                 {% if user and user.role == 'doctor' %}
-                <a href="/doctor/reviews" class="cl-nav-link">
+                <a href="/doctor/reviews" class="cl-nav-link" data-i18n="nav_doctor_reviews">
                     <span class="material-symbols-outlined cl-icon-sm">medical_services</span>
                     بررسی گزارش‌ها
                 </a>
@@ -167,7 +148,7 @@
 
                 {% if user and user.role == 'platform_admin' %}
                 <div class="cl-mega-item">
-                    <button type="button" class="cl-mega-trigger">
+                    <button type="button" class="cl-mega-trigger" data-i18n="nav_admin">
                         پنل مدیریت
                         <span class="material-symbols-outlined cl-mega-caret">expand_more</span>
                     </button>
@@ -185,7 +166,7 @@
             </nav>
 
             <div class="cl-header-actions" aria-hidden="false">
-                <button type="button" class="cl-icon-btn" aria-label="جستجو" title="جستجو (به‌زودی)" aria-disabled="true">
+                <button type="button" class="cl-icon-btn" id="cl-search-toggle" aria-label="جستجو" title="جستجو">
                     <span class="material-symbols-outlined">search</span>
                 </button>
                 {% if user %}
@@ -194,7 +175,7 @@
                     {% if due_followups is defined and due_followups %}<span class="cl-notif-badge-unread">{{ due_followups|length }}</span>{% endif %}
                 </button>
                 {% endif %}
-                <button type="button" class="cl-icon-btn cl-header-lang-btn" aria-label="تغییر زبان" title="تغییر زبان (به‌زودی)" aria-disabled="true">
+                <button type="button" class="cl-icon-btn cl-header-lang-btn" id="cl-lang-toggle" aria-label="Switch language" title="Switch language">
                     FA
                 </button>
             </div>
@@ -202,10 +183,10 @@
             <div class="navbar-cta">
                 {% if user %}
                     <a href="/profile" class="btn btn-outline">{{ user.display_name or 'پروفایل من' }}</a>
-                    <a href="/logout" class="btn btn-solid">خروج</a>
+                    <a href="/logout" class="btn btn-solid" data-i18n="nav_logout">خروج</a>
                 {% else %}
-                    <a href="/login" class="btn btn-outline">ورود به پنل</a>
-                    <a href="/register" class="btn btn-solid">ثبت‌نام</a>
+                    <a href="/login" class="btn btn-outline" data-i18n="nav_login">ورود به پنل</a>
+                    <a href="/register" class="btn btn-solid" data-i18n="nav_register">ثبت‌نام</a>
                 {% endif %}
             </div>
 
@@ -307,11 +288,26 @@
 
             <p class="footer-copyright">
                 کلیه حقوق این وب‌سایت متعلق به شرکت درمان پیوند ایرانیان است
-                (برند ثبت‌شده کیورالینک — شماره ثبت ۲۴۴۹۷).
+                (برند ثبت‌شده کیورالینک — شماره ثبت 24497).
             </p>
 
         </div>
     </footer>
+
+    <!-- ===== Search drawer (client-side site navigator) ===== -->
+    <div class="cl-drawer-overlay" id="cl-search-overlay">
+        <aside class="cl-drawer cl-drawer-left" id="cl-search-drawer" style="width:min(420px, 92vw);">
+            <button type="button" class="cl-icon-btn" id="cl-search-close" style="margin-bottom:16px;">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <h3 class="cl-modal-title" style="margin-bottom:16px;" data-i18n="search_title">جستجو در سایت</h3>
+            <div class="cl-ws-search" style="max-width:none; margin-bottom:16px;">
+                <span class="material-symbols-outlined">search</span>
+                <input type="text" id="cl-search-input" placeholder="نام بخش یا سرویس را وارد کنید...">
+            </div>
+            <div id="cl-search-results" style="display:flex; flex-direction:column; gap:4px;"></div>
+        </aside>
+    </div>
 
     {% if user %}
     <div class="cl-drawer-overlay" id="cl-notif-drawer-overlay">
@@ -333,52 +329,6 @@
             {% endif %}
         </aside>
     </div>
-
-    <div class="cl-drawer-overlay" id="cl-booking-overlay">
-        <aside class="cl-drawer cl-drawer-left cl-booking-modal" style="width:min(420px, 92vw);">
-            <button type="button" class="cl-icon-btn" id="cl-booking-close" style="margin-bottom:16px;"><span class="material-symbols-outlined">close</span></button>
-            <h3 class="cl-modal-title">رزرو خدمت مراقبتی (پیش‌نمایش)</h3>
-
-            <div class="cl-stepper">
-                <div class="cl-stepper-step is-active"><span class="cl-stepper-dot">۱</span><span class="cl-stepper-label">خدمت</span></div>
-                <div class="cl-stepper-line"></div>
-                <div class="cl-stepper-step"><span class="cl-stepper-dot">۲</span><span class="cl-stepper-label">تاریخ</span></div>
-                <div class="cl-stepper-line"></div>
-                <div class="cl-stepper-step"><span class="cl-stepper-dot">۳</span><span class="cl-stepper-label">تایید</span></div>
-            </div>
-
-            <div class="cl-booking-panel is-active">
-                <div class="cl-booking-option" data-service="مشاوره تغذیه">
-                    <span class="cl-booking-option-icon"><span class="material-symbols-outlined">nutrition</span></span>
-                    <span>مشاوره تغذیه</span>
-                </div>
-                <div class="cl-booking-option" data-service="فیزیوتراپی">
-                    <span class="cl-booking-option-icon"><span class="material-symbols-outlined">fitness_center</span></span>
-                    <span>فیزیوتراپی</span>
-                </div>
-                <div class="cl-booking-option" data-service="ویزیت پزشک">
-                    <span class="cl-booking-option-icon"><span class="material-symbols-outlined">medical_services</span></span>
-                    <span>ویزیت پزشک</span>
-                </div>
-                <div class="cl-booking-footer"><span></span><button type="button" class="cl-btn cl-btn-primary cl-btn-sm" data-step-next>مرحله بعد</button></div>
-            </div>
-
-            <div class="cl-booking-panel">
-                <p class="cl-text-caption" style="margin-bottom:12px;">خدمت انتخاب‌شده: <strong data-selected-service>—</strong></p>
-                <div class="cl-input-group"><label>تاریخ ترجیحی</label><input type="date" class="cl-input"></div>
-                <div class="cl-booking-footer"><button type="button" class="cl-btn cl-btn-outline cl-btn-sm" data-step-prev>مرحله قبل</button><button type="button" class="cl-btn cl-btn-primary cl-btn-sm" data-step-next>مرحله بعد</button></div>
-            </div>
-
-            <div class="cl-booking-panel">
-                <div class="cl-alert cl-alert-info">
-                    <span class="material-symbols-outlined">info</span>
-                    <span>رزرو آنلاین هنوز به سیستم واقعی نوبت‌دهی متصل نشده و این فقط یک پیش‌نمایش از تجربه‌ی آینده است.</span>
-                </div>
-                <div class="cl-booking-footer"><button type="button" class="cl-btn cl-btn-outline cl-btn-sm" data-step-prev>مرحله قبل</button></div>
-            </div>
-        </aside>
-    </div>
-    <script src="/static/js/booking.js"></script>
     <script>
     (function(){
         var notifToggle = document.getElementById('cl-notif-drawer-toggle');
@@ -453,6 +403,175 @@
         }
     })();
     </script>
+
+    <!-- ===== Language toggle (FA / EN) — client-side, applies to elements with data-i18n ===== -->
+    <script>
+    (function(){
+        var DICT = {
+            en: {
+                nav_home: "Home",
+                nav_services: "Health Services",
+                nav_svc_analyze: "Analyze Test", nav_svc_analyze_sub: "Upload & get smart interpretation",
+                nav_svc_history: "Test History", nav_svc_history_sub: "View past analyses",
+                nav_svc_trends: "Trends", nav_svc_trends_sub: "Compare values over time",
+                nav_svc_diet: "Diet Plan", nav_svc_diet_sub: "Personalized based on your tests",
+                nav_svc_workout: "Workout Plan", nav_svc_workout_sub: "Personalized strength & cardio",
+                nav_svc_visit: "Visit Prep", nav_svc_visit_sub: "Ready summary before your appointment",
+                nav_svc_family: "Family", nav_svc_family_sub: "Manage family members' tests",
+                nav_health_status: "My Health Status",
+                nav_about: "About CuraLink",
+                nav_about_us: "About Us", nav_about_us_sub: "Meet the team & mission",
+                nav_our_services: "Our Services", nav_our_services_sub: "Full platform capabilities",
+                nav_contact: "Contact Us", nav_contact_sub: "Support & direct contact",
+                nav_doctor_reviews: "Review Queue",
+                nav_admin: "Admin Panel",
+                nav_login: "Sign In", nav_register: "Sign Up", nav_logout: "Logout",
+                search_title: "Search the site",
+                hs_greeting: "Hello,",
+                hs_empty_title: "No test uploaded yet",
+                hs_empty_sub: "Upload your first test to start your personalized health journey.",
+                hs_empty_cta: "Start first analysis",
+                hs_score_label: "Overall health score",
+                hs_stat_analyses: "Tests analyzed",
+                hs_stat_diet: "Diet plans",
+                hs_stat_workout: "Workout plans",
+                hs_stat_last_upload: "Last upload",
+                hs_quick_actions: "Quick actions",
+                hs_qa_upload: "Upload new test",
+                hs_qa_history: "History",
+                hs_qa_trends: "Trends",
+                hs_qa_diet: "Diet plan",
+                hs_qa_workout: "Workout plan",
+                hs_qa_visit: "Visit prep",
+                hs_qa_family: "Family",
+                hs_followup_title: "Test follow-up reminder",
+            },
+            fa: {}
+        };
+
+        var STORAGE_KEY = "cl_lang";
+        var langBtn = document.getElementById("cl-lang-toggle");
+
+        function applyLang(lang){
+            var dict = DICT[lang] || {};
+            document.querySelectorAll("[data-i18n]").forEach(function(el){
+                var key = el.getAttribute("data-i18n");
+                if (lang === "en" && dict[key]) {
+                    if (!el.hasAttribute("data-fa-original")) {
+                        el.setAttribute("data-fa-original", el.textContent.trim());
+                    }
+                    // Preserve any leading icon element, replace only the trailing text node.
+                    var lastChild = el.lastChild;
+                    if (lastChild && lastChild.nodeType === 3) {
+                        lastChild.textContent = " " + dict[key];
+                    } else {
+                        el.appendChild(document.createTextNode(" " + dict[key]));
+                    }
+                } else if (el.hasAttribute("data-fa-original")) {
+                    var lastChild2 = el.lastChild;
+                    if (lastChild2 && lastChild2.nodeType === 3) {
+                        lastChild2.textContent = " " + el.getAttribute("data-fa-original");
+                    }
+                }
+            });
+            if (langBtn) langBtn.textContent = lang === "en" ? "EN" : "FA";
+            document.documentElement.setAttribute("data-lang", lang);
+            try { localStorage.setItem(STORAGE_KEY, lang); } catch(e){}
+        }
+
+        var current = "fa";
+        try { current = localStorage.getItem(STORAGE_KEY) || "fa"; } catch(e){}
+        applyLang(current);
+
+        if (langBtn) {
+            langBtn.addEventListener("click", function(){
+                current = current === "fa" ? "en" : "fa";
+                applyLang(current);
+            });
+        }
+    })();
+    </script>
+
+    <!-- ===== Search drawer logic ===== -->
+    <script>
+    (function(){
+        var SITE_LINKS = [
+            { label: "خانه / Home", url: "/" },
+            { label: "آپلود آزمایش / Upload test", url: "/#upload" },
+            { label: "وضعیت سلامت من / My health status", url: "/health-status" },
+            { label: "تاریخچه آزمایش‌ها / History", url: "/history" },
+            { label: "روند آزمایش‌ها / Trends", url: "/trends" },
+            { label: "برنامه غذایی / Diet plan", url: "/diet" },
+            { label: "برنامه ورزشی / Workout plan", url: "/workout" },
+            { label: "آماده‌سازی ویزیت / Visit prep", url: "/visit-prep" },
+            { label: "خانواده / Family", url: "/family" },
+            { label: "پروفایل / Profile", url: "/profile" },
+            { label: "ورود / Sign in", url: "/login" },
+            { label: "ثبت‌نام / Sign up", url: "/register" },
+        ];
+
+        var toggle = document.getElementById("cl-search-toggle");
+        var overlay = document.getElementById("cl-search-overlay");
+        var drawer = document.getElementById("cl-search-drawer");
+        var closeBtn = document.getElementById("cl-search-close");
+        var input = document.getElementById("cl-search-input");
+        var resultsEl = document.getElementById("cl-search-results");
+
+        function renderResults(query){
+            var q = (query || "").trim().toLowerCase();
+            var matches = SITE_LINKS.filter(function(item){
+                return !q || item.label.toLowerCase().indexOf(q) !== -1;
+            });
+            resultsEl.innerHTML = "";
+            if (!matches.length) {
+                var empty = document.createElement("p");
+                empty.className = "cl-text-caption";
+                empty.textContent = "موردی پیدا نشد.";
+                resultsEl.appendChild(empty);
+                return;
+            }
+            matches.forEach(function(item){
+                var a = document.createElement("a");
+                a.href = item.url;
+                a.className = "cl-search-recent-tag";
+                a.style.display = "block";
+                a.style.marginBottom = "6px";
+                a.textContent = item.label;
+                resultsEl.appendChild(a);
+            });
+        }
+
+        function openSearch(){
+            overlay.classList.add("is-open");
+            drawer.classList.add("is-open");
+            renderResults("");
+            setTimeout(function(){ input.focus(); }, 50);
+        }
+        function closeSearch(){
+            overlay.classList.remove("is-open");
+            drawer.classList.remove("is-open");
+        }
+
+        if (toggle) toggle.addEventListener("click", openSearch);
+        if (closeBtn) closeBtn.addEventListener("click", closeSearch);
+        if (overlay) overlay.addEventListener("click", function(e){ if (e.target === overlay) closeSearch(); });
+        if (input) input.addEventListener("input", function(){ renderResults(input.value); });
+        if (input) input.addEventListener("keydown", function(e){
+            if (e.key === "Enter") {
+                var first = resultsEl.querySelector("a");
+                if (first) window.location.href = first.getAttribute("href");
+            }
+        });
+        document.addEventListener("keydown", function(e){
+            if (e.key === "Escape") closeSearch();
+            if ((e.key === "/" ) && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA") {
+                e.preventDefault();
+                openSearch();
+            }
+        });
+    })();
+    </script>
+
     {% block scripts %}{% endblock %}
 
 </body>
