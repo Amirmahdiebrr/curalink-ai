@@ -4868,3 +4868,147 @@ pre{
     color:var(--color-secondary); font-size:12px; font-weight:600; padding:6px 12px;
     border-radius:var(--radius-full); margin:4px 4px 0 0; cursor:pointer;
 }
+/* ============================================================
+   PHASE 16-17 — EDUCATION & ANALYTICS
+   ============================================================ */
+
+/* ---- 17.1 Education widget row (dashboard) ---- */
+.cl-edu-widget-row{ display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+.cl-edu-widget-stat{ display:flex; flex-direction:column; gap:2px; }
+.cl-edu-widget-stat .cl-value-mono{ font-size:22px; color:var(--color-secondary); }
+
+/* ---- 17.2 Course cards ---- */
+.cl-course-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:var(--space-5); }
+.cl-course-card{
+    background:var(--color-surface); border:1px solid var(--color-border);
+    border-radius:var(--radius-lg); overflow:hidden;
+}
+.cl-course-thumb{
+    height:120px; background:var(--gradient-primary);
+    display:flex; align-items:center; justify-content:center; color:#fff; font-size:32px;
+}
+.cl-course-body{ padding:var(--space-5); }
+.cl-course-body strong{ display:block; font-size:14.5px; color:var(--color-secondary); margin-bottom:6px; }
+.cl-course-meta{ display:flex; gap:10px; margin:8px 0 12px; font-size:11.5px; color:var(--color-text-secondary); }
+.cl-course-meta span{ display:flex; align-items:center; gap:4px; }
+
+/* ---- 17.3 Category chips (reuses .cl-chip base) ---- */
+.cl-category-chips{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:var(--space-6); }
+
+/* ---- 17.4 Course lesson layout ---- */
+.cl-course-layout{ display:grid; grid-template-columns:280px 1fr; gap:var(--space-6); align-items:start; }
+.cl-lesson-nav{ display:flex; flex-direction:column; gap:4px; position:sticky; top:100px; }
+.cl-lesson-nav-item{
+    display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:var(--radius-md);
+    font-size:13px; color:var(--color-text-secondary); cursor:pointer;
+}
+.cl-lesson-nav-item.is-active{ background:var(--color-light-blue); color:var(--color-primary); font-weight:700; }
+.cl-lesson-nav-item.is-done .material-symbols-outlined{ color:var(--color-success); }
+.cl-lesson-video-placeholder{
+    aspect-ratio:16/9; background:var(--color-light-blue); border-radius:var(--radius-lg);
+    display:flex; align-items:center; justify-content:center; color:var(--color-primary); font-size:40px; margin-bottom:var(--space-6);
+}
+@media(max-width:900px){ .cl-course-layout{ grid-template-columns:1fr; } .cl-lesson-nav{ position:static; flex-direction:row; overflow-x:auto; } }
+
+/* ---- 17.5 Education status pill ---- */
+.cl-edu-status-not-started{ background:#F1F5F9; color:var(--color-text-secondary); }
+
+/* ---- 17.6 KPI cards ---- */
+.cl-kpi-grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:var(--space-4); }
+.cl-kpi-card{
+    background:var(--glass-bg-strong); backdrop-filter:var(--glass-filter); -webkit-backdrop-filter:var(--glass-filter);
+    border:1px solid var(--glass-border); border-radius:var(--radius-lg); padding:var(--space-5);
+    transition:transform var(--motion-canonical), box-shadow var(--motion-canonical);
+}
+.cl-kpi-card:hover{ transform:translateY(-4px); box-shadow:var(--shadow-hover); }
+.cl-kpi-icon{ width:38px; height:38px; border-radius:var(--radius-sm); background:var(--color-light-blue); color:var(--color-primary); display:flex; align-items:center; justify-content:center; margin-bottom:12px; }
+.cl-kpi-value{ font-family:var(--font-mono); font-size:26px; font-weight:800; color:var(--color-secondary); }
+.cl-kpi-trend{ display:flex; align-items:center; gap:4px; font-size:11.5px; margin-top:4px; }
+.cl-kpi-trend.is-up{ color:var(--color-success); }
+.cl-kpi-trend.is-down{ color:var(--color-danger); }
+.cl-kpi-label{ font-size:12px; color:var(--color-text-secondary); margin-top:6px; }
+@media(max-width:960px){ .cl-kpi-grid{ grid-template-columns:1fr 1fr; } }
+
+/* ---- 17.7 Analytics filter bar ---- */
+.cl-analytics-filterbar{
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+    background:var(--color-surface); border:1px solid var(--color-border);
+    border-radius:var(--radius-lg); padding:14px 18px; margin-bottom:var(--space-6);
+}
+.cl-analytics-filterbar select, .cl-analytics-filterbar input{
+    height:38px; border-radius:var(--radius-sm); border:1px solid var(--color-border);
+    background:var(--color-light-blue); padding:0 12px; font-size:12.5px; color:var(--color-secondary);
+}
+
+/* ---- 17.8 Analytics report print layout ---- */
+@media print{
+    .cl-analytics-filterbar, .cl-report-export-actions{ display:none !important; }
+}
+/* ============================================================
+   PHASE 18-20 — FINAL PRODUCTION POLISH
+   ============================================================ */
+
+/* ---- 18.1 Motion cap: no interaction/entrance animation over 300ms ---- */
+:root{
+    --duration-slow:300ms; /* was 350ms — capped per audit */
+}
+
+/* ---- 18.2 Contrast fix: --color-text-muted failed AA on white bg ---- */
+:root{
+    --color-text-muted:#5B6B82; /* was #94A3B8 — now meets 4.5:1 on white */
+}
+
+/* ---- 18.3 Dead code: .cl-header-icon-btn no longer used anywhere
+   (Sprint A1 migrated all usages to .cl-icon-btn). Neutralized. ---- */
+.cl-header-icon-btn{ all:unset; }
+.cl-header-icon-btn.cl-icon-btn{ all:revert; } /* if ever combined, canonical wins */
+
+/* ---- 18.4 Touch target minimum (44px) on coarse pointers ---- */
+@media (pointer:coarse){
+    .cl-icon-btn-sm{ width:40px; height:40px; }
+    .cl-chip, .cl-prompt-chip{ min-height:40px; }
+    .cl-header-icon-btn, .cl-icon-btn{ width:42px; height:42px; }
+    .cl-quick-action{ min-height:44px; }
+}
+
+/* ---- 18.5 Icon alignment safety net (unset material icon inherits) ---- */
+.cl-block-title .material-symbols-outlined,
+.cl-context-card-title .material-symbols-outlined,
+.cl-nba-icon .material-symbols-outlined,
+.cl-empty-state-icon{
+    line-height:1;
+    vertical-align:middle;
+}
+
+/* ---- 18.6 Card/section rhythm normalization (final pass) ---- */
+.cl-dash-section + .cl-dash-section{ margin-top:0; } /* spacing owned by margin-bottom only, prevents double-gap */
+.cl-profile-card + .cl-profile-card{ margin-top:0; }
+
+/* ---- 18.7 Empty-state semantic polish ---- */
+.cl-empty-state, .cl-care-service-soon{ }
+.cl-care-service-soon{ cursor:not-allowed; }
+
+/* ---- 18.8 Print: normalize all report-like pages, not just result ---- */
+@media print{
+    .cl-quick-actions-grid, .cl-followup-banner, .cl-followup-card,
+    .cl-drawer, .cl-drawer-overlay, .cl-toast-stack, .cl-skip-link,
+    .cl-header-actions, .cl-nav-toggle{
+        display:none !important;
+    }
+    a[href]::after{ content:""; } /* no raw URL leakage in printed reports */
+    .cl-card-glass, .cl-status-card, .cl-nba-card, .cl-goal-card{
+        box-shadow:none !important;
+        border:1px solid #ddd !important;
+        break-inside:avoid;
+    }
+}
+
+/* ---- 18.9 Reduced motion: cover every animation introduced across phases ---- */
+@media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{
+        animation-duration:0.01ms !important;
+        animation-iteration-count:1 !important;
+        transition-duration:0.01ms !important;
+        scroll-behavior:auto !important;
+    }
+}

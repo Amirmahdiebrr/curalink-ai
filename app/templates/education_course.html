@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}آشنایی با آزمایش خون کامل | CuraLink AI{% endblock %}
+
+{% block content %}
+<section class="cl-page-wrapper-tight">
+    <div class="container">
+
+        <div class="cl-result-topbar cl-reveal">
+            <div>
+                <p class="cl-result-eyebrow"><span class="material-symbols-outlined cl-icon-sm">school</span> دوره آموزشی</p>
+                <h1 class="result-title" style="margin:0;">آشنایی با آزمایش خون کامل (CBC)</h1>
+            </div>
+        </div>
+
+        <div class="cl-course-layout cl-reveal">
+
+            <nav class="cl-lesson-nav">
+                <div class="cl-lesson-nav-item is-active"><span class="material-symbols-outlined cl-icon-sm">play_circle</span> ۱. WBC چیست؟</div>
+                <div class="cl-lesson-nav-item"><span class="material-symbols-outlined cl-icon-sm">radio_button_unchecked</span> ۲. RBC و هموگلوبین</div>
+                <div class="cl-lesson-nav-item"><span class="material-symbols-outlined cl-icon-sm">radio_button_unchecked</span> ۳. پلاکت‌ها</div>
+                <div class="cl-lesson-nav-item"><span class="material-symbols-outlined cl-icon-sm">radio_button_unchecked</span> ۴. آزمون کوتاه</div>
+            </nav>
+
+            <div>
+                <div class="cl-progress" style="margin-bottom:20px;"><div class="cl-progress-bar" style="width:25%;"></div></div>
+
+                <div class="cl-lesson-video-placeholder"><span class="material-symbols-outlined">play_circle</span></div>
+
+                <div class="cl-card-glass">
+                    <h2 class="cl-block-title" style="margin-bottom:14px;">WBC (گلبول سفید) چیست؟</h2>
+                    <p style="line-height:var(--leading-relaxed); color:var(--color-text-primary); margin:0 0 14px;">
+                        گلبول‌های سفید بخشی از سیستم ایمنی بدن هستند که در مقابله با عفونت‌ها نقش دارند.
+                        در این درس با نحوه‌ی تفسیر مقدار WBC در برگه‌ی آزمایش آشنا می‌شوید.
+                    </p>
+                    <div class="cl-accordion">
+                        <details class="cl-accordion-item">
+                            <summary>پیوست‌های این درس</summary>
+                            <p>به‌زودی — فایل خلاصه و اینفوگرافیک این درس اینجا اضافه می‌شود.</p>
+                        </details>
+                        <details class="cl-accordion-item">
+                            <summary>آزمون کوتاه این درس</summary>
+                            <p>به‌زودی — یک آزمون کوتاه ۳ سوالی برای سنجش یادگیری شما.</p>
+                        </details>
+                    </div>
+                </div>
+
+                <div class="cl-booking-footer">
+                    <button type="button" class="cl-btn cl-btn-outline cl-btn-sm">درس قبلی</button>
+                    <div style="display:flex; gap:10px;">
+                        <button type="button" class="cl-btn cl-btn-outline cl-btn-sm"><span class="material-symbols-outlined cl-icon-sm">check</span> علامت‌گذاری به‌عنوان تکمیل‌شده</button>
+                        <button type="button" class="cl-btn cl-btn-primary cl-btn-sm">درس بعدی</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+{% endblock %}

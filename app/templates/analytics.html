@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}آنالیتیکس | CuraLink AI{% endblock %}
+
+{% block content %}
+<section class="cl-page-wrapper-tight">
+    <div class="container">
+
+        <div class="cl-dash-welcome cl-reveal">
+            <div>
+                <p class="cl-result-eyebrow"><span class="material-symbols-outlined cl-icon-sm">insights</span> آنالیتیکس سازمانی</p>
+                <h1 class="cl-dash-welcome-name" style="font-size:24px;">داشبورد تحلیلی</h1>
+                <p class="cl-dash-welcome-sub">این صفحه نمای طراحی است؛ اتصال به داده‌ی واقعی در فاز بعدی انجام می‌شود.</p>
+            </div>
+            <div class="cl-report-export-actions" style="display:flex; gap:10px;">
+                <button type="button" class="cl-btn cl-btn-outline cl-btn-sm" onclick="window.print()"><span class="material-symbols-outlined cl-icon-sm">print</span> چاپ گزارش</button>
+                <button type="button" class="cl-btn cl-btn-outline cl-btn-sm"><span class="material-symbols-outlined cl-icon-sm">download</span> خروجی (به‌زودی)</button>
+            </div>
+        </div>
+
+        <div class="cl-analytics-filterbar cl-reveal">
+            <select><option>۳۰ روز اخیر</option><option>۹۰ روز اخیر</option><option>امسال</option></select>
+            <select><option>همه‌ی بخش‌ها</option><option>آزمایشگاه</option><option>مراقبت در منزل</option><option>مشاوره آنلاین</option></select>
+            <select><option>همه‌ی بیمارستان‌ها</option></select>
+            <select><option>همه‌ی وضعیت‌ها</option><option>فعال</option><option>تکمیل‌شده</option></select>
+            <div class="cl-hist-filter-search" style="height:38px; max-width:220px;"><span class="material-symbols-outlined cl-icon-sm">search</span><input type="text" placeholder="جستجو..."></div>
+        </div>
+
+        <!-- KPI cards -->
+        <div class="cl-kpi-grid cl-reveal" style="margin-bottom:var(--space-8);">
+            <div class="cl-kpi-card"><span class="cl-kpi-icon"><span class="material-symbols-outlined">group</span></span><span class="cl-kpi-value">—</span><span class="cl-kpi-trend"><span class="material-symbols-outlined cl-icon-sm">trending_flat</span> بدون داده</span><span class="cl-kpi-label">بیماران فعال</span></div>
+            <div class="cl-kpi-card"><span class="cl-kpi-icon"><span class="material-symbols-outlined">science</span></span><span class="cl-kpi-value">—</span><span class="cl-kpi-trend"><span class="material-symbols-outlined cl-icon-sm">trending_flat</span> بدون داده</span><span class="cl-kpi-label">آزمایش تحلیل‌شده</span></div>
+            <div class="cl-kpi-card"><span class="cl-kpi-icon"><span class="material-symbols-outlined">home_health</span></span><span class="cl-kpi-value">—</span><span class="cl-kpi-trend"><span class="material-symbols-outlined cl-icon-sm">trending_flat</span> بدون داده</span><span class="cl-kpi-label">درخواست مراقبت در منزل</span></div>
+            <div class="cl-kpi-card"><span class="cl-kpi-icon"><span class="material-symbols-outlined">school</span></span><span class="cl-kpi-value">—</span><span class="cl-kpi-trend"><span class="material-symbols-outlined cl-icon-sm">trending_flat</span> بدون داده</span><span class="cl-kpi-label">تکمیل آموزش</span></div>
+        </div>
+
+        <div class="cl-dash-columns">
+            <div class="cl-dash-col-main">
+
+                <div class="cl-dash-section cl-reveal">
+                    <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">show_chart</span> روند رشد پلتفرم</h2>
+                    <div class="cl-chart-wrapper">
+                        <div class="cl-chart-canvas-box"><canvas id="cl-analytics-growth-chart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="cl-dash-section cl-reveal">
+                    <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">biotech</span> فعالیت آزمایشگاهی</h2>
+                    <div class="cl-chart-wrapper">
+                        <div class="cl-chart-canvas-box"><canvas id="cl-analytics-lab-chart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="cl-dash-section cl-reveal">
+                    <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">donut_large</span> توزیع وضعیت پیگیری</h2>
+                    <div class="cl-chart-wrapper">
+                        <div class="cl-chart-canvas-box cl-chart-canvas-box-sm"><canvas id="cl-analytics-followup-chart"></canvas></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="cl-dash-col-side">
+                <div class="cl-dash-section cl-reveal">
+                    <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">summarize</span> خلاصه‌ی تحلیلی</h2>
+                    <div class="cl-empty-state cl-empty-state-sm">
+                        <span class="material-symbols-outlined cl-empty-state-icon">analytics</span>
+                        <h3>هنوز داده‌ای متصل نشده</h3>
+                        <p>این ویجت‌ها آماده‌ی اتصال به داده‌ی واقعی گزارش‌گیری هستند.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+document.querySelectorAll('.cl-reveal').forEach(function(el){ el.classList.add('is-visible'); });
+
+/* Placeholder charts — no backend analytics endpoint exists yet. */
+new Chart(document.getElementById('cl-analytics-growth-chart').getContext('2d'), {
+    type: 'line', data: { labels: [], datasets: [{ label: 'رشد', data: [], borderColor: '#0F6FFF', tension: .35 }] },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+});
+new Chart(document.getElementById('cl-analytics-lab-chart').getContext('2d'), {
+    type: 'bar', data: { labels: [], datasets: [{ label: 'آزمایش', data: [], backgroundColor: '#3FA9FF' }] },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+});
+new Chart(document.getElementById('cl-analytics-followup-chart').getContext('2d'), {
+    type: 'doughnut', data: { labels: ['فعال', 'تکمیل‌شده'], datasets: [{ data: [1, 1], backgroundColor: ['#0F6FFF', '#00C389'] }] },
+    options: { responsive: true }
+});
+</script>
+{% endblock %}

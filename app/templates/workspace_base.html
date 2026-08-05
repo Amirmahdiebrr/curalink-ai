@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="/static/css/workspace.css">
+{% block workspace_head %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+
+<div class="cl-ws-drawer-overlay" id="cl-ws-sidebar-backdrop"></div>
+
+<div class="cl-ws container">
+
+    <aside class="cl-ws-sidebar" id="cl-ws-sidebar">
+
+        <div class="cl-ws-brand">
+            <span class="cl-ws-brand-icon"><span class="material-symbols-outlined">workspaces</span></span>
+            <div>
+                <strong>{% block workspace_name %}فضای کاری{% endblock %}</strong>
+                <span>CuraLink AI</span>
+            </div>
+        </div>
+
+        <nav class="cl-ws-nav">
+            {% block workspace_nav %}{% endblock %}
+        </nav>
+
+        <nav class="cl-ws-nav" style="margin-top:auto;">
+            <div class="cl-ws-nav-group-title">حساب کاربری</div>
+            <a href="/profile" class="cl-ws-nav-link">
+                <span class="material-symbols-outlined">account_circle</span> پروفایل من
+            </a>
+            <a href="/logout" class="cl-ws-nav-link">
+                <span class="material-symbols-outlined">logout</span> خروج
+            </a>
+        </nav>
+
+    </aside>
+
+    <main class="cl-ws-main">
+
+        <div class="cl-ws-header">
+            <div>
+                <p class="cl-ws-breadcrumb">
+                    <button type="button" class="cl-ws-mobile-toggle" id="cl-ws-toggle" aria-label="باز کردن منو">
+                        <span class="material-symbols-outlined">menu</span>
+                    </button>
+                    {% block workspace_breadcrumb %}فضای کاری{% endblock %}
+                </p>
+                <h1 class="cl-ws-title">{% block workspace_title %}{% endblock %}</h1>
+                <p class="cl-ws-subtitle">{% block workspace_subtitle %}{% endblock %}</p>
+            </div>
+            <div class="cl-ws-header-actions">
+                {% block workspace_header_actions %}{% endblock %}
+            </div>
+        </div>
+
+        {% block workspace_content %}{% endblock %}
+
+    </main>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/workspace.js"></script>
+{% block workspace_scripts %}{% endblock %}
+{% endblock %}

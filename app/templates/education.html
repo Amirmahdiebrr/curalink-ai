@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}آموزش سلامت | CuraLink AI{% endblock %}
+
+{% block content %}
+<section class="cl-page-wrapper-tight">
+    <div class="container">
+
+        <div class="cl-dash-welcome cl-reveal">
+            <div>
+                <p class="cl-result-eyebrow"><span class="material-symbols-outlined cl-icon-sm">school</span> مرکز آموزش</p>
+                <h1 class="cl-dash-welcome-name" style="font-size:24px;">آموزش سلامت</h1>
+                <p class="cl-dash-welcome-sub">محتوای آموزشی متناسب با وضعیت سلامتی شما (به‌زودی فعال می‌شود)</p>
+            </div>
+        </div>
+
+        <!-- Learning dashboard widgets -->
+        <div class="cl-kpi-grid cl-reveal" style="margin-bottom:var(--space-8);">
+            <div class="cl-kpi-card"><span class="cl-kpi-icon"><span class="material-symbols-outlined">task_alt</span></span><span class="cl-kpi-value">۰</span><span class="cl-kpi-label">دوره تکمیل‌شده</span></div>
+            <div class="cl-kpi-card"><span class="cl-kpi-icon"><span class="material-symbols-outlined">auto_stories</span></span><span class="cl-kpi-value">۰</span><span class="cl-kpi-label">دوره واگذارشده</span></div>
+            <div class="cl-kpi-card"><span class="cl-kpi-icon"><span class="material-symbols-outlined">local_fire_department</span></span><span class="cl-kpi-value">۰</span><span class="cl-kpi-label">روز پیاپی یادگیری</span></div>
+            <div class="cl-kpi-card"><span class="cl-kpi-icon"><span class="material-symbols-outlined">workspace_premium</span></span><span class="cl-kpi-value">۰</span><span class="cl-kpi-label">گواهی دریافت‌شده</span></div>
+        </div>
+
+        <div class="cl-hist-filter-search cl-reveal" style="margin-bottom:16px;">
+            <span class="material-symbols-outlined cl-icon-sm">search</span>
+            <input type="text" placeholder="جستجو در دوره‌های آموزشی...">
+        </div>
+
+        <div class="cl-category-chips cl-reveal">
+            <button type="button" class="cl-chip is-active">همه</button>
+            <button type="button" class="cl-chip">تغذیه</button>
+            <button type="button" class="cl-chip">قلب و عروق</button>
+            <button type="button" class="cl-chip">دیابت</button>
+            <button type="button" class="cl-chip">فعالیت بدنی</button>
+            <button type="button" class="cl-chip">سلامت روان</button>
+        </div>
+
+        <div class="cl-dash-section cl-reveal">
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">play_circle</span> ادامه‌ی یادگیری</h2>
+            <div class="cl-empty-state cl-empty-state-sm">
+                <span class="material-symbols-outlined cl-empty-state-icon">auto_stories</span>
+                <h3>هنوز دوره‌ای شروع نکرده‌اید</h3>
+                <p>محتوای آموزشی شخصی‌سازی‌شده بر اساس نتایج آزمایش شما به‌زودی در دسترس قرار می‌گیرد.</p>
+            </div>
+        </div>
+
+        <div class="cl-dash-section cl-reveal">
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">new_releases</span> به‌تازگی اضافه‌شده</h2>
+            <div class="cl-course-grid">
+                <div class="cl-course-card cl-card-hover">
+                    <div class="cl-course-thumb"><span class="material-symbols-outlined">bloodtype</span></div>
+                    <div class="cl-course-body">
+                        <span class="cl-badge cl-edu-status-not-started">شروع‌نشده</span>
+                        <strong style="margin-top:10px;">آشنایی با آزمایش خون کامل (CBC)</strong>
+                        <div class="cl-course-meta"><span><span class="material-symbols-outlined cl-icon-sm">schedule</span> ۱۵ دقیقه</span><span><span class="material-symbols-outlined cl-icon-sm">menu_book</span> ۴ درس</span></div>
+                        <div class="cl-progress"><div class="cl-progress-bar" style="width:0%;"></div></div>
+                    </div>
+                </div>
+                <div class="cl-course-card cl-card-hover">
+                    <div class="cl-course-thumb"><span class="material-symbols-outlined">nutrition</span></div>
+                    <div class="cl-course-body">
+                        <span class="cl-badge cl-edu-status-not-started">شروع‌نشده</span>
+                        <strong style="margin-top:10px;">تغذیه برای کنترل قند خون</strong>
+                        <div class="cl-course-meta"><span><span class="material-symbols-outlined cl-icon-sm">schedule</span> ۲۰ دقیقه</span><span><span class="material-symbols-outlined cl-icon-sm">menu_book</span> ۵ درس</span></div>
+                        <div class="cl-progress"><div class="cl-progress-bar" style="width:0%;"></div></div>
+                    </div>
+                </div>
+                <div class="cl-course-card cl-card-hover">
+                    <div class="cl-course-thumb"><span class="material-symbols-outlined">favorite</span></div>
+                    <div class="cl-course-body">
+                        <span class="cl-badge cl-edu-status-not-started">شروع‌نشده</span>
+                        <strong style="margin-top:10px;">مراقبت از سلامت قلب</strong>
+                        <div class="cl-course-meta"><span><span class="material-symbols-outlined cl-icon-sm">schedule</span> ۱۸ دقیقه</span><span><span class="material-symbols-outlined cl-icon-sm">menu_book</span> ۳ درس</span></div>
+                        <div class="cl-progress"><div class="cl-progress-bar" style="width:0%;"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cl-dash-section cl-reveal">
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">bookmark</span> نشان‌شده‌ها و گواهی‌ها</h2>
+            <div class="cl-empty-state cl-empty-state-sm">
+                <span class="material-symbols-outlined cl-empty-state-icon">workspace_premium</span>
+                <h3>هنوز موردی ندارید</h3>
+                <p>دوره‌های نشان‌شده و گواهی‌های دریافتی اینجا نمایش داده می‌شوند.</p>
+            </div>
+        </div>
+
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.cl-category-chips .cl-chip').forEach(function(c){
+    c.addEventListener('click', function(){
+        document.querySelectorAll('.cl-category-chips .cl-chip').forEach(function(o){ o.classList.remove('is-active'); });
+        c.classList.add('is-active');
+    });
+});
+var revealEls = document.querySelectorAll('.cl-reveal');
+revealEls.forEach(function(el){ el.classList.add('is-visible'); });
+</script>
+{% endblock %}

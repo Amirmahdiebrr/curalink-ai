@@ -188,6 +188,12 @@
                 <button type="button" class="cl-icon-btn" aria-label="جستجو" title="جستجو (به‌زودی)" aria-disabled="true">
                     <span class="material-symbols-outlined">search</span>
                 </button>
+                {% if user %}
+                <button type="button" class="cl-icon-btn" id="cl-notif-drawer-toggle" aria-label="اعلان‌ها" title="اعلان‌ها" style="position:relative;">
+                    <span class="material-symbols-outlined">notifications</span>
+                    {% if due_followups is defined and due_followups %}<span class="cl-notif-badge-unread">{{ due_followups|length }}</span>{% endif %}
+                </button>
+                {% endif %}
                 <button type="button" class="cl-icon-btn cl-header-lang-btn" aria-label="تغییر زبان" title="تغییر زبان (به‌زودی)" aria-disabled="true">
                     FA
                 </button>
@@ -306,6 +312,103 @@
 
         </div>
     </footer>
+
+    {% if user %}
+    <div class="cl-drawer-overlay" id="cl-notif-drawer-overlay">
+        <aside class="cl-drawer" id="cl-notif-drawer">
+            <button type="button" class="cl-icon-btn" id="cl-notif-drawer-close" style="margin-bottom:16px;">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <h3 class="cl-modal-title" style="margin-bottom:20px;">اعلان‌ها</h3>
+            {% if due_followups is defined and due_followups %}
+            <p class="cl-notif-group-title">پزشکی</p>
+            {% for item in due_followups %}
+            <div class="cl-notif-drawer-item is-unread">
+                <span class="cl-notif-icon"><span class="material-symbols-outlined" style="color:var(--color-warning);">event_repeat</span></span>
+                <div><strong>یادآوری تکرار آزمایش</strong><br><span class="cl-text-caption">{{ item.test_name }}{% if item.person_name %} — {{ item.person_name }}{% endif %}</span></div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p class="cl-text-caption">اعلان جدیدی ندارید.</p>
+            {% endif %}
+        </aside>
+    </div>
+
+    <div class="cl-drawer-overlay" id="cl-booking-overlay">
+        <aside class="cl-drawer cl-drawer-left cl-booking-modal" style="width:min(420px, 92vw);">
+            <button type="button" class="cl-icon-btn" id="cl-booking-close" style="margin-bottom:16px;"><span class="material-symbols-outlined">close</span></button>
+            <h3 class="cl-modal-title">رزرو خدمت مراقبتی (پیش‌نمایش)</h3>
+
+            <div class="cl-stepper">
+                <div class="cl-stepper-step is-active"><span class="cl-stepper-dot">۱</span><span class="cl-stepper-label">خدمت</span></div>
+                <div class="cl-stepper-line"></div>
+                <div class="cl-stepper-step"><span class="cl-stepper-dot">۲</span><span class="cl-stepper-label">تاریخ</span></div>
+                <div class="cl-stepper-line"></div>
+                <div class="cl-stepper-step"><span class="cl-stepper-dot">۳</span><span class="cl-stepper-label">تایید</span></div>
+            </div>
+
+            <div class="cl-booking-panel is-active">
+                <div class="cl-booking-option" data-service="مشاوره تغذیه">
+                    <span class="cl-booking-option-icon"><span class="material-symbols-outlined">nutrition</span></span>
+                    <span>مشاوره تغذیه</span>
+                </div>
+                <div class="cl-booking-option" data-service="فیزیوتراپی">
+                    <span class="cl-booking-option-icon"><span class="material-symbols-outlined">fitness_center</span></span>
+                    <span>فیزیوتراپی</span>
+                </div>
+                <div class="cl-booking-option" data-service="ویزیت پزشک">
+                    <span class="cl-booking-option-icon"><span class="material-symbols-outlined">medical_services</span></span>
+                    <span>ویزیت پزشک</span>
+                </div>
+                <div class="cl-booking-footer"><span></span><button type="button" class="cl-btn cl-btn-primary cl-btn-sm" data-step-next>مرحله بعد</button></div>
+            </div>
+
+            <div class="cl-booking-panel">
+                <p class="cl-text-caption" style="margin-bottom:12px;">خدمت انتخاب‌شده: <strong data-selected-service>—</strong></p>
+                <div class="cl-input-group"><label>تاریخ ترجیحی</label><input type="date" class="cl-input"></div>
+                <div class="cl-booking-footer"><button type="button" class="cl-btn cl-btn-outline cl-btn-sm" data-step-prev>مرحله قبل</button><button type="button" class="cl-btn cl-btn-primary cl-btn-sm" data-step-next>مرحله بعد</button></div>
+            </div>
+
+            <div class="cl-booking-panel">
+                <div class="cl-alert cl-alert-info">
+                    <span class="material-symbols-outlined">info</span>
+                    <span>رزرو آنلاین هنوز به سیستم واقعی نوبت‌دهی متصل نشده و این فقط یک پیش‌نمایش از تجربه‌ی آینده است.</span>
+                </div>
+                <div class="cl-booking-footer"><button type="button" class="cl-btn cl-btn-outline cl-btn-sm" data-step-prev>مرحله قبل</button></div>
+            </div>
+        </aside>
+    </div>
+    <script src="/static/js/booking.js"></script>
+    <script>
+    (function(){
+        var notifToggle = document.getElementById('cl-notif-drawer-toggle');
+        var notifOverlay = document.getElementById('cl-notif-drawer-overlay');
+        var notifPanel = document.getElementById('cl-notif-drawer');
+        var notifClose = document.getElementById('cl-notif-drawer-close');
+
+        if (notifToggle && notifOverlay && notifPanel) {
+            notifToggle.addEventListener('click', function(){
+                notifOverlay.classList.add('is-open');
+                notifPanel.classList.add('is-open');
+            });
+        }
+        if (notifClose && notifOverlay && notifPanel) {
+            notifClose.addEventListener('click', function(){
+                notifOverlay.classList.remove('is-open');
+                notifPanel.classList.remove('is-open');
+            });
+        }
+        if (notifOverlay) {
+            notifOverlay.addEventListener('click', function(e){
+                if (e.target === this) {
+                    this.classList.remove('is-open');
+                    if (notifPanel) notifPanel.classList.remove('is-open');
+                }
+            });
+        }
+    })();
+    </script>
+    {% endif %}
 
     <script src="/static/js/main.js"></script>
     <script>

@@ -293,12 +293,12 @@
 {% block scripts %}
 <script>
 (function(){
-    document.querySelectorAll('.cl-profile-tab-link').forEach(function(btn){
-        btn.addEventListener('click', function(){
-            document.querySelectorAll('.cl-profile-tab-link').forEach(function(b){ b.classList.remove('is-active'); });
-            document.querySelectorAll('.cl-tab-panel').forEach(function(p){ p.classList.remove('is-active'); });
-            btn.classList.add('is-active');
-            document.querySelector('.cl-tab-panel[data-panel="' + btn.getAttribute('data-tab') + '"]').classList.add('is-active');
+    document.querySelectorAll('[data-switch]').forEach(function(sw){
+        sw.setAttribute('role', 'switch');
+        sw.setAttribute('aria-checked', sw.classList.contains('is-on') ? 'true' : 'false');
+        sw.addEventListener('click', function(){
+            sw.classList.toggle('is-on');
+            sw.setAttribute('aria-checked', sw.classList.contains('is-on') ? 'true' : 'false');
         });
     });
     document.querySelectorAll('[data-switch]').forEach(function(sw){

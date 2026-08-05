@@ -1,65 +1,193 @@
-{% extends "base.html" %}
+{% extends "workspace_base.html" %}
 
-{% block title %}بررسی گزارش‌های پزشکی | CuraLink AI{% endblock %}
+{% block title %}فضای کاری پزشک | CuraLink AI{% endblock %}
 
-{% block content %}
+{% block workspace_name %}فضای کاری پزشک{% endblock %}
 
-<section class="cl-profile-section">
-    <div class="container">
+{% block workspace_nav %}
+<div class="cl-ws-nav-group-title">صف بررسی</div>
+<a href="/doctor/reviews" class="cl-ws-nav-link is-active">
+    <span class="material-symbols-outlined">assignment</span>
+    گزارش‌های در انتظار
+    {% if awaiting|length > 0 %}<span class="cl-ws-nav-badge">{{ awaiting|length }}</span>{% endif %}
+</a>
+<a href="#reviewed-section" class="cl-ws-nav-link">
+    <span class="material-symbols-outlined">task_alt</span>
+    بررسی‌شده توسط من
+</a>
 
-        <div class="cl-profile-header">
-            <div class="cl-profile-avatar">{{ (user.display_name or "?")[0] }}</div>
-            <div>
-                <h1>صف بررسی گزارش‌ها</h1>
-                <p>{{ awaiting|length }} گزارش در انتظار بررسی</p>
-            </div>
+<div class="cl-ws-nav-group-title">ابزارها (به‌زودی)</div>
+<a href="#" class="cl-ws-nav-link" aria-disabled="true">
+    <span class="material-symbols-outlined">edit_note</span> یادداشت‌های پزشکی
+</a>
+<a href="#" class="cl-ws-nav-link" aria-disabled="true">
+    <span class="material-symbols-outlined">medication</span> نسخه‌نویسی
+</a>
+<a href="#" class="cl-ws-nav-link" aria-disabled="true">
+    <span class="material-symbols-outlined">event_repeat</span> پیگیری بیمار
+</a>
+{% endblock %}
+
+{% block workspace_breadcrumb %}فضای کاری &nbsp;/&nbsp; بررسی گزارش‌ها{% endblock %}
+{% block workspace_title %}صف بررسی گزارش‌های پزشکی{% endblock %}
+{% block workspace_subtitle %}تحلیل‌های هوش مصنوعی که نیازمند تایید یا نظر تخصصی شما هستند{% endblock %}
+
+{% block workspace_header_actions %}
+<div class="cl-ws-search">
+    <span class="material-symbols-outlined">search</span>
+    <input type="text" placeholder="جستجوی نام فایل یا نوع آزمایش..." data-ws-search data-ws-search-target="#cl-ws-awaiting-body">
+    <kbd>/</kbd>
+</div>
+{% endblock %}
+
+{% block workspace_content %}
+
+{% set total_count = (awaiting|length) + (reviewed|length) %}
+
+<div class="cl-ws-stats">
+    <div class="cl-ws-stat">
+        <span class="cl-ws-stat-icon is-gold"><span class="material-symbols-outlined">hourglass_top</span></span>
+        <div class="cl-ws-stat-body">
+            <strong>{{ awaiting|length }}</strong>
+            <span>در انتظار بررسی</span>
         </div>
-
-        <div class="cl-profile-card" style="margin-bottom:24px;">
-            <h3 class="cl-profile-card-title">در انتظار بررسی</h3>
-
-            {% if awaiting|length == 0 %}
-            <p class="cl-profile-card-sub">در حال حاضر گزارشی در انتظار بررسی نیست.</p>
-            {% else %}
-
-            <div class="cl-history-list">
-                {% for record in awaiting %}
-                <a href="/doctor/reviews/{{ record.id }}" class="cl-history-item">
-                    <div class="cl-history-item-main">
-                        <span class="cl-history-badge">{{ exam_type_labels.get(record.exam_type, "آزمایش") }}</span>
-                        <span class="cl-history-filename">{{ record.filename }}</span>
-                    </div>
-                    <span class="cl-history-date">{{ record.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
-                </a>
-                {% endfor %}
-            </div>
-
-            {% endif %}
-        </div>
-
-        <div class="cl-profile-card">
-            <h3 class="cl-profile-card-title">بررسی‌شده توسط من</h3>
-
-            {% if reviewed|length == 0 %}
-            <p class="cl-profile-card-sub">هنوز گزارشی بررسی نکرده‌اید.</p>
-            {% else %}
-
-            <div class="cl-history-list">
-                {% for record in reviewed %}
-                <div class="cl-history-item">
-                    <div class="cl-history-item-main">
-                        <span class="cl-history-badge">{{ exam_type_labels.get(record.exam_type, "آزمایش") }}</span>
-                        <span class="cl-history-filename">{{ record.filename }}</span>
-                    </div>
-                    <span class="cl-history-date">{{ record.doctor_opinion_at.strftime("%Y-%m-%d %H:%M") if record.doctor_opinion_at else "" }}</span>
-                </div>
-                {% endfor %}
-            </div>
-
-            {% endif %}
-        </div>
-
     </div>
-</section>
+    <div class="cl-ws-stat">
+        <span class="cl-ws-stat-icon is-teal"><span class="material-symbols-outlined">task_alt</span></span>
+        <div class="cl-ws-stat-body">
+            <strong>{{ reviewed|length }}</strong>
+            <span>بررسی‌شده توسط من</span>
+        </div>
+    </div>
+    <div class="cl-ws-stat">
+        <span class="cl-ws-stat-icon is-blue"><span class="material-symbols-outlined">science</span></span>
+        <div class="cl-ws-stat-body">
+            <strong>{{ total_count }}</strong>
+            <span>مجموع پرونده‌های مرتبط</span>
+        </div>
+    </div>
+    <div class="cl-ws-stat">
+        <span class="cl-ws-stat-icon is-danger"><span class="material-symbols-outlined">priority_high</span></span>
+        <div class="cl-ws-stat-body">
+            <strong>{% if awaiting|length > 0 %}بالا{% else %}—{% endif %}</strong>
+            <span>اولویت رسیدگی امروز</span>
+        </div>
+    </div>
+</div>
+
+<div class="cl-ws-section">
+    <div class="cl-ws-section-head">
+        <h2 class="cl-ws-section-title"><span class="material-symbols-outlined">assignment</span> در انتظار بررسی</h2>
+    </div>
+
+    {% if awaiting|length > 0 %}
+    <div class="cl-ws-filterbar" data-ws-filter-group data-ws-filter-target="#cl-ws-awaiting-body">
+        <button type="button" class="cl-ws-filter-chip is-active" data-ws-filter-value="all">همه انواع</button>
+        {% for exam_key in awaiting | map(attribute='exam_type') | unique | list %}
+        <button type="button" class="cl-ws-filter-chip" data-ws-filter-value="{{ exam_key }}">{{ exam_type_labels.get(exam_key, exam_key) }}</button>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="cl-ws-table-wrap">
+        <table class="cl-ws-table">
+            <thead>
+                <tr>
+                    <th>پرونده</th>
+                    <th>نوع آزمایش</th>
+                    <th>تاریخ ارسال</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="cl-ws-awaiting-body">
+                {% for record in awaiting %}
+                <tr data-ws-row
+                    data-ws-filter-key="{{ record.exam_type }}"
+                    data-ws-search-text="{{ (record.filename or '') ~ ' ' ~ exam_type_labels.get(record.exam_type, record.exam_type or '') }}"
+                    class="cl-ws-row-link"
+                    onclick="window.location='/doctor/reviews/{{ record.id }}'">
+                    <td>
+                        <div class="cl-ws-cell-main">
+                            <span class="cl-ws-cell-avatar"><span class="material-symbols-outlined" style="font-size:18px;">description</span></span>
+                            <div>
+                                <strong>{{ record.filename or "بدون نام فایل" }}</strong>
+                                <span>پرونده #{{ record.id }}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="cl-badge cl-badge-info">{{ exam_type_labels.get(record.exam_type, "آزمایش") }}</span></td>
+                    <td class="cl-value-mono">{{ record.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                    <td>
+                        <a href="/doctor/reviews/{{ record.id }}" class="btn btn-outline" style="height:34px; padding:0 14px; font-size:12.5px;" onclick="event.stopPropagation();">
+                            بررسی
+                            <span class="material-symbols-outlined" style="font-size:16px;">arrow_back</span>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if awaiting|length == 0 %}
+        <div class="cl-ws-table-empty">
+            <span class="material-symbols-outlined">task_alt</span>
+            <p>در حال حاضر گزارشی در انتظار بررسی نیست.</p>
+        </div>
+        {% endif %}
+        <div class="cl-ws-table-empty" data-ws-empty style="display:none;">
+            <span class="material-symbols-outlined">search_off</span>
+            <p>موردی با این جستجو/فیلتر پیدا نشد.</p>
+        </div>
+    </div>
+</div>
+
+<div class="cl-ws-section" id="reviewed-section">
+    <div class="cl-ws-section-head">
+        <h2 class="cl-ws-section-title"><span class="material-symbols-outlined">history</span> بررسی‌شده توسط من</h2>
+    </div>
+
+    <div class="cl-ws-card">
+        {% if reviewed|length == 0 %}
+        <div class="cl-ws-placeholder">
+            <span class="material-symbols-outlined">edit_note</span>
+            <p>هنوز هیچ گزارشی را بررسی و نظر ثبت نکرده‌اید.</p>
+        </div>
+        {% else %}
+        <div class="cl-ws-timeline">
+            {% for record in reviewed %}
+            <div class="cl-ws-timeline-item">
+                <span class="cl-ws-timeline-dot" style="background:var(--color-success);">
+                    <span class="material-symbols-outlined">check</span>
+                </span>
+                <div class="cl-ws-timeline-body">
+                    <strong>{{ exam_type_labels.get(record.exam_type, "آزمایش") }} — {{ record.filename or "بدون نام فایل" }}</strong>
+                    <span>{{ record.doctor_opinion_at.strftime("%Y-%m-%d %H:%M") if record.doctor_opinion_at else "" }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="cl-ws-section">
+    <div class="cl-ws-section-head">
+        <h2 class="cl-ws-section-title"><span class="material-symbols-outlined">bolt</span> ابزارهای تکمیلی</h2>
+    </div>
+    <div class="cl-grid-3">
+        <div class="cl-ws-placeholder">
+            <span class="material-symbols-outlined">edit_note</span>
+            <p>یادداشت‌های پزشکی — به‌زودی</p>
+        </div>
+        <div class="cl-ws-placeholder">
+            <span class="material-symbols-outlined">medication</span>
+            <p>نسخه‌نویسی دیجیتال — به‌زودی</p>
+        </div>
+        <div class="cl-ws-placeholder">
+            <span class="material-symbols-outlined">event_repeat</span>
+            <p>یادآوری پیگیری بیمار — به‌زودی</p>
+        </div>
+    </div>
+</div>
 
 {% endblock %}
