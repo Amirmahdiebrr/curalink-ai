@@ -70,7 +70,9 @@
                                 <div class="cl-field">
                                     <label for="phone">شماره موبایل</label>
                                     <input type="text" id="phone" name="phone" value="{{ user.phone or '' }}">
-                                    {% if not user.phone_verified %}<p class="cl-field-hint">⚠️ این شماره هنوز تایید نشده است.</p>{% endif %}
+                                    {% if not user.phone_verified %}
+                                    <p class="cl-field-hint">⚠️ این شماره هنوز تایید نشده است. تایید پیامکی پس از فعال‌سازی پلن ارسال SMS در دسترس قرار می‌گیرد.</p>
+                                    {% endif %}
                                 </div>
 
                                 <div class="cl-field">
@@ -105,6 +107,11 @@
                                     {% if user.email_verified %}تایید‌شده{% else %}تایید‌نشده{% endif %}
                                 </span>
                             </div>
+                            {% if not user.email_verified %}
+                            <form method="post" action="/verify-email/resend" style="margin-top:10px;">
+                                <button type="submit" class="btn btn-outline" style="height:38px; padding:0 16px; font-size:13px;">ارسال مجدد ایمیل تایید</button>
+                            </form>
+                            {% endif %}
                             <div class="cl-info-row">
                                 <span class="cl-info-label">نقش کاربری</span>
                                 <span class="cl-info-value">
@@ -112,14 +119,39 @@
                                 </span>
                             </div>
 
-                            <!-- ===== Emergency contact / preferred hospital+lab — placeholders (no backend fields exist yet) ===== -->
                             <hr style="margin:24px 0; border:none; border-top:1px solid var(--color-border);">
                             <h3 class="cl-profile-card-title">مخاطب اضطراری و مراکز درمانی ترجیحی</h3>
-                            <div class="cl-empty-state cl-empty-state-sm">
-                                <span class="material-symbols-outlined cl-empty-state-icon">local_hospital</span>
-                                <h3>به‌زودی</h3>
-                                <p>ثبت مخاطب اضطراری، بیمارستان و آزمایشگاه ترجیحی در نسخه‌های بعدی فعال می‌شود.</p>
-                            </div>
+                            <p class="cl-profile-card-sub">
+                                این اطلاعات در آماده‌سازی ویزیت پزشک و گزارش‌های اضطراری (در صورت درخواست بررسی توسط پزشک) به‌عنوان زمینه‌ی تماس/مرکز درمانی نمایش داده می‌شود؛
+                                فعلاً هیچ‌کدام اجباری نیستند.
+                            </p>
+                            <form method="post" action="/profile" class="cl-auth-fields">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <input type="hidden" name="display_name" value="{{ user.display_name or '' }}">
+                                <input type="hidden" name="age" value="{{ user.age or '' }}">
+                                <input type="hidden" name="gender" value="{{ user.gender or '' }}">
+                                <input type="hidden" name="phone" value="{{ user.phone or '' }}">
+                                <input type="hidden" name="national_id" value="{{ national_id_display or '' }}">
+                                <input type="hidden" name="address" value="{{ user.address or '' }}">
+
+                                <div class="cl-field">
+                                    <label for="emergency_contact_name">نام مخاطب اضطراری</label>
+                                    <input type="text" id="emergency_contact_name" name="emergency_contact_name" value="{{ user.emergency_contact_name or '' }}" placeholder="مثلاً: همسر یا فرزند">
+                                </div>
+                                <div class="cl-field">
+                                    <label for="emergency_contact_phone">شماره تماس مخاطب اضطراری</label>
+                                    <input type="text" id="emergency_contact_phone" name="emergency_contact_phone" value="{{ user.emergency_contact_phone or '' }}">
+                                </div>
+                                <div class="cl-field">
+                                    <label for="preferred_hospital">بیمارستان ترجیحی</label>
+                                    <input type="text" id="preferred_hospital" name="preferred_hospital" value="{{ user.preferred_hospital or '' }}">
+                                </div>
+                                <div class="cl-field">
+                                    <label for="preferred_lab">آزمایشگاه ترجیحی</label>
+                                    <input type="text" id="preferred_lab" name="preferred_lab" value="{{ user.preferred_lab or '' }}">
+                                </div>
+                                <button type="submit" class="cl-auth-submit">ذخیره اطلاعات اضطراری</button>
+                            </form>
                         </div>
 
                     </div>
@@ -210,7 +242,7 @@
 
                 </div>
 
-                <!-- ===== Preferences & Notifications (UI-only; not persisted server-side) ===== -->
+                <!-- ===== Preferences & Notifications ===== -->
                 <div class="cl-tab-panel" data-panel="preferences">
                     <div class="cl-profile-card">
                         <h3 class="cl-profile-card-title">اعلان‌ها</h3>
@@ -233,8 +265,8 @@
                     <div class="cl-profile-card" style="margin-top:20px;">
                         <h3 class="cl-profile-card-title">ظاهر و زبان</h3>
                         <div class="cl-switch-row">
-                            <div><strong>زبان رابط کاربری</strong><span>فعلاً فقط فارسی در دسترس است.</span></div>
-                            <span class="cl-badge cl-badge-neutral">فارسی</span>
+                            <div><strong>زبان رابط کاربری</strong><span>فعلاً سوییچ زبان فقط روی صفحه‌ی اصلی به‌طور کامل اعمال می‌شود؛ سایر صفحات در حال انتقال به سیستم چندزبانه هستند.</span></div>
+                            <a href="/set-language/{{ 'en' if current_lang() == 'fa' else 'fa' }}" class="cl-badge cl-badge-info">{{ 'EN' if current_lang() == 'fa' else 'FA' }}</a>
                         </div>
                         <div class="cl-switch-row">
                             <div><strong>حالت تیره</strong><span>در نسخه‌ی بعدی اضافه می‌شود.</span></div>
@@ -301,9 +333,32 @@
             sw.setAttribute('aria-checked', sw.classList.contains('is-on') ? 'true' : 'false');
         });
     });
-    document.querySelectorAll('[data-switch]').forEach(function(sw){
-        sw.addEventListener('click', function(){ sw.classList.toggle('is-on'); });
+
+    var tabLinks = document.querySelectorAll('.cl-profile-tab-link');
+    var panels = document.querySelectorAll('.cl-tab-panel');
+
+    tabLinks.forEach(function(link){
+        link.addEventListener('click', function(){
+            var target = link.getAttribute('data-tab');
+
+            tabLinks.forEach(function(l){ l.classList.remove('is-active'); });
+            panels.forEach(function(p){ p.classList.remove('is-active'); });
+
+            link.classList.add('is-active');
+            var panel = document.querySelector('.cl-tab-panel[data-panel="' + target + '"]');
+            if (panel) panel.classList.add('is-active');
+
+            if (history.replaceState) {
+                history.replaceState(null, '', '#' + target);
+            }
+        });
     });
+
+    var initialTab = window.location.hash ? window.location.hash.replace('#', '') : null;
+    if (initialTab) {
+        var initialLink = document.querySelector('.cl-profile-tab-link[data-tab="' + initialTab + '"]');
+        if (initialLink) initialLink.click();
+    }
 })();
 </script>
 {% endblock %}

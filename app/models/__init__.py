@@ -63,6 +63,12 @@ class User(Base):
     smoking_status = Column(String, nullable=True)
     activity_level = Column(String, nullable=True)
 
+    # ===== مخاطب اضطراری و مراکز درمانی ترجیحی =====
+    emergency_contact_name = Column(String, nullable=True)
+    emergency_contact_phone = Column(String, nullable=True)
+    preferred_hospital = Column(String, nullable=True)
+    preferred_lab = Column(String, nullable=True)
+
     is_active = Column(Boolean, default=True, nullable=False)
     verification_status = Column(String, nullable=True)
     verification_note = Column(Text, nullable=True)

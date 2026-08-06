@@ -78,6 +78,24 @@ def _parse_float(value):
     return None
 
 
+def _profile_context(
+    request: Request,
+    user: User,
+    csrf_token: str,
+    saved: bool = False,
+    error: str | None = None,
+):
+    return {
+        "request": request,
+        "user": user,
+        "national_id_display": decrypt_value(user.national_id),
+        "saved": saved,
+        "error": error,
+        "csrf_token": csrf_token,
+        "blood_type_options": BLOOD_TYPE_OPTIONS,
+    }
+
+
 def _save_doctor_document(content: bytes, filename: str) -> str:
     if not filename or not content:
         raise AuthError("فایل مدرک نظام پزشکی ارسال نشده است.")
@@ -685,20 +703,10 @@ async def profile_page(request: Request, db: Session = Depends(get_db)):
 
     csrf_token = get_or_create_csrf_token(request)
 
-    decrypted_national_id = decrypt_value(user.national_id)
-
     return templates.TemplateResponse(
         request,
         "profile.html",
-        {
-            "request": request,
-            "user": user,
-            "national_id_display": decrypted_national_id,
-            "saved": False,
-            "error": None,
-            "csrf_token": csrf_token,
-            "blood_type_options": BLOOD_TYPE_OPTIONS,
-        }
+        _profile_context(request, user, csrf_token),
     )
 
 
@@ -720,6 +728,10 @@ async def profile_update(
     surgeries_history: str = Form(None),
     smoking_status: str = Form(None),
     activity_level: str = Form(None),
+    emergency_contact_name: str = Form(None),
+    emergency_contact_phone: str = Form(None),
+    preferred_hospital: str = Form(None),
+    preferred_lab: str = Form(None),
     csrf_token: str = Form(...),
     db: Session = Depends(get_db),
 ):
@@ -735,15 +747,10 @@ async def profile_update(
         return templates.TemplateResponse(
             request,
             "profile.html",
-            {
-                "request": request,
-                "user": user,
-                "national_id_display": decrypt_value(user.national_id),
-                "saved": False,
-                "error": "خطای اعتبارسنجی امنیتی. لطفاً دوباره تلاش کنید.",
-                "csrf_token": new_token,
-                "blood_type_options": BLOOD_TYPE_OPTIONS,
-            }
+            _profile_context(
+                request, user, new_token,
+                error="خطای اعتبارسنجی امنیتی. لطفاً دوباره تلاش کنید.",
+            )
         )
 
     if display_name and display_name.strip():
@@ -757,15 +764,10 @@ async def profile_update(
             return templates.TemplateResponse(
                 request,
                 "profile.html",
-                {
-                    "request": request,
-                    "user": user,
-                    "national_id_display": decrypt_value(user.national_id),
-                    "saved": False,
-                    "error": "سن وارد شده معتبر نیست.",
-                    "csrf_token": new_token,
-                    "blood_type_options": BLOOD_TYPE_OPTIONS,
-                }
+                _profile_context(
+                    request, user, new_token,
+                    error="سن وارد شده معتبر نیست.",
+                )
             )
     else:
         user.age = None
@@ -784,6 +786,11 @@ async def profile_update(
     user.smoking_status = smoking_status or None
     user.activity_level = activity_level or None
 
+    user.emergency_contact_name = (emergency_contact_name or "").strip()[:150] or None
+    user.emergency_contact_phone = (emergency_contact_phone or "").strip()[:30] or None
+    user.preferred_hospital = (preferred_hospital or "").strip()[:200] or None
+    user.preferred_lab = (preferred_lab or "").strip()[:200] or None
+
     if phone and phone.strip() and phone.strip() != user.phone:
         new_phone = phone.strip()
 
@@ -793,15 +800,10 @@ async def profile_update(
             return templates.TemplateResponse(
                 request,
                 "profile.html",
-                {
-                    "request": request,
-                    "user": user,
-                    "national_id_display": decrypt_value(user.national_id),
-                    "saved": False,
-                    "error": "این شماره موبایل قبلاً توسط حساب دیگری ثبت شده است.",
-                    "csrf_token": new_token,
-                    "blood_type_options": BLOOD_TYPE_OPTIONS,
-                }
+                _profile_context(
+                    request, user, new_token,
+                    error="این شماره موبایل قبلاً توسط حساب دیگری ثبت شده است.",
+                )
             )
 
         user.phone = new_phone
@@ -815,15 +817,7 @@ async def profile_update(
     return templates.TemplateResponse(
         request,
         "profile.html",
-        {
-            "request": request,
-            "user": user,
-            "national_id_display": decrypt_value(user.national_id),
-            "saved": True,
-            "error": None,
-            "csrf_token": new_token2,
-            "blood_type_options": BLOOD_TYPE_OPTIONS,
-        }
+        _profile_context(request, user, new_token2, saved=True),
     )
 
 
@@ -871,8 +865,7 @@ async def profile_change_email(
     if not is_valid_csrf(request, csrf_token):
         return templates.TemplateResponse(
             request, "profile.html",
-            {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
-             "saved": False, "error": "خطای اعتبارسنجی امنیتی.", "csrf_token": new_token, "blood_type_options": BLOOD_TYPE_OPTIONS}
+            _profile_context(request, user, new_token, error="خطای اعتبارسنجی امنیتی.")
         )
 
     try:
@@ -882,8 +875,7 @@ async def profile_change_email(
     except AuthError as e:
         return templates.TemplateResponse(
             request, "profile.html",
-            {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
-             "saved": False, "error": str(e), "csrf_token": new_token, "blood_type_options": BLOOD_TYPE_OPTIONS}
+            _profile_context(request, user, new_token, error=str(e))
         )
 
     return RedirectResponse(url="/profile", status_code=303)
@@ -908,15 +900,13 @@ async def profile_change_password(
     if not is_valid_csrf(request, csrf_token):
         return templates.TemplateResponse(
             request, "profile.html",
-            {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
-             "saved": False, "error": "خطای اعتبارسنجی امنیتی.", "csrf_token": new_token, "blood_type_options": BLOOD_TYPE_OPTIONS}
+            _profile_context(request, user, new_token, error="خطای اعتبارسنجی امنیتی.")
         )
 
     if new_password != new_password_confirm:
         return templates.TemplateResponse(
             request, "profile.html",
-            {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
-             "saved": False, "error": "رمز عبور جدید و تکرار آن یکسان نیستند.", "csrf_token": new_token, "blood_type_options": BLOOD_TYPE_OPTIONS}
+            _profile_context(request, user, new_token, error="رمز عبور جدید و تکرار آن یکسان نیستند.")
         )
 
     try:
@@ -924,8 +914,7 @@ async def profile_change_password(
     except AuthError as e:
         return templates.TemplateResponse(
             request, "profile.html",
-            {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
-             "saved": False, "error": str(e), "csrf_token": new_token, "blood_type_options": BLOOD_TYPE_OPTIONS}
+            _profile_context(request, user, new_token, error=str(e))
         )
 
     return RedirectResponse(url="/profile", status_code=303)
@@ -949,8 +938,7 @@ async def profile_delete_account(
     if not is_valid_csrf(request, csrf_token):
         return templates.TemplateResponse(
             request, "profile.html",
-            {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
-             "saved": False, "error": "خطای اعتبارسنجی امنیتی.", "csrf_token": new_token, "blood_type_options": BLOOD_TYPE_OPTIONS}
+            _profile_context(request, user, new_token, error="خطای اعتبارسنجی امنیتی.")
         )
 
     email = user.email
@@ -960,8 +948,7 @@ async def profile_delete_account(
     except AuthError as e:
         return templates.TemplateResponse(
             request, "profile.html",
-            {"request": request, "user": user, "national_id_display": decrypt_value(user.national_id),
-             "saved": False, "error": str(e), "csrf_token": new_token, "blood_type_options": BLOOD_TYPE_OPTIONS}
+            _profile_context(request, user, new_token, error=str(e))
         )
 
     background_tasks.add_task(email_service.send_account_deleted_notice, email, False)
