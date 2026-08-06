@@ -16,25 +16,25 @@
 
 {% if dash_health_score is none %}
     {% set dash_score_class = 'cl-score-empty' %}
-    {% set dash_status_text = 'No data yet to calculate an overall score' %}
+    {% set dash_status_text = t('hs_status_empty') %}
 {% elif dash_health_score >= 80 %}
     {% set dash_score_class = 'cl-score-good' %}
-    {% set dash_status_text = 'Overall status: excellent' %}
+    {% set dash_status_text = t('hs_status_excellent') %}
 {% elif dash_health_score >= 60 %}
     {% set dash_score_class = 'cl-score-warning' %}
-    {% set dash_status_text = 'Overall status: good, a few items need attention' %}
+    {% set dash_status_text = t('hs_status_good') %}
 {% elif dash_health_score >= 40 %}
     {% set dash_score_class = 'cl-score-orange' %}
-    {% set dash_status_text = 'Overall status: needs follow-up' %}
+    {% set dash_status_text = t('hs_status_followup') %}
 {% else %}
     {% set dash_score_class = 'cl-score-danger' %}
-    {% set dash_status_text = 'Overall status: needs urgent attention' %}
+    {% set dash_status_text = t('hs_status_urgent') %}
 {% endif %}
 
 {% set exam_labels_dash = {
-    'blood': 'آزمایش خون', 'urine': 'آزمایش ادرار', 'biochemistry': 'بیوشیمی',
-    'sonography': 'سونوگرافی', 'radiology': 'رادیولوژی', 'mri': 'MRI',
-    'ct_scan': 'CT Scan', 'mammography': 'ماموگرافی', 'hse': 'HSE (طب کار)', 'other': 'سایر'
+    'blood': t('exam_blood'), 'urine': t('exam_urine'), 'biochemistry': t('exam_biochemistry'),
+    'sonography': t('exam_sonography'), 'radiology': t('exam_radiology'), 'mri': t('exam_mri'),
+    'ct_scan': t('exam_ctscan'), 'mammography': t('exam_mammography'), 'hse': t('exam_hse'), 'other': t('exam_other')
 } %}
 
 {% set recent_analyses = user.analyses[:5] %}
@@ -50,15 +50,13 @@
 {% set timeline_pool = (user.analyses[:4] + user.diet_plans[:4] + user.workout_plans[:4] + user.visit_preps[:4]) %}
 {% set timeline_items = (timeline_pool | sort(attribute='created_at', reverse=True))[:6] %}
 
-{% set recently_reviewed = (user.analyses | selectattr('review_status', 'equalto', 'reviewed') | list)[:3] %}
-
 {% set has_any_activity = ((user.analyses|length) > 0 or (user.diet_plans|length) > 0 or (user.workout_plans|length) > 0) %}
 
 {% set j_reviewed = (user.analyses | selectattr('review_status', 'equalto', 'reviewed') | list) %}
 {% set j_awaiting = (user.analyses | selectattr('review_status', 'equalto', 'awaiting_doctor') | list) %}
 {% set j_has_lifestyle = ((user.diet_plans|length) > 0 or (user.workout_plans|length) > 0) %}
 
-{% block title %}My Health Status | CuraLink AI{% endblock %}
+{% block title %}{{ t('nav_health_status') }} | CuraLink AI{% endblock %}
 
 {% block content %}
 
@@ -67,24 +65,18 @@
 
         <div class="cl-dash-welcome cl-reveal">
             <div>
-                <p class="cl-dash-greeting" data-i18n="hs_greeting">سلام،</p>
-                <h1 class="cl-dash-welcome-name">{{ user.display_name or "کاربر عزیز" }}</h1>
+                <p class="cl-dash-greeting">{{ t('hs_greeting') }}</p>
+                <h1 class="cl-dash-welcome-name">{{ user.display_name or t('hs_default_user') }}</h1>
                 <p class="cl-dash-welcome-sub">{{ dash_status_text }}</p>
-            </div>
-            <div class="cl-dash-welcome-meta">
-                <div class="cl-dash-meta-chip">
-                    <span class="material-symbols-outlined cl-icon-sm">calendar_today</span>
-                    <span id="cl-hs-date">—</span>
-                </div>
             </div>
         </div>
 
         {% if not has_any_activity %}
         <div class="cl-empty-state cl-reveal">
             <span class="material-symbols-outlined cl-empty-state-icon">science</span>
-            <h3 data-i18n="hs_empty_title">هنوز آزمایشی ثبت نکرده‌اید</h3>
-            <p data-i18n="hs_empty_sub">اولین آزمایش خود را آپلود کنید تا سفر سلامت شخصی‌سازی‌شده‌ی شما شروع شود.</p>
-            <a href="/#upload" class="cl-btn cl-btn-primary cl-btn-lg" data-i18n="hs_empty_cta">شروع اولین تحلیل</a>
+            <h3>{{ t('hs_empty_title') }}</h3>
+            <p>{{ t('hs_empty_sub') }}</p>
+            <a href="/#upload" class="cl-btn cl-btn-primary cl-btn-lg">{{ t('hs_empty_cta') }}</a>
         </div>
         {% else %}
 
@@ -92,7 +84,7 @@
             <div class="cl-health-score-card {{ dash_score_class }} cl-dash-hero-score">
                 {% if dash_health_score is not none %}
                 <div class="cl-score-ring-wrap cl-score-ring-wrap-lg">
-                    <svg viewBox="0 0 160 160" class="cl-score-ring" role="img" aria-label="Health score: {{ dash_health_score }} out of 100">
+                    <svg viewBox="0 0 160 160" class="cl-score-ring" role="img" aria-label="{{ t('hs_score_label') }}: {{ dash_health_score }} / 100">
                         <circle cx="80" cy="80" r="70" class="cl-score-ring-track"/>
                         <circle cx="80" cy="80" r="70" class="cl-score-ring-value"
                                 stroke-dasharray="{{ dash_score_circumference }}"
@@ -109,47 +101,47 @@
                     <span class="material-symbols-outlined cl-icon-xl">insights</span>
                 </div>
                 {% endif %}
-                <p class="cl-score-label" data-i18n="hs_score_label">امتیاز کلی سلامت</p>
-                <p class="cl-score-caption">{% if ns2.total > 0 %}{{ ns2.normal }} / {{ ns2.total }} پارامتر در محدوده طبیعی{% else %}پس از اولین آزمایش محاسبه می‌شود{% endif %}</p>
+                <p class="cl-score-label">{{ t('hs_score_label') }}</p>
+                <p class="cl-score-caption">{% if ns2.total > 0 %}{{ t('hs_score_caption_has', normal=ns2.normal, total=ns2.total) }}{% else %}{{ t('hs_score_caption_empty') }}{% endif %}</p>
             </div>
 
             <div class="cl-dash-hero-stats">
                 <div class="cl-card-stat cl-lift-on-hover">
                     <span class="material-symbols-outlined cl-icon-md cl-stat-icon">science</span>
                     <span class="cl-stat-value cl-value-mono" data-count-to="{{ user.analyses|length }}">0</span>
-                    <span class="cl-stat-label" data-i18n="hs_stat_analyses">آزمایش تحلیل‌شده</span>
+                    <span class="cl-stat-label">{{ t('hs_stat_analyses') }}</span>
                 </div>
                 <div class="cl-card-stat cl-lift-on-hover">
                     <span class="material-symbols-outlined cl-icon-md cl-stat-icon">nutrition</span>
                     <span class="cl-stat-value cl-value-mono" data-count-to="{{ user.diet_plans|length }}">0</span>
-                    <span class="cl-stat-label" data-i18n="hs_stat_diet">برنامه غذایی</span>
+                    <span class="cl-stat-label">{{ t('hs_stat_diet') }}</span>
                 </div>
                 <div class="cl-card-stat cl-lift-on-hover">
                     <span class="material-symbols-outlined cl-icon-md cl-stat-icon">fitness_center</span>
                     <span class="cl-stat-value cl-value-mono" data-count-to="{{ user.workout_plans|length }}">0</span>
-                    <span class="cl-stat-label" data-i18n="hs_stat_workout">برنامه ورزشی</span>
+                    <span class="cl-stat-label">{{ t('hs_stat_workout') }}</span>
                 </div>
                 <div class="cl-card-stat cl-lift-on-hover">
                     <span class="material-symbols-outlined cl-icon-md cl-stat-icon">event_available</span>
                     <span class="cl-stat-value" style="font-size:15px; background:none; -webkit-text-fill-color:initial; color:var(--color-secondary);">
-                        {% if last_upload %}{{ last_upload.created_at.strftime("%Y-%m-%d") }}{% else %}—{% endif %}
+                        {% if last_upload %}{{ jdate(last_upload.created_at) }}{% else %}—{% endif %}
                     </span>
-                    <span class="cl-stat-label" data-i18n="hs_stat_last_upload">آخرین آپلود</span>
+                    <span class="cl-stat-label">{{ t('hs_stat_last_upload') }}</span>
                 </div>
             </div>
         </div>
         {% endif %}
 
         <div class="cl-dash-section cl-reveal">
-            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">bolt</span> <span data-i18n="hs_quick_actions">اقدامات سریع</span></h2>
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">bolt</span> <span>{{ t('hs_quick_actions') }}</span></h2>
             <div class="cl-quick-actions-grid">
-                <a href="/#upload" class="cl-quick-action cl-card-interactive"><span class="cl-quick-action-icon"><span class="material-symbols-outlined">upload_file</span></span><span data-i18n="hs_qa_upload">آپلود آزمایش جدید</span></a>
-                <a href="/history" class="cl-quick-action cl-card-interactive"><span class="cl-quick-action-icon"><span class="material-symbols-outlined">folder_shared</span></span><span data-i18n="hs_qa_history">تاریخچه</span></a>
-                <a href="/trends" class="cl-quick-action cl-card-interactive"><span class="cl-quick-action-icon"><span class="material-symbols-outlined">trending_up</span></span><span data-i18n="hs_qa_trends">روند آزمایش‌ها</span></a>
-                <a href="/diet" class="cl-quick-action cl-card-interactive"><span class="cl-quick-action-icon"><span class="material-symbols-outlined">nutrition</span></span><span data-i18n="hs_qa_diet">برنامه غذایی</span></a>
-                <a href="/workout" class="cl-quick-action cl-card-interactive"><span class="cl-quick-action-icon"><span class="material-symbols-outlined">fitness_center</span></span><span data-i18n="hs_qa_workout">برنامه ورزشی</span></a>
-                <a href="/visit-prep" class="cl-quick-action cl-card-interactive"><span class="cl-quick-action-icon"><span class="material-symbols-outlined">assignment</span></span><span data-i18n="hs_qa_visit">آماده‌سازی ویزیت</span></a>
-                <a href="/family" class="cl-quick-action cl-card-interactive"><span class="cl-quick-action-icon"><span class="material-symbols-outlined">diversity_3</span></span><span data-i18n="hs_qa_family">خانواده</span></a>
+                <a href="/#upload" class="cl-quick-action cl-card-interactive"><span class="cl-quick-action-icon"><span class="material-symbols-outlined">upload_file</span></span><span>{{ t('hs_qa_upload') }}</span></a>
+                <a href="/history" class="cl-quick-action cl-card-interactive"><span class="cl-quick-action-icon"><span class="material-symbols-outlined">folder_shared</span></span><span>{{ t('hs_qa_history') }}</span></a>
+                <a href="/trends" class="cl-quick-action cl-card-interactive"><span class="cl-quick-action-icon"><span class="material-symbols-outlined">trending_up</span></span><span>{{ t('hs_qa_trends') }}</span></a>
+                <a href="/diet" class="cl-quick-action cl-card-interactive"><span class="cl-quick-action-icon"><span class="material-symbols-outlined">nutrition</span></span><span>{{ t('hs_qa_diet') }}</span></a>
+                <a href="/workout" class="cl-quick-action cl-card-interactive"><span class="cl-quick-action-icon"><span class="material-symbols-outlined">fitness_center</span></span><span>{{ t('hs_qa_workout') }}</span></a>
+                <a href="/visit-prep" class="cl-quick-action cl-card-interactive"><span class="cl-quick-action-icon"><span class="material-symbols-outlined">assignment</span></span><span>{{ t('hs_qa_visit') }}</span></a>
+                <a href="/family" class="cl-quick-action cl-card-interactive"><span class="cl-quick-action-icon"><span class="material-symbols-outlined">diversity_3</span></span><span>{{ t('hs_qa_family') }}</span></a>
             </div>
         </div>
 
@@ -157,10 +149,10 @@
         <div class="cl-followup-card cl-reveal" style="margin-bottom:24px;">
             <div class="cl-followup-icon"><span class="material-symbols-outlined">notifications_active</span></div>
             <div class="cl-followup-body">
-                <h3 data-i18n="hs_followup_title">یادآوری پیگیری آزمایش</h3>
+                <h3>{{ t('hs_followup_title') }}</h3>
                 <ul>
                     {% for item in due_followups %}
-                    <li>زمان تکرار آزمایش <strong>{{ item.test_name }}</strong>{% if item.person_name %} برای <strong>{{ item.person_name }}</strong>{% endif %} فرا رسیده است.</li>
+                    <li>{% if item.person_name %}{{ t('hs_followup_item_person', test=item.test_name, person=item.person_name) }}{% else %}{{ t('hs_followup_item_self', test=item.test_name) }}{% endif %}</li>
                     {% endfor %}
                 </ul>
             </div>
@@ -170,11 +162,11 @@
         {% if has_any_activity %}
 
         {% set journey_stages = [
-            {'key': 'upload', 'icon': 'upload_file', 'title': 'آپلود آزمایش', 'desc': 'اولین (یا جدیدترین) گزارش آزمایشگاهی شما ثبت شد.'},
-            {'key': 'analysis', 'icon': 'psychology', 'title': 'تحلیل هوش مصنوعی', 'desc': 'مقادیر آزمایش با استانداردهای پزشکی سنجیده و تفسیر شدند.'},
-            {'key': 'lifestyle', 'icon': 'nutrition', 'title': 'توصیه‌های سبک زندگی', 'desc': 'برنامه‌ی غذایی و ورزشی متناسب با نتایج شما آماده می‌شود.'},
-            {'key': 'consultation', 'icon': 'medical_services', 'title': 'مشاوره پزشک', 'desc': 'در صورت نیاز، گزارش برای بررسی نهایی به پزشک واقعی سپرده می‌شود.'},
-            {'key': 'followup', 'icon': 'monitor_heart', 'title': 'پیگیری و مانیتورینگ', 'desc': 'روند سلامت شما در طول زمان پیگیری و یادآوری می‌شود.'},
+            {'key': 'upload', 'icon': 'upload_file', 'title': t('hs_stage_upload_title'), 'desc': t('hs_stage_upload_desc')},
+            {'key': 'analysis', 'icon': 'psychology', 'title': t('hs_stage_analysis_title'), 'desc': t('hs_stage_analysis_desc')},
+            {'key': 'lifestyle', 'icon': 'nutrition', 'title': t('hs_stage_lifestyle_title'), 'desc': t('hs_stage_lifestyle_desc')},
+            {'key': 'consultation', 'icon': 'medical_services', 'title': t('hs_stage_consultation_title'), 'desc': t('hs_stage_consultation_desc')},
+            {'key': 'followup', 'icon': 'monitor_heart', 'title': t('hs_stage_followup_title'), 'desc': t('hs_stage_followup_desc')},
         ] %}
 
         {% set journey_status = {
@@ -188,17 +180,17 @@
 
         {% set nba = None %}
         {% if due_followups %}
-            {% set nba = {'icon': 'event_repeat', 'title': 'زمان تکرار آزمایش ' ~ due_followups[0].test_name ~ ' فرا رسیده', 'desc': 'برای پیگیری دقیق روند سلامتتان، این آزمایش را دوباره انجام دهید.', 'cta_label': 'آپلود آزمایش جدید', 'cta_href': '/#upload'} %}
+            {% set nba = {'icon': 'event_repeat', 'title': t('hs_nba_followup_title', test=due_followups[0].test_name), 'desc': t('hs_nba_followup_desc'), 'cta_label': t('hs_qa_upload'), 'cta_href': '/#upload'} %}
         {% elif ns2.total > 0 and ns2.normal < ns2.total %}
-            {% set nba = {'icon': 'medical_services', 'title': 'نتیجه‌ی آزمایش را با پزشک در میان بگذارید', 'desc': 'برخی از پارامترهای آزمایش شما خارج از محدوده‌ی طبیعی است. بررسی توسط پزشک واقعی توصیه می‌شود.', 'cta_label': 'مشاهده‌ی آخرین گزارش', 'cta_href': '/history'} %}
+            {% set nba = {'icon': 'medical_services', 'title': t('hs_nba_review_title'), 'desc': t('hs_nba_review_desc'), 'cta_label': t('hs_nba_review_cta'), 'cta_href': '/history'} %}
         {% elif not j_has_lifestyle %}
-            {% set nba = {'icon': 'nutrition', 'title': 'برنامه‌ی غذایی و ورزشی خود را بسازید', 'desc': 'بر اساس نتایج آزمایش‌های ثبت‌شده، یک برنامه‌ی شخصی‌سازی‌شده دریافت کنید.', 'cta_label': 'ساخت برنامه غذایی', 'cta_href': '/diet'} %}
+            {% set nba = {'icon': 'nutrition', 'title': t('hs_nba_lifestyle_title'), 'desc': t('hs_nba_lifestyle_desc'), 'cta_label': t('hs_nba_lifestyle_cta'), 'cta_href': '/diet'} %}
         {% else %}
-            {% set nba = {'icon': 'monitor_heart', 'title': 'روند سلامت خود را پیگیری کنید', 'desc': 'وضعیت شما پایدار است. آزمایش‌های دوره‌ای بعدی را طبق زمان‌بندی پزشک انجام دهید.', 'cta_label': 'مشاهده‌ی روند', 'cta_href': '/trends'} %}
+            {% set nba = {'icon': 'monitor_heart', 'title': t('hs_nba_stable_title'), 'desc': t('hs_nba_stable_desc'), 'cta_label': t('hs_nba_stable_cta'), 'cta_href': '/trends'} %}
         {% endif %}
 
         <div class="cl-dash-section cl-reveal">
-            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">flag</span> مهم‌ترین اقدام بعدی</h2>
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">flag</span> {{ t('hs_next_action_heading') }}</h2>
             <div class="cl-nba-card">
                 <span class="cl-nba-icon"><span class="material-symbols-outlined">{{ nba.icon }}</span></span>
                 <div class="cl-nba-body"><strong>{{ nba.title }}</strong><p>{{ nba.desc }}</p></div>
@@ -207,7 +199,7 @@
         </div>
 
         <div class="cl-dash-section cl-reveal">
-            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">alt_route</span> مسیر مراقبت شما</h2>
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">alt_route</span> {{ t('hs_care_path_heading') }}</h2>
             <div class="cl-care-path">
                 {% for stage in journey_stages %}
                 {% set st = journey_status.get(stage.key) %}
@@ -217,7 +209,7 @@
                         <strong>{{ stage.title }}</strong>
                         <p>{{ stage.desc }}</p>
                         <span class="cl-badge {% if st == 'done' %}cl-badge-success{% elif st == 'current' %}cl-badge-warning{% else %}cl-badge-neutral{% endif %}">
-                            {% if st == 'done' %}تکمیل‌شده{% elif st == 'current' %}در حال انجام{% elif st == 'optional' %}اختیاری{% else %}پیش‌رو{% endif %}
+                            {% if st == 'done' %}{{ t('hs_badge_done') }}{% elif st == 'current' %}{{ t('hs_badge_current') }}{% elif st == 'optional' %}{{ t('hs_badge_optional') }}{% else %}{{ t('hs_badge_upcoming') }}{% endif %}
                         </span>
                     </div>
                 </div>
@@ -227,34 +219,18 @@
         </div>
 
         <div class="cl-dash-section cl-reveal">
-            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">dashboard</span> وضعیت فعلی سفر سلامت</h2>
-            <div class="cl-status-card">
-                <div class="cl-status-card-row">
-                    <div class="cl-status-item"><span class="cl-text-caption">امتیاز سلامت</span><strong class="cl-value-mono">{% if dash_health_score is not none %}{{ dash_health_score }}/100{% else %}—{% endif %}</strong></div>
-                    <div class="cl-status-item"><span class="cl-text-caption">آخرین آپلود</span><strong>{% if last_upload %}{{ last_upload.created_at.strftime("%Y-%m-%d") }}{% else %}—{% endif %}</strong></div>
-                    <div class="cl-status-item"><span class="cl-text-caption">تعداد گزارش‌ها</span><strong class="cl-value-mono">{{ user.analyses|length }}</strong></div>
-                    <div class="cl-status-item"><span class="cl-text-caption">سطح اطمینان تحلیل</span><strong class="cl-badge cl-badge-info">استاندارد AI</strong></div>
-                </div>
-                <div class="cl-recovery-tracker">
-                    <div class="cl-progress-label"><span>پیشرفت سفر سلامت</span><span>{{ completed_count }} / 5</span></div>
-                    <div class="cl-progress"><div class="cl-progress-bar" data-target-width="{{ journey_progress_pct }}" style="width:0%;"></div></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="cl-dash-section cl-reveal">
-            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">checklist</span> برنامه مراقبتی شما</h2>
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">checklist</span> {{ t('hs_care_plan_heading') }}</h2>
             <div class="cl-care-plan-grid">
                 <div class="cl-goal-card {% if not due_followups %}is-done{% endif %}">
                     <span class="cl-goal-check"><span class="material-symbols-outlined" style="font-size:16px;">check</span></span>
-                    <div class="cl-goal-body"><strong>پیگیری آزمایش‌های دوره‌ای</strong><span>{% if due_followups %}موعد یک یا چند آزمایش فرا رسیده{% else %}همه‌چیز به‌روز است{% endif %}</span></div>
+                    <div class="cl-goal-body"><strong>{{ t('hs_goal_followup_title') }}</strong><span>{% if due_followups %}{{ t('hs_goal_followup_pending') }}{% else %}{{ t('hs_goal_followup_done') }}{% endif %}</span></div>
                 </div>
                 <div class="cl-goal-card {% if j_has_lifestyle %}is-done{% endif %}">
                     <span class="cl-goal-check"><span class="material-symbols-outlined" style="font-size:16px;">check</span></span>
-                    <div class="cl-goal-body"><strong>برنامه غذایی و ورزشی</strong><span>{% if j_has_lifestyle %}تولید شده{% else %}هنوز ساخته نشده{% endif %}</span></div>
+                    <div class="cl-goal-body"><strong>{{ t('hs_goal_lifestyle_title') }}</strong><span>{% if j_has_lifestyle %}{{ t('hs_goal_lifestyle_done') }}{% else %}{{ t('hs_goal_lifestyle_pending') }}{% endif %}</span></div>
                 </div>
-                <div class="cl-goal-card"><span class="cl-goal-check"></span><div class="cl-goal-body"><strong>هیدراتاسیون روزانه</strong><span>حداقل 8 لیوان آب در روز</span></div></div>
-                <div class="cl-goal-card"><span class="cl-goal-check"></span><div class="cl-goal-body"><strong>خواب کافی</strong><span>7 تا 8 ساعت خواب شبانه</span></div></div>
+                <div class="cl-goal-card"><span class="cl-goal-check"></span><div class="cl-goal-body"><strong>{{ t('hs_goal_hydration_title') }}</strong><span>{{ t('hs_goal_hydration_desc') }}</span></div></div>
+                <div class="cl-goal-card"><span class="cl-goal-check"></span><div class="cl-goal-body"><strong>{{ t('hs_goal_sleep_title') }}</strong><span>{{ t('hs_goal_sleep_desc') }}</span></div></div>
             </div>
         </div>
 
@@ -264,15 +240,15 @@
 
                 {% if recent_analyses %}
                 <div class="cl-dash-section cl-reveal">
-                    <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">science</span> آخرین آزمایش‌های تحلیل‌شده</h2>
+                    <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">science</span> {{ t('hs_recent_title') }}</h2>
                     <div class="cl-recent-list">
                         {% for record in recent_analyses %}
                         <a href="/history/{{ record.id }}" class="cl-recent-item cl-card-interactive">
                             <span class="cl-recent-icon {% if record.review_status == 'reviewed' %}cl-recent-icon-success{% elif record.review_status == 'awaiting_doctor' %}cl-recent-icon-info{% else %}cl-recent-icon-neutral{% endif %}"><span class="material-symbols-outlined">description</span></span>
-                            <div class="cl-recent-body"><strong>{{ exam_labels_dash.get(record.exam_type, record.exam_type or "آزمایش") }}</strong><span>{{ record.filename or "بدون نام فایل" }}</span></div>
+                            <div class="cl-recent-body"><strong>{{ exam_labels_dash.get(record.exam_type, record.exam_type or t('exam_other')) }}</strong><span>{{ record.filename or "—" }}</span></div>
                             <div class="cl-recent-meta">
-                                <span class="cl-value-mono cl-text-caption">{{ record.created_at.strftime("%Y-%m-%d") }}</span>
-                                {% if record.review_status == 'reviewed' %}<span class="cl-badge cl-badge-success">بررسی‌شده</span>{% elif record.review_status == 'awaiting_doctor' %}<span class="cl-badge cl-badge-info">در انتظار پزشک</span>{% endif %}
+                                <span class="cl-value-mono cl-text-caption">{{ jdate(record.created_at) }}</span>
+                                {% if record.review_status == 'reviewed' %}<span class="cl-badge cl-badge-success">{{ t('hs_badge_reviewed') }}</span>{% elif record.review_status == 'awaiting_doctor' %}<span class="cl-badge cl-badge-info">{{ t('hs_badge_awaiting') }}</span>{% endif %}
                                 <span class="material-symbols-outlined cl-icon-sm">chevron_left</span>
                             </div>
                         </a>
@@ -283,7 +259,7 @@
 
                 {% if timeline_items %}
                 <div class="cl-dash-section cl-reveal">
-                    <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">timeline</span> جدول زمانی سلامت</h2>
+                    <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">timeline</span> {{ t('hs_timeline_title') }}</h2>
                     <div class="cl-timeline">
                         {% for item in timeline_items %}
                         {% set cls = item.__class__.__name__ %}
@@ -293,12 +269,12 @@
                             </div>
                             <div class="cl-timeline-content">
                                 <strong>
-                                    {% if cls == 'AnalysisRecord' %}تحلیل {{ exam_labels_dash.get(item.exam_type, "آزمایش") }} ثبت شد
-                                    {% elif cls == 'DietPlanRecord' %}برنامه غذایی جدید تولید شد
-                                    {% elif cls == 'WorkoutPlanRecord' %}برنامه ورزشی جدید تولید شد
-                                    {% else %}آماده‌سازی ویزیت پزشک انجام شد{% endif %}
+                                    {% if cls == 'AnalysisRecord' %}{{ t('hs_timeline_analysis', exam=exam_labels_dash.get(item.exam_type, t('exam_other'))) }}
+                                    {% elif cls == 'DietPlanRecord' %}{{ t('hs_timeline_diet') }}
+                                    {% elif cls == 'WorkoutPlanRecord' %}{{ t('hs_timeline_workout') }}
+                                    {% else %}{{ t('hs_timeline_visit') }}{% endif %}
                                 </strong>
-                                <span class="cl-value-mono cl-text-caption">{{ item.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
+                                <span class="cl-value-mono cl-text-caption">{{ jdatetime(item.created_at) }}</span>
                             </div>
                         </div>
                         {% endfor %}
@@ -308,10 +284,10 @@
 
                 {% if ns3.chart_test %}
                 <div class="cl-dash-section cl-reveal">
-                    <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">show_chart</span> روند «{{ ns3.chart_test }}»</h2>
+                    <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">show_chart</span> {{ t('hs_trend_title', test=ns3.chart_test) }}</h2>
                     <div class="cl-chart-wrapper">
                         <div class="cl-chart-canvas-box"><canvas id="cl-hs-chart"></canvas></div>
-                        <a href="/trends" class="cl-profile-external-link">مشاهده‌ی روند همه‌ی آزمایش‌ها ←</a>
+                        <a href="/trends" class="cl-profile-external-link">{{ t('hs_trend_link') }}</a>
                     </div>
                 </div>
                 {% endif %}
@@ -321,42 +297,12 @@
             <div class="cl-dash-col-side">
 
                 <div class="cl-dash-section cl-reveal">
-                    <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">notifications</span> اعلان‌ها</h2>
-                    <div class="cl-notif-panel">
-                        {% set has_notifs = due_followups or recently_reviewed %}
-                        {% if has_notifs %}
-                            {% for item in due_followups %}
-                            <div class="cl-notif-item"><span class="cl-notif-dot"></span><div><strong>یادآوری تکرار آزمایش</strong><span>{{ item.test_name }}{% if item.person_name %} — {{ item.person_name }}{% endif %}</span></div></div>
-                            {% endfor %}
-                            {% for record in recently_reviewed %}
-                            <div class="cl-notif-item"><span class="cl-notif-dot cl-notif-dot-success"></span><div><strong>بررسی پزشک تکمیل شد</strong><span>{{ exam_labels_dash.get(record.exam_type, "آزمایش") }} — {{ record.doctor_opinion_at.strftime("%Y-%m-%d") if record.doctor_opinion_at else "" }}</span></div></div>
-                            {% endfor %}
-                        {% else %}
-                        <p class="cl-text-caption" style="margin:0;">اعلان جدیدی ندارید.</p>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <div class="cl-dash-section cl-reveal">
-                    <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">notifications_active</span> یادآوری‌ها</h2>
-                    {% if due_followups %}
-                    <div class="cl-reminder-list">
-                        {% for item in due_followups %}
-                        <div class="cl-reminder-card"><span class="cl-reminder-icon"><span class="material-symbols-outlined">event_repeat</span></span><div><strong>تکرار آزمایش {{ item.test_name }}</strong><span>{% if item.person_name %}برای {{ item.person_name }} — {% endif %}موعد فرا رسیده است</span></div></div>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <p class="cl-text-caption">در حال حاضر یادآوری فعالی ندارید.</p>
-                    {% endif %}
-                </div>
-
-                <div class="cl-dash-section cl-reveal">
-                    <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">auto_awesome</span> نکات کلی سلامت</h2>
+                    <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">auto_awesome</span> {{ t('hs_tips_title') }}</h2>
                     <div class="cl-tip-list">
-                        <div class="cl-tip-card"><span class="material-symbols-outlined">water_drop</span><div><strong>هیدراتاسیون</strong><span>مصرف کافی آب در طول روز را فراموش نکنید.</span></div></div>
-                        <div class="cl-tip-card"><span class="material-symbols-outlined">bedtime</span><div><strong>خواب کافی</strong><span>7 تا 8 ساعت خواب باکیفیت شبانه توصیه می‌شود.</span></div></div>
-                        <div class="cl-tip-card"><span class="material-symbols-outlined">directions_walk</span><div><strong>فعالیت بدنی</strong><span>حداقل 150 دقیقه فعالیت هوازی در هفته.</span></div></div>
-                        <div class="cl-tip-card"><span class="material-symbols-outlined">medical_services</span><div><strong>پیگیری پزشک</strong><span>نتایج مهم را حتماً با پزشک خود در میان بگذارید.</span></div></div>
+                        <div class="cl-tip-card"><span class="material-symbols-outlined">water_drop</span><div><strong>{{ t('hs_tip_hydration_title') }}</strong><span>{{ t('hs_tip_hydration_desc') }}</span></div></div>
+                        <div class="cl-tip-card"><span class="material-symbols-outlined">bedtime</span><div><strong>{{ t('hs_tip_sleep_title') }}</strong><span>{{ t('hs_tip_sleep_desc') }}</span></div></div>
+                        <div class="cl-tip-card"><span class="material-symbols-outlined">directions_walk</span><div><strong>{{ t('hs_tip_activity_title') }}</strong><span>{{ t('hs_tip_activity_desc') }}</span></div></div>
+                        <div class="cl-tip-card"><span class="material-symbols-outlined">medical_services</span><div><strong>{{ t('hs_tip_doctor_title') }}</strong><span>{{ t('hs_tip_doctor_desc') }}</span></div></div>
                     </div>
                 </div>
 
@@ -415,11 +361,6 @@
             pObs.observe(bar);
         } else bar.style.width = target;
     });
-
-    var dateEl = document.getElementById('cl-hs-date');
-    if (dateEl) {
-        dateEl.textContent = new Intl.DateTimeFormat('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date());
-    }
 })();
 </script>
 
@@ -434,7 +375,7 @@
         .then(function(data){
             var labels = data.points.map(function(p){ return p.date; });
             var values = data.points.map(function(p){ return p.value; });
-            if (values.length < 2) { canvas.closest('.cl-chart-wrapper').querySelector('.cl-chart-canvas-box').innerHTML = '<p class="cl-text-caption" style="text-align:center; margin:20px 0;">برای نمایش نمودار حداقل به 2 آزمایش نیاز است.</p>'; return; }
+            if (values.length < 2) { canvas.closest('.cl-chart-wrapper').querySelector('.cl-chart-canvas-box').innerHTML = '<p class="cl-text-caption" style="text-align:center; margin:20px 0;">{{ t("hs_trend_min_points") }}</p>'; return; }
             new Chart(canvas.getContext('2d'), {
                 type: 'line',
                 data: { labels: labels, datasets: [{ label: "{{ ns3.chart_test }}", data: values, borderColor: '#0F6FFF', backgroundColor: 'rgba(15,111,255,.08)', tension: 0.35, fill: true, pointRadius: 4, pointBackgroundColor: '#0F6FFF', pointBorderColor: '#fff', pointBorderWidth: 2, borderWidth: 2 }] },

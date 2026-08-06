@@ -1,6 +1,6 @@
 {# app/templates/base.html #}
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="{{ current_lang() }}" dir="{{ lang_dir() }}">
 
 <head>
 
@@ -24,7 +24,7 @@
 
 <body>
 
-    <a href="#main-content" class="cl-skip-link">رفتن به محتوای اصلی</a>
+    <a href="#main-content" class="cl-skip-link">{{ t('skip_link') }}</a>
 
     <header class="navbar" id="cl-navbar">
         <div class="container navbar-inner">
@@ -35,15 +35,15 @@
 
             <nav class="cl-mega-nav">
 
-                <a href="/" class="cl-nav-link nav-active" data-i18n="nav_home">
+                <a href="/" class="cl-nav-link nav-active">
                     <span class="material-symbols-outlined cl-icon-sm">home</span>
-                    خانه
+                    {{ t('nav_home') }}
                 </a>
 
                 {% if user %}
                 <div class="cl-mega-item">
-                    <button type="button" class="cl-mega-trigger" data-i18n="nav_services">
-                        سرویس‌های سلامت
+                    <button type="button" class="cl-mega-trigger">
+                        {{ t('nav_services') }}
                         <span class="material-symbols-outlined cl-mega-caret">expand_more</span>
                     </button>
                     <div class="cl-mega-panel">
@@ -51,65 +51,65 @@
                             <a href="/#upload" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">science</span></span>
                                 <span>
-                                    <strong data-i18n="nav_svc_analyze">تحلیل آزمایش</strong>
-                                    <small data-i18n="nav_svc_analyze_sub">آپلود و تفسیر هوشمند نتایج</small>
+                                    <strong>{{ t('nav_svc_analyze') }}</strong>
+                                    <small>{{ t('nav_svc_analyze_sub') }}</small>
                                 </span>
                             </a>
                             <a href="/history" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">folder_shared</span></span>
                                 <span>
-                                    <strong data-i18n="nav_svc_history">تاریخچه آزمایش‌ها</strong>
-                                    <small data-i18n="nav_svc_history_sub">مشاهده تحلیل‌های قبلی</small>
+                                    <strong>{{ t('nav_svc_history') }}</strong>
+                                    <small>{{ t('nav_svc_history_sub') }}</small>
                                 </span>
                             </a>
                             <a href="/trends" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">trending_up</span></span>
                                 <span>
-                                    <strong data-i18n="nav_svc_trends">روند آزمایش‌ها</strong>
-                                    <small data-i18n="nav_svc_trends_sub">مقایسه مقادیر در طول زمان</small>
+                                    <strong>{{ t('nav_svc_trends') }}</strong>
+                                    <small>{{ t('nav_svc_trends_sub') }}</small>
                                 </span>
                             </a>
                             <a href="/diet" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">nutrition</span></span>
                                 <span>
-                                    <strong data-i18n="nav_svc_diet">برنامه غذایی</strong>
-                                    <small data-i18n="nav_svc_diet_sub">شخصی‌سازی‌شده بر اساس آزمایش‌ها</small>
+                                    <strong>{{ t('nav_svc_diet') }}</strong>
+                                    <small>{{ t('nav_svc_diet_sub') }}</small>
                                 </span>
                             </a>
                             <a href="/workout" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">fitness_center</span></span>
                                 <span>
-                                    <strong data-i18n="nav_svc_workout">برنامه ورزشی</strong>
-                                    <small data-i18n="nav_svc_workout_sub">بدنسازی، کاردیو و فیتنس شخصی‌سازی‌شده</small>
+                                    <strong>{{ t('nav_svc_workout') }}</strong>
+                                    <small>{{ t('nav_svc_workout_sub') }}</small>
                                 </span>
                             </a>
                             <a href="/visit-prep" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">assignment</span></span>
                                 <span>
-                                    <strong data-i18n="nav_svc_visit">آماده‌سازی ویزیت</strong>
-                                    <small data-i18n="nav_svc_visit_sub">خلاصه‌ای آماده قبل از مراجعه به پزشک</small>
+                                    <strong>{{ t('nav_svc_visit') }}</strong>
+                                    <small>{{ t('nav_svc_visit_sub') }}</small>
                                 </span>
                             </a>
                             <a href="/family" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">diversity_3</span></span>
                                 <span>
-                                    <strong data-i18n="nav_svc_family">خانواده</strong>
-                                    <small data-i18n="nav_svc_family_sub">مدیریت آزمایش‌های اعضای خانواده</small>
+                                    <strong>{{ t('nav_svc_family') }}</strong>
+                                    <small>{{ t('nav_svc_family_sub') }}</small>
                                 </span>
                             </a>
                         </div>
                     </div>
                 </div>
 
-                <a href="/health-status" class="cl-nav-link" data-i18n="nav_health_status">
+                <a href="/health-status" class="cl-nav-link">
                     <span class="material-symbols-outlined cl-icon-sm">monitor_heart</span>
-                    وضعیت سلامت من
+                    {{ t('nav_health_status') }}
                 </a>
                 {% endif %}
 
                 <div class="cl-mega-item">
-                    <button type="button" class="cl-mega-trigger" data-i18n="nav_about">
-                        درباره کیورالینک
+                    <button type="button" class="cl-mega-trigger">
+                        {{ t('nav_about') }}
                         <span class="material-symbols-outlined cl-mega-caret">expand_more</span>
                     </button>
                     <div class="cl-mega-panel">
@@ -117,22 +117,22 @@
                             <a href="https://curalinkcare.com/about/" target="_blank" rel="noopener" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">apartment</span></span>
                                 <span>
-                                    <strong data-i18n="nav_about_us">درباره ما</strong>
-                                    <small data-i18n="nav_about_us_sub">آشنایی با تیم و ماموریت CuraLink</small>
+                                    <strong>{{ t('nav_about_us') }}</strong>
+                                    <small>{{ t('nav_about_us_sub') }}</small>
                                 </span>
                             </a>
                             <a href="https://curalinkcare.com/our-services/" target="_blank" rel="noopener" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">dashboard</span></span>
                                 <span>
-                                    <strong data-i18n="nav_our_services">خدمات ما</strong>
-                                    <small data-i18n="nav_our_services_sub">معرفی کامل قابلیت‌های پلتفرم</small>
+                                    <strong>{{ t('nav_our_services') }}</strong>
+                                    <small>{{ t('nav_our_services_sub') }}</small>
                                 </span>
                             </a>
                             <a href="https://curalinkcare.com/contact/" target="_blank" rel="noopener" class="cl-mega-link">
                                 <span class="cl-mega-icon"><span class="material-symbols-outlined">support_agent</span></span>
                                 <span>
-                                    <strong data-i18n="nav_contact">تماس با ما</strong>
-                                    <small data-i18n="nav_contact_sub">پشتیبانی و ارتباط مستقیم</small>
+                                    <strong>{{ t('nav_contact') }}</strong>
+                                    <small>{{ t('nav_contact_sub') }}</small>
                                 </span>
                             </a>
                         </div>
@@ -140,24 +140,24 @@
                 </div>
 
                 {% if user and user.role == 'doctor' %}
-                <a href="/doctor/reviews" class="cl-nav-link" data-i18n="nav_doctor_reviews">
+                <a href="/doctor/reviews" class="cl-nav-link">
                     <span class="material-symbols-outlined cl-icon-sm">medical_services</span>
-                    بررسی گزارش‌ها
+                    {{ t('nav_doctor_reviews') }}
                 </a>
                 {% endif %}
 
                 {% if user and user.role == 'platform_admin' %}
                 <div class="cl-mega-item">
-                    <button type="button" class="cl-mega-trigger" data-i18n="nav_admin">
-                        پنل مدیریت
+                    <button type="button" class="cl-mega-trigger">
+                        {{ t('nav_admin') }}
                         <span class="material-symbols-outlined cl-mega-caret">expand_more</span>
                     </button>
                     <div class="cl-mega-panel">
                         <div class="cl-mega-panel-inner cl-mega-panel-inner-simple">
-                            <a href="/admin" class="cl-mega-link-simple">داشبورد مدیریت</a>
-                            <a href="/admin/doctors" class="cl-mega-link-simple">تایید پزشکان</a>
-                            <a href="/admin/users" class="cl-mega-link-simple">مدیریت کاربران</a>
-                            <a href="/doctor/reviews" class="cl-mega-link-simple">بررسی گزارش‌ها</a>
+                            <a href="/admin" class="cl-mega-link-simple">{{ t('nav_admin_dashboard') }}</a>
+                            <a href="/admin/doctors" class="cl-mega-link-simple">{{ t('nav_admin_doctors') }}</a>
+                            <a href="/admin/users" class="cl-mega-link-simple">{{ t('nav_admin_users') }}</a>
+                            <a href="/doctor/reviews" class="cl-mega-link-simple">{{ t('nav_admin_reviews') }}</a>
                         </div>
                     </div>
                 </div>
@@ -166,31 +166,31 @@
             </nav>
 
             <div class="cl-header-actions" aria-hidden="false">
-                <button type="button" class="cl-icon-btn" id="cl-search-toggle" aria-label="جستجو" title="جستجو">
+                <button type="button" class="cl-icon-btn" id="cl-search-toggle" aria-label="{{ t('search_aria') }}" title="{{ t('search_aria') }}">
                     <span class="material-symbols-outlined">search</span>
                 </button>
                 {% if user %}
-                <button type="button" class="cl-icon-btn" id="cl-notif-drawer-toggle" aria-label="اعلان‌ها" title="اعلان‌ها" style="position:relative;">
+                <button type="button" class="cl-icon-btn" id="cl-notif-drawer-toggle" aria-label="{{ t('notif_aria') }}" title="{{ t('notif_aria') }}" style="position:relative;">
                     <span class="material-symbols-outlined">notifications</span>
                     {% if due_followups is defined and due_followups %}<span class="cl-notif-badge-unread">{{ due_followups|length }}</span>{% endif %}
                 </button>
                 {% endif %}
-                <button type="button" class="cl-icon-btn cl-header-lang-btn" id="cl-lang-toggle" aria-label="Switch language" title="Switch language">
-                    FA
-                </button>
+                <a href="/set-language/{{ 'en' if current_lang() == 'fa' else 'fa' }}" class="cl-icon-btn cl-header-lang-btn" aria-label="{{ t('lang_switch_aria') }}" title="{{ t('lang_switch_aria') }}">
+                    <span class="cl-lang-switch-link">{{ 'EN' if current_lang() == 'fa' else 'FA' }}</span>
+                </a>
             </div>
 
             <div class="navbar-cta">
                 {% if user %}
-                    <a href="/profile" class="btn btn-outline">{{ user.display_name or 'پروفایل من' }}</a>
-                    <a href="/logout" class="btn btn-solid" data-i18n="nav_logout">خروج</a>
+                    <a href="/profile" class="btn btn-outline">{{ user.display_name or t('nav_profile') }}</a>
+                    <a href="/logout" class="btn btn-solid">{{ t('nav_logout') }}</a>
                 {% else %}
-                    <a href="/login" class="btn btn-outline" data-i18n="nav_login">ورود به پنل</a>
-                    <a href="/register" class="btn btn-solid" data-i18n="nav_register">ثبت‌نام</a>
+                    <a href="/login" class="btn btn-outline">{{ t('nav_login') }}</a>
+                    <a href="/register" class="btn btn-solid">{{ t('nav_register') }}</a>
                 {% endif %}
             </div>
 
-            <button type="button" class="cl-nav-toggle" id="cl-nav-toggle" aria-label="منو">
+            <button type="button" class="cl-nav-toggle" id="cl-nav-toggle" aria-label="{{ t('nav_services') }}">
                 <span></span><span></span><span></span>
             </button>
 
@@ -212,10 +212,7 @@
                     </div>
                 </div>
                 <p class="footer-brand-desc">
-                    کیورالینک، پلتفرم هوشمند درمان و مراقبت‌های پزشکی است که با همکاری پزشکان،
-                    پرستاران و درمانگران متخصص فعالیت می‌کند. تمام خدمات بر اساس استانداردهای
-                    حرفه‌ای و با تأکید بر اخلاق، شفافیت و امنیت اطلاعات ارائه می‌شود. کیورالینک همراه
-                    شماست تا روند درمان، پیگیری و مراقبت از بیمار با آرامش و اطمینان انجام شود.
+                    {{ t('footer_desc') }}
                 </p>
             </div>
         </div>
@@ -225,7 +222,7 @@
             <div class="footer-grid">
 
                 <div class="footer-col">
-                    <h5 class="footer-col-title">راه‌های ارتباطی</h5>
+                    <h5 class="footer-col-title">{{ t('footer_contact_title') }}</h5>
                     <a href="tel:02191694499" class="footer-contact-row">
                         <span class="material-symbols-outlined cl-icon-sm">call</span>
                         021-91694499
@@ -245,39 +242,39 @@
                 </div>
 
                 <div class="footer-col">
-                    <h5 class="footer-col-title">شبکه‌های اجتماعی</h5>
+                    <h5 class="footer-col-title">{{ t('footer_social_title') }}</h5>
                     <a href="https://t.me/curalinkcare" target="_blank" rel="noopener" class="footer-contact-row">
                         <span class="material-symbols-outlined cl-icon-sm">send</span>
-                        تلگرام: curalinkcare@
+                        Telegram: curalinkcare@
                     </a>
                     <a href="https://wa.me/989214728753" target="_blank" rel="noopener" class="footer-contact-row">
                         <span class="material-symbols-outlined cl-icon-sm">chat</span>
-                        واتس‌آپ: 09214728753
+                        WhatsApp: 09214728753
                     </a>
                     <a href="https://instagram.com/curalink.ir" target="_blank" rel="noopener" class="footer-contact-row">
                         <span class="material-symbols-outlined cl-icon-sm">photo_camera</span>
-                        اینستاگرام: curalink.ir@
+                        Instagram: curalink.ir@
                     </a>
                 </div>
 
                 <div class="footer-col">
-                    <h5 class="footer-col-title">خدمات پزشکی</h5>
-                    <a href="/#upload">تحلیل آزمایش</a>
-                    <a href="/diet">برنامه غذایی</a>
-                    <a href="/workout">برنامه ورزشی</a>
-                    <a href="/visit-prep">آماده‌سازی ویزیت</a>
+                    <h5 class="footer-col-title">{{ t('footer_services_title') }}</h5>
+                    <a href="/#upload">{{ t('footer_svc_analyze') }}</a>
+                    <a href="/diet">{{ t('footer_svc_diet') }}</a>
+                    <a href="/workout">{{ t('footer_svc_workout') }}</a>
+                    <a href="/visit-prep">{{ t('footer_svc_visit') }}</a>
                 </div>
 
                 <div class="footer-col">
-                    <h5 class="footer-col-title">دسترسی سریع</h5>
-                    <a href="https://curalinkcare.com/our-services/" target="_blank" rel="noopener">خدمات کیورالینک</a>
-                    <a href="https://curalinkcare.com/about/" target="_blank" rel="noopener">درباره ما</a>
-                    <a href="https://curalinkcare.com/contact/" target="_blank" rel="noopener">تماس با ما</a>
-                    <a href="https://curalinkcare.com/faq/" target="_blank" rel="noopener">سوالات متداول</a>
+                    <h5 class="footer-col-title">{{ t('footer_quicklinks_title') }}</h5>
+                    <a href="https://curalinkcare.com/our-services/" target="_blank" rel="noopener">{{ t('footer_link_services') }}</a>
+                    <a href="https://curalinkcare.com/about/" target="_blank" rel="noopener">{{ t('footer_link_about') }}</a>
+                    <a href="https://curalinkcare.com/contact/" target="_blank" rel="noopener">{{ t('footer_link_contact') }}</a>
+                    <a href="https://curalinkcare.com/faq/" target="_blank" rel="noopener">{{ t('footer_link_faq') }}</a>
                 </div>
 
                 <div class="footer-col">
-                    <h5 class="footer-col-title">آدرس</h5>
+                    <h5 class="footer-col-title">{{ t('footer_address_title') }}</h5>
                     <p class="footer-address-text">
                         استان آذربایجان غربی، ارومیه، گلشهر یک، کوی گلنار،
                         مجتمع گلستان یک، بلوک یاس
@@ -287,8 +284,7 @@
             </div>
 
             <p class="footer-copyright">
-                کلیه حقوق این وب‌سایت متعلق به شرکت درمان پیوند ایرانیان است
-                (برند ثبت‌شده کیورالینک — شماره ثبت 24497).
+                {{ t('footer_copyright') }}
             </p>
 
         </div>
@@ -300,10 +296,10 @@
             <button type="button" class="cl-icon-btn" id="cl-search-close" style="margin-bottom:16px;">
                 <span class="material-symbols-outlined">close</span>
             </button>
-            <h3 class="cl-modal-title" style="margin-bottom:16px;" data-i18n="search_title">جستجو در سایت</h3>
+            <h3 class="cl-modal-title" style="margin-bottom:16px;">{{ t('search_title') }}</h3>
             <div class="cl-ws-search" style="max-width:none; margin-bottom:16px;">
                 <span class="material-symbols-outlined">search</span>
-                <input type="text" id="cl-search-input" placeholder="نام بخش یا سرویس را وارد کنید...">
+                <input type="text" id="cl-search-input" placeholder="{{ t('search_placeholder') }}">
             </div>
             <div id="cl-search-results" style="display:flex; flex-direction:column; gap:4px;"></div>
         </aside>
@@ -315,17 +311,17 @@
             <button type="button" class="cl-icon-btn" id="cl-notif-drawer-close" style="margin-bottom:16px;">
                 <span class="material-symbols-outlined">close</span>
             </button>
-            <h3 class="cl-modal-title" style="margin-bottom:20px;">اعلان‌ها</h3>
+            <h3 class="cl-modal-title" style="margin-bottom:20px;">{{ t('notif_title') }}</h3>
             {% if due_followups is defined and due_followups %}
-            <p class="cl-notif-group-title">پزشکی</p>
+            <p class="cl-notif-group-title">{{ t('notif_group_medical') }}</p>
             {% for item in due_followups %}
             <div class="cl-notif-drawer-item is-unread">
                 <span class="cl-notif-icon"><span class="material-symbols-outlined" style="color:var(--color-warning);">event_repeat</span></span>
-                <div><strong>یادآوری تکرار آزمایش</strong><br><span class="cl-text-caption">{{ item.test_name }}{% if item.person_name %} — {{ item.person_name }}{% endif %}</span></div>
+                <div><strong>{{ t('notif_followup_reminder_title') }}</strong><br><span class="cl-text-caption">{{ item.test_name }}{% if item.person_name %} — {{ item.person_name }}{% endif %}</span></div>
             </div>
             {% endfor %}
             {% else %}
-            <p class="cl-text-caption">اعلان جدیدی ندارید.</p>
+            <p class="cl-text-caption">{{ t('notif_empty') }}</p>
             {% endif %}
         </aside>
     </div>
@@ -374,15 +370,23 @@
 
         document.querySelectorAll('.cl-mega-trigger').forEach(function(btn){
             btn.addEventListener('click', function(e){
-                if (window.innerWidth <= 960) {
-                    e.preventDefault();
-                    const item = btn.closest('.cl-mega-item');
-                    document.querySelectorAll('.cl-mega-item').forEach(function(other){
-                        if (other !== item) other.classList.remove('cl-mega-item-open');
-                    });
-                    item.classList.toggle('cl-mega-item-open');
-                }
+                e.preventDefault();
+                e.stopPropagation();
+                const item = btn.closest('.cl-mega-item');
+                const isOpen = item.classList.contains('cl-mega-item-open');
+                document.querySelectorAll('.cl-mega-item').forEach(function(other){
+                    other.classList.remove('cl-mega-item-open');
+                });
+                if (!isOpen) item.classList.add('cl-mega-item-open');
             });
+        });
+
+        document.addEventListener('click', function(e){
+            if (!e.target.closest('.cl-mega-item')) {
+                document.querySelectorAll('.cl-mega-item').forEach(function(item){
+                    item.classList.remove('cl-mega-item-open');
+                });
+            }
         });
 
         const navbar = document.getElementById('cl-navbar');
@@ -404,110 +408,22 @@
     })();
     </script>
 
-    <!-- ===== Language toggle (FA / EN) — client-side, applies to elements with data-i18n ===== -->
-    <script>
-    (function(){
-        var DICT = {
-            en: {
-                nav_home: "Home",
-                nav_services: "Health Services",
-                nav_svc_analyze: "Analyze Test", nav_svc_analyze_sub: "Upload & get smart interpretation",
-                nav_svc_history: "Test History", nav_svc_history_sub: "View past analyses",
-                nav_svc_trends: "Trends", nav_svc_trends_sub: "Compare values over time",
-                nav_svc_diet: "Diet Plan", nav_svc_diet_sub: "Personalized based on your tests",
-                nav_svc_workout: "Workout Plan", nav_svc_workout_sub: "Personalized strength & cardio",
-                nav_svc_visit: "Visit Prep", nav_svc_visit_sub: "Ready summary before your appointment",
-                nav_svc_family: "Family", nav_svc_family_sub: "Manage family members' tests",
-                nav_health_status: "My Health Status",
-                nav_about: "About CuraLink",
-                nav_about_us: "About Us", nav_about_us_sub: "Meet the team & mission",
-                nav_our_services: "Our Services", nav_our_services_sub: "Full platform capabilities",
-                nav_contact: "Contact Us", nav_contact_sub: "Support & direct contact",
-                nav_doctor_reviews: "Review Queue",
-                nav_admin: "Admin Panel",
-                nav_login: "Sign In", nav_register: "Sign Up", nav_logout: "Logout",
-                search_title: "Search the site",
-                hs_greeting: "Hello,",
-                hs_empty_title: "No test uploaded yet",
-                hs_empty_sub: "Upload your first test to start your personalized health journey.",
-                hs_empty_cta: "Start first analysis",
-                hs_score_label: "Overall health score",
-                hs_stat_analyses: "Tests analyzed",
-                hs_stat_diet: "Diet plans",
-                hs_stat_workout: "Workout plans",
-                hs_stat_last_upload: "Last upload",
-                hs_quick_actions: "Quick actions",
-                hs_qa_upload: "Upload new test",
-                hs_qa_history: "History",
-                hs_qa_trends: "Trends",
-                hs_qa_diet: "Diet plan",
-                hs_qa_workout: "Workout plan",
-                hs_qa_visit: "Visit prep",
-                hs_qa_family: "Family",
-                hs_followup_title: "Test follow-up reminder",
-            },
-            fa: {}
-        };
-
-        var STORAGE_KEY = "cl_lang";
-        var langBtn = document.getElementById("cl-lang-toggle");
-
-        function applyLang(lang){
-            var dict = DICT[lang] || {};
-            document.querySelectorAll("[data-i18n]").forEach(function(el){
-                var key = el.getAttribute("data-i18n");
-                if (lang === "en" && dict[key]) {
-                    if (!el.hasAttribute("data-fa-original")) {
-                        el.setAttribute("data-fa-original", el.textContent.trim());
-                    }
-                    // Preserve any leading icon element, replace only the trailing text node.
-                    var lastChild = el.lastChild;
-                    if (lastChild && lastChild.nodeType === 3) {
-                        lastChild.textContent = " " + dict[key];
-                    } else {
-                        el.appendChild(document.createTextNode(" " + dict[key]));
-                    }
-                } else if (el.hasAttribute("data-fa-original")) {
-                    var lastChild2 = el.lastChild;
-                    if (lastChild2 && lastChild2.nodeType === 3) {
-                        lastChild2.textContent = " " + el.getAttribute("data-fa-original");
-                    }
-                }
-            });
-            if (langBtn) langBtn.textContent = lang === "en" ? "EN" : "FA";
-            document.documentElement.setAttribute("data-lang", lang);
-            try { localStorage.setItem(STORAGE_KEY, lang); } catch(e){}
-        }
-
-        var current = "fa";
-        try { current = localStorage.getItem(STORAGE_KEY) || "fa"; } catch(e){}
-        applyLang(current);
-
-        if (langBtn) {
-            langBtn.addEventListener("click", function(){
-                current = current === "fa" ? "en" : "fa";
-                applyLang(current);
-            });
-        }
-    })();
-    </script>
-
     <!-- ===== Search drawer logic ===== -->
     <script>
     (function(){
         var SITE_LINKS = [
-            { label: "خانه / Home", url: "/" },
-            { label: "آپلود آزمایش / Upload test", url: "/#upload" },
-            { label: "وضعیت سلامت من / My health status", url: "/health-status" },
-            { label: "تاریخچه آزمایش‌ها / History", url: "/history" },
-            { label: "روند آزمایش‌ها / Trends", url: "/trends" },
-            { label: "برنامه غذایی / Diet plan", url: "/diet" },
-            { label: "برنامه ورزشی / Workout plan", url: "/workout" },
-            { label: "آماده‌سازی ویزیت / Visit prep", url: "/visit-prep" },
-            { label: "خانواده / Family", url: "/family" },
-            { label: "پروفایل / Profile", url: "/profile" },
-            { label: "ورود / Sign in", url: "/login" },
-            { label: "ثبت‌نام / Sign up", url: "/register" },
+            { label: "{{ t('search_link_home') }}", url: "/" },
+            { label: "{{ t('search_link_upload') }}", url: "/#upload" },
+            { label: "{{ t('search_link_health_status') }}", url: "/health-status" },
+            { label: "{{ t('search_link_history') }}", url: "/history" },
+            { label: "{{ t('search_link_trends') }}", url: "/trends" },
+            { label: "{{ t('search_link_diet') }}", url: "/diet" },
+            { label: "{{ t('search_link_workout') }}", url: "/workout" },
+            { label: "{{ t('search_link_visit') }}", url: "/visit-prep" },
+            { label: "{{ t('search_link_family') }}", url: "/family" },
+            { label: "{{ t('search_link_profile') }}", url: "/profile" },
+            { label: "{{ t('search_link_login') }}", url: "/login" },
+            { label: "{{ t('search_link_register') }}", url: "/register" },
         ];
 
         var toggle = document.getElementById("cl-search-toggle");
@@ -526,7 +442,7 @@
             if (!matches.length) {
                 var empty = document.createElement("p");
                 empty.className = "cl-text-caption";
-                empty.textContent = "موردی پیدا نشد.";
+                empty.textContent = "{{ t('search_no_results') }}";
                 resultsEl.appendChild(empty);
                 return;
             }

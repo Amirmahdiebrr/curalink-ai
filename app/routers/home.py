@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Request, Depends
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -40,5 +42,6 @@ async def home(request: Request, db: Session = Depends(get_db)):
             "family_members": family_members,
             "due_followups": due_followups,
             "reviews": reviews,
+            "now": datetime.utcnow(),
         }
     )

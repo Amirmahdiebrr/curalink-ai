@@ -1,7 +1,7 @@
 {# app/templates/index.html #}
 {% extends "base.html" %}
 
-{% block title %}CuraLink AI | تحلیل هوشمند آزمایشات و همراه سلامت شما{% endblock %}
+{% block title %}CuraLink AI | {{ t('hero_title_1') }} {{ t('hero_title_2') }}{% endblock %}
 
 {% block content %}
 
@@ -12,32 +12,36 @@
             <span class="cl-nba-icon"><span class="material-symbols-outlined">monitor_heart</span></span>
             <div class="cl-nba-body">
                 <strong>{{ user.display_name or "کاربر عزیز" }}</strong>
-                <p>وضعیت سلامت، آمار، یادآوری‌ها و مسیر مراقبت شما اکنون در یک صفحه‌ی جداگانه در دسترس است.</p>
+                <p>{{ t('nba_desc') }}</p>
             </div>
-            <a href="/health-status" class="cl-btn cl-btn-primary cl-btn-sm">مشاهده وضعیت سلامت من</a>
+            <a href="/health-status" class="cl-btn cl-btn-primary cl-btn-sm">{{ t('nba_cta') }}</a>
         </div>
     </div>
 </section>
 {% endif %}
 
 <section class="cl-section-hero hero">
+    <div class="cl-home-date-badge">
+        <span class="material-symbols-outlined">calendar_today</span>
+        <span>{{ jdate(now, "%Y/%m/%d") }}</span>
+    </div>
     <div class="container hero-grid">
         <div class="hero-text cl-reveal">
-            <span class="cl-ai-badge"><span class="cl-ai-badge-dot"></span> دستیار سلامت مبتنی بر هوش مصنوعی</span>
-            <h1>از آزمایش تا مشاوره پزشک،<span>همه‌جا همراه شما</span></h1>
-            <p class="lead">آزمایش، سونوگرافی، MRI یا CT اسکنت رو بفرست، در چند ثانیه تحلیل فارسی و ساده بگیر، بر اساس نتایج برنامه غذایی و ورزشی و آماده‌سازی ویزیت پزشک دریافت کن، و در صورت نیاز گزارش را برای بررسی توسط یک پزشک واقعی ارسال کن — همه در یک پلتفرم.</p>
+            <span class="cl-ai-badge"><span class="cl-ai-badge-dot"></span> {{ t('hero_badge') }}</span>
+            <h1>{{ t('hero_title_1') }}<span>{{ t('hero_title_2') }}</span></h1>
+            <p class="lead">{{ t('hero_lead') }}</p>
             <div class="hero-actions">
-                <a href="#upload" class="btn btn-solid btn-lg">شروع تحلیل آزمایش‌های شما</a>
-                <a href="#services" class="btn btn-ghost">خدمات ما را ببینید</a>
+                <a href="#upload" class="btn btn-solid btn-lg">{{ t('hero_cta_start') }}</a>
+                <a href="#services" class="btn btn-ghost">{{ t('hero_cta_services') }}</a>
             </div>
             <div class="cl-trust-row">
-                <div class="cl-trust-item"><span class="material-symbols-outlined cl-icon-md">verified_user</span><span>رمزنگاری اطلاعات پزشکی</span></div>
-                <div class="cl-trust-item"><span class="material-symbols-outlined cl-icon-md">medical_services</span><span>بررسی نهایی توسط پزشک واقعی</span></div>
-                <div class="cl-trust-item"><span class="material-symbols-outlined cl-icon-md">bolt</span><span>تحلیل در کمتر از یک دقیقه</span></div>
+                <div class="cl-trust-item"><span class="material-symbols-outlined cl-icon-md">verified_user</span><span>{{ t('trust_encryption') }}</span></div>
+                <div class="cl-trust-item"><span class="material-symbols-outlined cl-icon-md">medical_services</span><span>{{ t('trust_doctor_review') }}</span></div>
+                <div class="cl-trust-item"><span class="material-symbols-outlined cl-icon-md">bolt</span><span>{{ t('trust_fast_analysis') }}</span></div>
             </div>
         </div>
         <div class="hero-media cl-reveal">
-            <div class="cl-scan-ring"><img class="hero-robot" src="/static/images/robot.png" alt="دستیار هوشمند CuraLink"></div>
+            <div class="cl-scan-ring"><img class="hero-robot" src="/static/images/robot.png" alt="CuraLink AI"></div>
         </div>
     </div>
 </section>
@@ -46,41 +50,41 @@
     <div class="container">
         {% if user %}
         <div class="upload-card cl-reveal">
-            <div class="upload-card-head"><h2>آپلود آزمایش</h2><p>می‌توانید چند فایل (مثلاً چند صفحه یا چند عکس از یک آزمایش) را با هم انتخاب کنید</p></div>
+            <div class="upload-card-head"><h2>{{ t('upload_title') }}</h2><p>{{ t('upload_subtitle') }}</p></div>
             <form action="/analyze" method="post" enctype="multipart/form-data" id="upload-form">
                 <input type="hidden" name="csrf_token" id="csrf_token" value="{{ csrf_token }}">
-                <label class="field-label" for="family_member_id">این آزمایش برای کیست؟</label>
+                <label class="field-label" for="family_member_id">{{ t('upload_for_whom') }}</label>
                 <select name="family_member_id" id="family_member_id">
-                    <option value="self">خودم</option>
+                    <option value="self">{{ t('upload_self') }}</option>
                     {% for member in family_members %}<option value="{{ member.id }}">{{ member.name }}{% if member.relation %} ({{ member.relation }}){% endif %}</option>{% endfor %}
                 </select>
-                <p class="cl-field-hint">اگر عضو موردنظر در لیست نیست، ابتدا از <a href="/family">صفحه اعضای خانواده</a> اضافه‌اش کنید.</p>
-                <label class="field-label" for="exam_type">نوع آزمایش را انتخاب کنید</label>
+                <p class="cl-field-hint">{{ t('upload_family_hint') }}</p>
+                <label class="field-label" for="exam_type">{{ t('upload_examtype_label') }}</label>
                 <select name="exam_type" id="exam_type" required>
-                    <option value="" disabled selected>— انتخاب کنید —</option>
-                    <option value="blood">آزمایش خون</option><option value="urine">آزمایش ادرار</option><option value="biochemistry">بیوشیمی</option>
-                    <option value="sonography">سونوگرافی</option><option value="radiology">رادیولوژی (X-Ray)</option><option value="mri">MRI</option>
-                    <option value="ct_scan">CT Scan</option><option value="mammography">ماموگرافی</option><option value="hse">گزارش HSE (طب کار)</option><option value="other">سایر</option>
+                    <option value="" disabled selected>{{ t('upload_examtype_placeholder') }}</option>
+                    <option value="blood">{{ t('exam_blood') }}</option><option value="urine">{{ t('exam_urine') }}</option><option value="biochemistry">{{ t('exam_biochemistry') }}</option>
+                    <option value="sonography">{{ t('exam_sonography') }}</option><option value="radiology">{{ t('exam_radiology') }}</option><option value="mri">{{ t('exam_mri') }}</option>
+                    <option value="ct_scan">{{ t('exam_ctscan') }}</option><option value="mammography">{{ t('exam_mammography') }}</option><option value="hse">{{ t('exam_hse') }}</option><option value="other">{{ t('exam_other') }}</option>
                 </select>
                 <label class="upload-area" id="dropzone" for="file">
                     <input type="file" name="files" id="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif" multiple required>
                     <span class="upload-icon"><span class="material-symbols-outlined">upload_file</span></span>
-                    <p id="file-label">یک یا چند فایل PDF/تصویر آزمایش را انتخاب کنید</p>
+                    <p id="file-label">{{ t('upload_dropzone_text') }}</p>
                 </label>
-                <label class="field-label" for="symptoms">شرح علائم یا سابقه پزشکی (اختیاری)</label>
-                <textarea id="symptoms" name="symptoms" rows="4" maxlength="1000" placeholder="مثلاً: چند هفته‌ای سردرد و خستگی دارم، سابقه فشار خون بالا..."></textarea>
-                <p class="cl-field-hint">نوشتن علائم یا سابقه‌ی پزشکی کاملاً اختیاری است، اما به هوش مصنوعی کمک می‌کند تحلیل دقیق‌تری متناسب با شرایط شما ارائه دهد.</p>
-                <button type="submit">شروع تحلیل با AI</button>
+                <label class="field-label" for="symptoms">{{ t('upload_symptoms_label') }}</label>
+                <textarea id="symptoms" name="symptoms" rows="4" maxlength="1000" placeholder="{{ t('upload_symptoms_placeholder') }}"></textarea>
+                <p class="cl-field-hint">{{ t('upload_symptoms_hint') }}</p>
+                <button type="submit">{{ t('upload_submit') }}</button>
             </form>
         </div>
         {% else %}
         <div class="upload-card cl-upload-locked cl-reveal">
-            <div class="upload-card-head"><h2>آپلود آزمایش</h2><p>برای استفاده از تحلیل هوشمند آزمایش‌ها، ابتدا باید وارد حساب کاربری خود شوید</p></div>
+            <div class="upload-card-head"><h2>{{ t('upload_locked_title') }}</h2><p>{{ t('upload_locked_subtitle') }}</p></div>
             <div class="cl-locked-body">
                 <span class="cl-locked-icon"><span class="material-symbols-outlined">lock</span></span>
-                <p class="cl-locked-text">ثبت و تحلیل آزمایش‌ها، دسترسی به تاریخچه و روند نتایج شما، فقط برای کاربران وارد‌شده امکان‌پذیر است.</p>
-                <a href="/login" class="btn btn-solid btn-lg">ورود به حساب کاربری</a>
-                <p class="cl-locked-register">حساب کاربری ندارید؟ <a href="/register">همین حالا ثبت‌نام کنید</a></p>
+                <p class="cl-locked-text">{{ t('upload_locked_text') }}</p>
+                <a href="/login" class="btn btn-solid btn-lg">{{ t('upload_locked_cta') }}</a>
+                <p class="cl-locked-register">{{ t('upload_locked_register') }} <a href="/register">{{ t('upload_locked_register_link') }}</a></p>
             </div>
         </div>
         {% endif %}
@@ -90,18 +94,18 @@
 <section class="cl-section-content cl-ai-section">
     <div class="container">
         <div class="cl-section-head cl-reveal">
-            <p class="eyebrow eyebrow--teal">هوش مصنوعی کیورالینک</p>
-            <h2>یک خط پردازش هوشمند، از فایل خام تا توصیه‌ی پزشکی</h2>
-            <p class="section-sub">هر آزمایشی که آپلود می‌کنید، مرحله‌به‌مرحله توسط لایه‌های مختلف هوش مصنوعی پردازش می‌شود تا در نهایت یک گزارش فارسی، ساده و قابل‌اتکا دریافت کنید.</p>
+            <p class="eyebrow eyebrow--teal">{{ t('ai_eyebrow') }}</p>
+            <h2>{{ t('ai_title') }}</h2>
+            <p class="section-sub">{{ t('ai_sub') }}</p>
         </div>
         <div class="cl-ai-flow cl-reveal">
-            <div class="cl-ai-flow-step"><div class="cl-ai-flow-icon"><span class="material-symbols-outlined">upload_file</span></div><h3>1. دریافت مدرک</h3><p>فایل PDF یا عکس آزمایش شما به‌صورت امن دریافت و رمزنگاری می‌شود.</p></div>
+            <div class="cl-ai-flow-step"><div class="cl-ai-flow-icon"><span class="material-symbols-outlined">upload_file</span></div><h3>{{ t('ai_step1_title') }}</h3><p>{{ t('ai_step1_desc') }}</p></div>
             <div class="cl-ai-flow-connector" aria-hidden="true"></div>
-            <div class="cl-ai-flow-step"><div class="cl-ai-flow-icon"><span class="material-symbols-outlined">document_scanner</span></div><h3>2. استخراج متن (OCR)</h3><p>حتی از عکس‌های کج یا کم‌کیفیت، مقادیر آزمایش به‌دقت استخراج می‌شوند.</p></div>
+            <div class="cl-ai-flow-step"><div class="cl-ai-flow-icon"><span class="material-symbols-outlined">document_scanner</span></div><h3>{{ t('ai_step2_title') }}</h3><p>{{ t('ai_step2_desc') }}</p></div>
             <div class="cl-ai-flow-connector" aria-hidden="true"></div>
-            <div class="cl-ai-flow-step"><div class="cl-ai-flow-icon"><span class="material-symbols-outlined">psychology</span></div><h3>3. استدلال بالینی AI</h3><p>مدل هوش مصنوعی مقادیر را با بازه‌های مرجع، سن، جنسیت و سابقه‌ی پزشکی شما می‌سنجد.</p></div>
+            <div class="cl-ai-flow-step"><div class="cl-ai-flow-icon"><span class="material-symbols-outlined">psychology</span></div><h3>{{ t('ai_step3_title') }}</h3><p>{{ t('ai_step3_desc') }}</p></div>
             <div class="cl-ai-flow-connector" aria-hidden="true"></div>
-            <div class="cl-ai-flow-step"><div class="cl-ai-flow-icon"><span class="material-symbols-outlined">summarize</span></div><h3>4. گزارش و توصیه فارسی</h3><p>یک گزارش روان فارسی همراه با توصیه‌های عملی و قابل‌طرح با پزشک تحویل می‌گیرید.</p></div>
+            <div class="cl-ai-flow-step"><div class="cl-ai-flow-icon"><span class="material-symbols-outlined">summarize</span></div><h3>{{ t('ai_step4_title') }}</h3><p>{{ t('ai_step4_desc') }}</p></div>
         </div>
     </div>
 </section>
@@ -109,41 +113,41 @@
 <section class="cl-section-features services" id="services">
     <div class="container">
         <div class="section-head cl-gradient-banner cl-reveal">
-            <p class="eyebrow">خدمات ما</p>
-            <h2>یک پلتفرم کامل برای سلامت شما و خانواده</h2>
-            <p class="section-sub">از تحلیل هوشمند آزمایش‌ها گرفته تا برنامه غذایی و ورزشی شخصی‌سازی‌شده، آماده‌سازی ویزیت پزشک، و بررسی گزارش‌ها توسط پزشکان واقعی — همه در یک جا.</p>
+            <p class="eyebrow">{{ t('services_eyebrow') }}</p>
+            <h2>{{ t('services_title') }}</h2>
+            <p class="section-sub">{{ t('services_sub') }}</p>
         </div>
         <div class="cl-grid-3 cl-reveal">
-            <div class="service-card cl-card-hover"><span class="service-icon"><span class="material-symbols-outlined">science</span></span><h3>تحلیل آزمایش‌های پزشکی</h3><p>خون، ادرار، بیوشیمی، سونوگرافی، رادیولوژی، MRI، CT اسکن، ماموگرافی و گزارش HSE با تفسیر فارسی و ساده.</p></div>
-            <div class="service-card cl-card-hover"><span class="service-icon"><span class="material-symbols-outlined">medical_services</span></span><h3>بررسی توسط پزشک واقعی</h3><p>هر گزارش تحلیل‌شده را می‌توانید برای بررسی نهایی و نظر تخصصی به یک پزشک واقعی ارسال کنید.</p></div>
-            <div class="service-card cl-card-hover"><span class="service-icon"><span class="material-symbols-outlined">nutrition</span></span><h3>برنامه غذایی هوشمند</h3><p>بر اساس مجموع آخرین نتایج آزمایش‌های شما، یک برنامه غذایی شخصی‌سازی‌شده تولید می‌شود.</p></div>
-            <div class="service-card cl-card-hover"><span class="service-icon"><span class="material-symbols-outlined">fitness_center</span></span><h3>برنامه ورزشی هوشمند</h3><p>بدنسازی، کاردیو و فیتنس متناسب با پروفایل سلامتی، هدف و سطح آمادگی جسمانی شما.</p></div>
-            <div class="service-card cl-card-hover"><span class="service-icon"><span class="material-symbols-outlined">assignment</span></span><h3>آماده‌سازی ویزیت پزشک</h3><p>قبل از مراجعه به پزشک، خلاصه‌ای منظم از وضعیت آزمایش‌هایتان و سوالات پیشنهادی دریافت کنید.</p></div>
-            <div class="service-card cl-card-hover"><span class="service-icon"><span class="material-symbols-outlined">show_chart</span></span><h3>روند و تاریخچه آزمایش‌ها</h3><p>تغییرات مقادیر آزمایش‌های خود را در طول زمان، با نمودار و بازه‌ی مرجع، پیگیری کنید.</p></div>
-            <div class="service-card cl-card-hover"><span class="service-icon"><span class="material-symbols-outlined">diversity_3</span></span><h3>مدیریت خانواده</h3><p>آزمایش‌های همه‌ی اعضای خانواده را در یک حساب کاربری مدیریت و پیگیری کنید.</p></div>
-            <div class="service-card cl-card-hover"><span class="service-icon"><span class="material-symbols-outlined">forum</span></span><h3>پرسش و پاسخ هوشمند</h3><p>بعد از دریافت نتیجه، هر سوالی درباره‌ی گزارش خود دارید، مستقیم از دستیار هوش مصنوعی بپرسید.</p></div>
+            <div class="service-card cl-card-hover"><span class="service-icon"><span class="material-symbols-outlined">science</span></span><h3>{{ t('svc_analyze_title') }}</h3><p>{{ t('svc_analyze_desc') }}</p></div>
+            <div class="service-card cl-card-hover"><span class="service-icon"><span class="material-symbols-outlined">medical_services</span></span><h3>{{ t('svc_doctor_title') }}</h3><p>{{ t('svc_doctor_desc') }}</p></div>
+            <div class="service-card cl-card-hover"><span class="service-icon"><span class="material-symbols-outlined">nutrition</span></span><h3>{{ t('svc_diet_title') }}</h3><p>{{ t('svc_diet_desc') }}</p></div>
+            <div class="service-card cl-card-hover"><span class="service-icon"><span class="material-symbols-outlined">fitness_center</span></span><h3>{{ t('svc_workout_title') }}</h3><p>{{ t('svc_workout_desc') }}</p></div>
+            <div class="service-card cl-card-hover"><span class="service-icon"><span class="material-symbols-outlined">assignment</span></span><h3>{{ t('svc_visit_title') }}</h3><p>{{ t('svc_visit_desc') }}</p></div>
+            <div class="service-card cl-card-hover"><span class="service-icon"><span class="material-symbols-outlined">show_chart</span></span><h3>{{ t('svc_trends_title') }}</h3><p>{{ t('svc_trends_desc') }}</p></div>
+            <div class="service-card cl-card-hover"><span class="service-icon"><span class="material-symbols-outlined">diversity_3</span></span><h3>{{ t('svc_family_title') }}</h3><p>{{ t('svc_family_desc') }}</p></div>
+            <div class="service-card cl-card-hover"><span class="service-icon"><span class="material-symbols-outlined">forum</span></span><h3>{{ t('svc_chat_title') }}</h3><p>{{ t('svc_chat_desc') }}</p></div>
         </div>
     </div>
 </section>
 
 <section class="cl-section-content cl-how-it-works">
     <div class="container">
-        <div class="cl-section-head cl-reveal"><p class="eyebrow eyebrow--purple">روند کار</p><h2>در 4 گام ساده تا گزارش سلامت شما</h2></div>
+        <div class="cl-section-head cl-reveal"><p class="eyebrow eyebrow--purple">{{ t('how_eyebrow') }}</p><h2>{{ t('how_title') }}</h2></div>
         <div class="cl-steps cl-reveal">
-            <div class="cl-step"><span class="cl-step-number">1</span><h3>آپلود</h3><p>فایل آزمایش، سونوگرافی یا رادیولوژی خود را آپلود کنید.</p></div>
+            <div class="cl-step"><span class="cl-step-number">1</span><h3>{{ t('step1_title') }}</h3><p>{{ t('step1_desc') }}</p></div>
             <div class="cl-step-connector" aria-hidden="true"></div>
-            <div class="cl-step"><span class="cl-step-number">2</span><h3>پردازش هوش مصنوعی</h3><p>سیستم متن را استخراج و مقادیر را با استانداردهای پزشکی می‌سنجد.</p></div>
+            <div class="cl-step"><span class="cl-step-number">2</span><h3>{{ t('step2_title') }}</h3><p>{{ t('step2_desc') }}</p></div>
             <div class="cl-step-connector" aria-hidden="true"></div>
-            <div class="cl-step"><span class="cl-step-number">3</span><h3>بررسی پزشک (اختیاری)</h3><p>در صورت نیاز، گزارش را برای تایید نهایی به یک پزشک واقعی بسپارید.</p></div>
+            <div class="cl-step"><span class="cl-step-number">3</span><h3>{{ t('step3_title') }}</h3><p>{{ t('step3_desc') }}</p></div>
             <div class="cl-step-connector" aria-hidden="true"></div>
-            <div class="cl-step"><span class="cl-step-number">4</span><h3>توصیه‌ی شخصی‌سازی‌شده</h3><p>گزارش، برنامه غذایی/ورزشی و آماده‌سازی ویزیت متناسب با شما آماده می‌شود.</p></div>
+            <div class="cl-step"><span class="cl-step-number">4</span><h3>{{ t('step4_title') }}</h3><p>{{ t('step4_desc') }}</p></div>
         </div>
     </div>
 </section>
 
 <section class="cl-faq" id="testimonials" style="padding-top:0;">
     <div class="container">
-        <div class="section-head cl-reveal"><p class="eyebrow eyebrow--teal">نظرات کاربران</p><h2>تجربه‌ی کاربران CuraLink AI</h2></div>
+        <div class="section-head cl-reveal"><p class="eyebrow eyebrow--teal">{{ t('testimonials_eyebrow') }}</p><h2>{{ t('testimonials_title') }}</h2></div>
         <div class="cl-testimonials-grid cl-reveal">
             {% for review in reviews %}
             <div class="cl-testimonial-card"><p class="cl-testimonial-text">"{{ review.comment }}"</p><div class="cl-testimonial-author"><span class="cl-testimonial-avatar">{{ (review.user.display_name or "?")[0] }}</span><div><strong>{{ review.user.display_name }}</strong><small>{{ "★" * review.rating }}</small></div></div></div>
@@ -151,12 +155,12 @@
         </div>
         {% if user %}
         <div class="cl-profile-card cl-reveal" style="max-width:520px; margin:40px auto 0;">
-            <h3 class="cl-profile-card-title">نظر شما درباره‌ی CuraLink چیست؟</h3>
+            <h3 class="cl-profile-card-title">{{ t('review_form_title') }}</h3>
             <form method="post" action="/reviews" class="cl-auth-fields">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <div class="cl-field"><label for="rating">امتیاز</label><select id="rating" name="rating" required><option value="5">★★★★★ عالی</option><option value="4">★★★★ خوب</option><option value="3">★★★ متوسط</option><option value="2">★★ ضعیف</option><option value="1">★ خیلی ضعیف</option></select></div>
-                <div class="cl-field"><label for="comment">نظر شما</label><textarea id="comment" name="comment" rows="3" maxlength="500" required></textarea></div>
-                <button type="submit" class="cl-auth-submit">ثبت نظر</button>
+                <div class="cl-field"><label for="rating">{{ t('review_rating_label') }}</label><select id="rating" name="rating" required><option value="5">{{ t('review_rating_5') }}</option><option value="4">{{ t('review_rating_4') }}</option><option value="3">{{ t('review_rating_3') }}</option><option value="2">{{ t('review_rating_2') }}</option><option value="1">{{ t('review_rating_1') }}</option></select></div>
+                <div class="cl-field"><label for="comment">{{ t('review_comment_label') }}</label><textarea id="comment" name="comment" rows="3" maxlength="500" required></textarea></div>
+                <button type="submit" class="cl-auth-submit">{{ t('review_submit') }}</button>
             </form>
         </div>
         {% endif %}
@@ -165,29 +169,29 @@
 
 <section class="cl-section-content features" id="features">
     <div class="container">
-        <div class="section-head cl-reveal"><p class="eyebrow eyebrow--purple">چرا CuraLink AI؟</p><h2>یک تجربه‌ی هوشمند، دقیق و امن</h2><p class="section-sub">هر آپلود شما با چند لایه هوش مصنوعی و در صورت نیاز نظر پزشک واقعی بررسی می‌شود تا تحلیلی دقیق، شخصی‌سازی‌شده و قابل پیگیری در طول زمان دریافت کنید.</p></div>
+        <div class="section-head cl-reveal"><p class="eyebrow eyebrow--purple">{{ t('features_eyebrow') }}</p><h2>{{ t('features_title') }}</h2><p class="section-sub">{{ t('features_sub') }}</p></div>
         <div class="features-grid cl-reveal">
-            <div class="feature"><span class="feature-icon"><span class="material-symbols-outlined">search</span></span><h3>OCR هوشمند</h3><p>استخراج دقیق متن از تصویر و PDF، حتی از عکس‌های کمی نامرتب یا کج گرفته‌شده.</p></div>
-            <div class="feature"><span class="feature-icon"><span class="material-symbols-outlined">verified</span></span><h3>تشخیص خودکار نوع گزارش</h3><p>اگر نوع آزمایش را اشتباه انتخاب کنید، سیستم خودش نوع واقعی را تشخیص داده و به شما اطلاع می‌دهد.</p></div>
-            <div class="feature"><span class="feature-icon"><span class="material-symbols-outlined">medical_services</span></span><h3>لایه‌ی نظارت پزشک واقعی</h3><p>در کنار تحلیل AI، امکان درخواست بررسی نهایی توسط پزشک متخصص برای اطمینان بیشتر شما فراهم است.</p></div>
-            <div class="feature"><span class="feature-icon"><span class="material-symbols-outlined">assignment</span></span><h3>گزارش ساختاریافته و قابل فهم</h3><p>خلاصه وضعیت، موارد غیرطبیعی و توصیه‌های پیگیری، همه در یک گزارش منظم و خوانا.</p></div>
-            <div class="feature"><span class="feature-icon"><span class="material-symbols-outlined">show_chart</span></span><h3>تاریخچه و روند آزمایش‌ها</h3><p>تمام تحلیل‌های قبلی شما ذخیره می‌شود و می‌توانید روند تغییر مقادیر را در طول زمان ببینید.</p></div>
-            <div class="feature"><span class="feature-icon"><span class="material-symbols-outlined">forum</span></span><h3>پرسش و پاسخ هوشمند</h3><p>بعد از دریافت نتیجه، هر سوالی درباره‌ی گزارش خود دارید، مستقیم از دستیار هوش مصنوعی بپرسید.</p></div>
+            <div class="feature"><span class="feature-icon"><span class="material-symbols-outlined">search</span></span><h3>{{ t('feature_ocr_title') }}</h3><p>{{ t('feature_ocr_desc') }}</p></div>
+            <div class="feature"><span class="feature-icon"><span class="material-symbols-outlined">verified</span></span><h3>{{ t('feature_detect_title') }}</h3><p>{{ t('feature_detect_desc') }}</p></div>
+            <div class="feature"><span class="feature-icon"><span class="material-symbols-outlined">medical_services</span></span><h3>{{ t('feature_doctor_title') }}</h3><p>{{ t('feature_doctor_desc') }}</p></div>
+            <div class="feature"><span class="feature-icon"><span class="material-symbols-outlined">assignment</span></span><h3>{{ t('feature_report_title') }}</h3><p>{{ t('feature_report_desc') }}</p></div>
+            <div class="feature"><span class="feature-icon"><span class="material-symbols-outlined">show_chart</span></span><h3>{{ t('feature_history_title') }}</h3><p>{{ t('feature_history_desc') }}</p></div>
+            <div class="feature"><span class="feature-icon"><span class="material-symbols-outlined">forum</span></span><h3>{{ t('feature_chat_title') }}</h3><p>{{ t('feature_chat_desc') }}</p></div>
         </div>
     </div>
 </section>
 
 <section class="cl-faq" id="faq">
     <div class="container">
-        <div class="section-head cl-reveal"><p class="eyebrow eyebrow--gold">سوالات متداول</p><h2>پاسخ سوالات رایج شما</h2></div>
+        <div class="section-head cl-reveal"><p class="eyebrow eyebrow--gold">{{ t('faq_eyebrow') }}</p><h2>{{ t('faq_title') }}</h2></div>
         <div class="cl-accordion cl-reveal" style="max-width:800px; margin:0 auto;">
-            <details class="cl-accordion-item"><summary>آیا این تحلیل جایگزین نظر پزشک است؟</summary><p>خیر. تحلیل CuraLink صرفاً برای کمک به فهم بهتر نتایج آزمایش شماست و جایگزین تشخیص، مشاوره یا نسخه پزشک متخصص نیست. برای اطمینان بیشتر می‌توانید گزارش را برای بررسی به یک پزشک واقعی ارسال کنید.</p></details>
-            <details class="cl-accordion-item"><summary>بررسی توسط پزشک واقعی چطور کار می‌کند؟</summary><p>بعد از دریافت تحلیل هوش مصنوعی، از صفحه‌ی نتیجه می‌توانید درخواست بررسی توسط پزشک بدهید. یک پزشک تایید‌شده گزارش شما را بررسی و نظر تخصصی خود را ثبت می‌کند.</p></details>
-            <details class="cl-accordion-item"><summary>برنامه غذایی و ورزشی چطور شخصی‌سازی می‌شود؟</summary><p>بر اساس مجموع آخرین نتایج آزمایش‌های ثبت‌شده‌ی شما، پروفایل سلامتی (قد، وزن، سابقه بیماری و...) و شرایط خاصی که وارد می‌کنید، یک برنامه‌ی متناسب تولید می‌شود.</p></details>
-            <details class="cl-accordion-item"><summary>اطلاعات و فایل‌های آزمایش من چقدر امن هستند؟</summary><p>فایل‌های آپلودی پس از پردازش از سرور حذف می‌شوند، اطلاعات حساس رمزنگاری‌شده ذخیره می‌شوند، و دسترسی به گزارش‌ها فقط برای خود شما و از طریق حساب کاربری‌تان امکان‌پذیر است.</p></details>
-            <details class="cl-accordion-item"><summary>چه نوع آزمایش‌هایی را می‌توانم آپلود کنم؟</summary><p>آزمایش خون، ادرار، بیوشیمی، سونوگرافی، رادیولوژی، MRI، CT Scan، ماموگرافی و گزارش‌های طب کار (HSE).</p></details>
-            <details class="cl-accordion-item"><summary>آیا می‌توانم روند تغییرات آزمایش‌هایم را در طول زمان ببینم؟</summary><p>بله، در بخش «روند آزمایش‌ها» می‌توانید مقادیر عددی آزمایش‌های قبلی خود را به‌صورت نمودار مقایسه کنید.</p></details>
-            <details class="cl-accordion-item"><summary>می‌توانم حساب کاربری‌ام را حذف کنم؟</summary><p>بله، از صفحه‌ی پروفایل خود می‌توانید در هر زمان درخواست حذف کامل حساب کاربری خود را ثبت کنید.</p></details>
+            <details class="cl-accordion-item"><summary>{{ t('faq_q1') }}</summary><p>{{ t('faq_a1') }}</p></details>
+            <details class="cl-accordion-item"><summary>{{ t('faq_q2') }}</summary><p>{{ t('faq_a2') }}</p></details>
+            <details class="cl-accordion-item"><summary>{{ t('faq_q3') }}</summary><p>{{ t('faq_a3') }}</p></details>
+            <details class="cl-accordion-item"><summary>{{ t('faq_q4') }}</summary><p>{{ t('faq_a4') }}</p></details>
+            <details class="cl-accordion-item"><summary>{{ t('faq_q5') }}</summary><p>{{ t('faq_a5') }}</p></details>
+            <details class="cl-accordion-item"><summary>{{ t('faq_q6') }}</summary><p>{{ t('faq_a6') }}</p></details>
+            <details class="cl-accordion-item"><summary>{{ t('faq_q7') }}</summary><p>{{ t('faq_a7') }}</p></details>
         </div>
     </div>
 </section>
@@ -195,14 +199,14 @@
 <section class="cl-section-cta">
     <div class="container">
         <div class="cl-cta-block cl-reveal">
-            <h2 class="cl-cta-title">آماده‌اید سلامت خود را هوشمندتر مدیریت کنید؟</h2>
-            <p class="cl-cta-sub">همین حالا اولین آزمایش خود را آپلود کنید و در کمتر از یک دقیقه یک تحلیل فارسی، دقیق و قابل‌اتکا دریافت کنید.</p>
+            <h2 class="cl-cta-title">{{ t('cta_title') }}</h2>
+            <p class="cl-cta-sub">{{ t('cta_sub') }}</p>
             <div class="cl-cta-actions">
                 {% if user %}
-                <a href="#upload" class="btn btn-solid btn-lg">شروع تحلیل آزمایش</a>
+                <a href="#upload" class="btn btn-solid btn-lg">{{ t('cta_start') }}</a>
                 {% else %}
-                <a href="/register" class="btn btn-solid btn-lg">ساخت حساب کاربری رایگان</a>
-                <a href="/login" class="btn btn-outline btn-lg" style="background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.4); color:#fff;">ورود به حساب</a>
+                <a href="/register" class="btn btn-solid btn-lg">{{ t('cta_register') }}</a>
+                <a href="/login" class="btn btn-outline btn-lg" style="background:rgba(255,255,255,.12); border-color:rgba(255,255,255,.4); color:#fff;">{{ t('cta_login') }}</a>
                 {% endif %}
             </div>
         </div>

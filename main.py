@@ -1,4 +1,6 @@
 # main.py
+import app.core.templating  # noqa: F401 - patches Jinja2Templates with i18n globals
+
 from app.core.logging_config import setup_logging, get_logger
 
 setup_logging()
@@ -21,6 +23,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.config import SESSION_SECRET_KEY, APP_BASE_URL, IS_PRODUCTION
 from app.database import init_db, SessionLocal
 from app.core.limiter import limiter
+from app.core.language import LanguageMiddleware
 
 from app.routers.home import router as home_router
 from app.routers.analyze import router as analyze_router
@@ -35,6 +38,7 @@ from app.routers.workout import router as workout_router
 from app.routers.doctor_review import router as doctor_review_router
 from app.routers.reviews import router as reviews_router
 from app.routers.health_status import router as health_status_router
+from app.routers.language import router as language_router
 
 from app.services.job_store import purge_old_jobs
 from app.services import pending_action_store
@@ -64,6 +68,8 @@ app.add_middleware(
     max_age=60 * 60 * 24 * 14,
 )
 
+app.add_middleware(LanguageMiddleware)
+
 init_db()
 
 app.mount(
@@ -87,6 +93,7 @@ app.include_router(admin_router)
 app.include_router(payment_router)
 app.include_router(reviews_router)
 app.include_router(health_status_router)
+app.include_router(language_router)
 
 
 async def _job_cleanup_loop():

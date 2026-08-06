@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}ورود | CuraLink AI{% endblock %}
+{% block title %}{{ t('login_title') }}{% endblock %}
 
 {% block content %}
 
@@ -9,8 +9,8 @@
     <div class="cl-auth-brand">
         <div class="cl-auth-brand-inner">
             <img src="/static/images/robot.png" alt="CuraLink AI" class="cl-auth-robot">
-            <h2>تحلیل هوشمند آزمایشات پزشکی</h2>
-            <p>با حساب کاربری کیورالینک خود وارد شوید و از تحلیل سریع و دقیق آزمایشات‌تان با هوش مصنوعی بهره‌مند شوید.</p>
+            <h2>{{ t('login_brand_heading') }}</h2>
+            <p>{{ t('login_brand_desc') }}</p>
         </div>
     </div>
 
@@ -19,8 +19,8 @@
 
             <img src="/static/images/logo.png" alt="CuraLink AI" class="cl-auth-logo">
 
-            <h1 class="cl-auth-heading">ورود به کیورالینک</h1>
-            <p class="cl-auth-desc">با ایمیل و رمز عبور خود وارد شوید</p>
+            <h1 class="cl-auth-heading">{{ t('login_heading') }}</h1>
+            <p class="cl-auth-desc">{{ t('login_desc') }}</p>
 
             {% if error %}
             <div class="cl-auth-alert cl-auth-alert-error">{{ error }}</div>
@@ -31,21 +31,21 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
                 <div class="cl-field">
-                    <label for="email">ایمیل</label>
+                    <label for="email">{{ t('field_email') }}</label>
                     <input type="email" id="email" name="email" placeholder="example@email.com" required>
                 </div>
 
                 <div class="cl-field">
-                    <label for="password">رمز عبور</label>
-                    <input type="password" id="password" name="password" placeholder="رمز عبور خود را وارد کنید" required>
+                    <label for="password">{{ t('field_password') }}</label>
+                    <input type="password" id="password" name="password" placeholder="{{ t('field_password_placeholder') }}" required>
                 </div>
 
-                <button type="submit" class="cl-auth-submit">ورود</button>
+                <button type="submit" class="cl-auth-submit">{{ t('login_submit') }}</button>
 
             </form>
 
             <p class="cl-auth-footer-link">
-    <a href="/forgot-password">رمز عبور را فراموش کرده‌اید؟</a>
+    <a href="/forgot-password">{{ t('login_forgot_password') }}</a>
 </p>
 
         </div>

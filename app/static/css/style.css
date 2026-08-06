@@ -5012,3 +5012,176 @@ pre{
         scroll-behavior:auto !important;
     }
 }
+/* ============================================================
+   NAVBAR OVERLAP FIX — replaces the absolute-centered mega-nav
+   with a normal flex item that always has real, non-overlapping
+   space from the logo to the profile/login buttons.
+   ============================================================ */
+
+.navbar-inner{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    flex-wrap:nowrap;
+}
+
+.navbar-inner > .logo,
+.navbar-inner > .cl-header-actions,
+.navbar-inner > .navbar-cta,
+.navbar-inner > .cl-nav-toggle{
+    flex:0 0 auto;
+}
+
+@media(min-width:961px){
+    .cl-mega-nav{
+        position:static !important;
+        top:auto !important;
+        left:auto !important;
+        transform:none !important;
+        flex:1 1 auto;
+        min-width:0;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        overflow-x:auto;
+        scrollbar-width:none;
+        -ms-overflow-style:none;
+    }
+    .cl-mega-nav::-webkit-scrollbar{ display:none; }
+
+    /* shrink nav links a bit so more items fit before scrolling kicks in */
+    .cl-nav-link,
+    .cl-mega-trigger{
+        padding:10px 12px;
+        font-size:13.5px;
+        white-space:nowrap;
+    }
+}
+
+/* keep the old ≤1300px wrap fix but only as a fallback for very
+   small desktop widths where even shrunk items don't fit */
+@media(min-width:961px) and (max-width:1300px){
+    .navbar-inner{ flex-wrap:nowrap; }
+}
+/* ============================================================
+   NAVBAR OVERLAP FIX — replaces the absolute-centered mega-nav
+   with a normal flex item that always has real, non-overlapping
+   space between the logo and the profile/login buttons, on every
+   desktop width (not just 961-1300px).
+   ============================================================ */
+
+.navbar-inner{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    flex-wrap:nowrap;
+}
+
+.navbar-inner > .logo,
+.navbar-inner > .cl-header-actions,
+.navbar-inner > .navbar-cta,
+.navbar-inner > .cl-nav-toggle{
+    flex:0 0 auto;
+}
+
+@media(min-width:961px){
+    .cl-mega-nav{
+        position:static !important;
+        top:auto !important;
+        left:auto !important;
+        transform:none !important;
+        flex:1 1 auto;
+        min-width:0;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        overflow-x:auto;
+        scrollbar-width:none;
+        -ms-overflow-style:none;
+    }
+    .cl-mega-nav::-webkit-scrollbar{ display:none; }
+
+    .cl-nav-link,
+    .cl-mega-trigger{
+        padding:10px 12px;
+        font-size:13.5px;
+        white-space:nowrap;
+    }
+}
+
+.cl-lang-switch-link{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    height:100%;
+    font-weight:800;
+    font-size:11px;
+}
+/* ============================================================
+   NAVBAR OVERLAP FIX v2 — the previous overflow-x:auto trick
+   clipped the mega-nav dropdown panels (non-visible overflow-x
+   also clips overflow-y). Replaced with wrapping instead of
+   scrolling. Also compacts dashboard stat cards and adds the
+   homepage corner date badge.
+   ============================================================ */
+
+@media(min-width:961px){
+    .cl-mega-nav{
+        overflow:visible !important;
+        flex-wrap:wrap;
+        row-gap:4px;
+    }
+}
+
+.cl-mega-panel{
+    z-index:150;
+}
+
+.cl-dash-hero{
+    align-items:start;
+}
+
+.cl-dash-hero-stats{
+    align-items:start;
+}
+
+.cl-dash-hero-stats .cl-card-stat{
+    padding:var(--space-4);
+}
+
+.cl-section-hero{
+    position:relative;
+}
+
+.cl-home-date-badge{
+    position:absolute;
+    top:14px;
+    left:14px;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:var(--glass-bg-strong);
+    border:1px solid var(--color-border);
+    padding:8px 16px;
+    border-radius:var(--radius-full);
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--color-secondary);
+    box-shadow:var(--shadow-sm);
+    z-index:5;
+}
+.cl-home-date-badge .material-symbols-outlined{
+    font-size:16px;
+    color:var(--color-primary);
+}
+
+@media(max-width:960px){
+    .cl-home-date-badge{
+        position:static;
+        margin:0 0 16px;
+        width:fit-content;
+    }
+}
