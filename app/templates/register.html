@@ -45,6 +45,28 @@
                     <input type="text" id="phone" name="phone" placeholder="{{ t('field_phone_placeholder') }}" required>
                 </div>
 
+                <div class="cl-field-row">
+                    <div class="cl-field">
+                        <label for="province">استان محل اقامت</label>
+                        <input type="text" id="province" name="province" placeholder="مثلاً: آذربایجان غربی">
+                    </div>
+                    <div class="cl-field">
+                        <label for="city">شهر محل اقامت</label>
+                        <input type="text" id="city" name="city" placeholder="مثلاً: ارومیه">
+                    </div>
+                </div>
+
+                <div class="cl-field">
+                    <label for="referred_by_org_id">آزمایشگاه / کلینیک / بیمارستان معرف (اختیاری)</label>
+                    <select id="referred_by_org_id" name="referred_by_org_id">
+                        <option value="">— بدون معرف —</option>
+                        {% for lab in labs %}
+                        <option value="{{ lab.id }}">{{ lab.organization_profile.org_name if lab.organization_profile else lab.display_name }}</option>
+                        {% endfor %}
+                    </select>
+                    <p class="cl-field-hint">اگر توسط یک آزمایشگاه یا مرکز درمانی به کیورالینک معرفی شده‌اید، آن را از این لیست انتخاب کنید.</p>
+                </div>
+
                 <div class="cl-field">
                     <label for="password">{{ t('field_password') }}</label>
                     <input type="password" id="password" name="password" placeholder="{{ t('field_password_hint_placeholder') }}" required>

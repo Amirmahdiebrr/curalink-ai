@@ -39,6 +39,7 @@ from app.routers.doctor_review import router as doctor_review_router
 from app.routers.reviews import router as reviews_router
 from app.routers.health_status import router as health_status_router
 from app.routers.language import router as language_router
+from app.routers.org_referrals import router as org_referrals_router
 
 from app.services.job_store import purge_old_jobs
 from app.services import pending_action_store
@@ -94,6 +95,7 @@ app.include_router(payment_router)
 app.include_router(reviews_router)
 app.include_router(health_status_router)
 app.include_router(language_router)
+app.include_router(org_referrals_router)
 
 
 async def _job_cleanup_loop():

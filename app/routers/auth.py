@@ -11,7 +11,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User
+from app.models import User, ROLE_ORG_ADMIN
 from app.services.auth_service import (
     register_patient,
     register_doctor,
@@ -35,6 +35,7 @@ from app.services.email_service import EmailService
 from app.services.sms_service import SMSService
 from app.services.file_service import signature_matches_extension
 from app.services.avatar_service import save_avatar, AvatarError
+from app.services.referral_service import get_all_labs
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.crypto import encrypt_value, decrypt_value
 from app.core.limiter import limiter
@@ -76,6 +77,26 @@ def _parse_float(value):
         except ValueError:
             return None
     return None
+
+
+def _resolve_referral_org_id(db: Session, raw_value: str | None) -> int | None:
+    """
+    مقدار فیلد «آزمایشگاه/مرکز معرف» فرم ثبت‌نام را اعتبارسنجی می‌کند؛
+    فقط اگر واقعاً به یک کاربر با نقش org_admin فعال اشاره کند، همان
+    شناسه برگردانده می‌شود، وگرنه None (یعنی بدون معرف).
+    """
+    if not raw_value or not raw_value.strip().isdigit():
+        return None
+
+    org_id = int(raw_value.strip())
+
+    org = (
+        db.query(User)
+        .filter(User.id == org_id, User.role == ROLE_ORG_ADMIN, User.is_active.is_(True))
+        .first()
+    )
+
+    return org.id if org else None
 
 
 def _profile_context(
@@ -132,14 +153,16 @@ async def register_choose_page(request: Request):
 
 
 @router.get("/register/patient")
-async def register_patient_page(request: Request):
+async def register_patient_page(request: Request, db: Session = Depends(get_db)):
     csrf_token = get_or_create_csrf_token(request)
+    labs = get_all_labs(db)
     return templates.TemplateResponse(
         request,
         "register.html",
         {
             "request": request, "error": None, "csrf_token": csrf_token, "user": None,
             "blood_type_options": BLOOD_TYPE_OPTIONS,
+            "labs": labs,
         }
     )
 
@@ -156,6 +179,9 @@ async def register_patient_submit(
     password_confirm: str = Form(...),
     age: str = Form(None),
     gender: str = Form(None),
+    province: str = Form(None),
+    city: str = Form(None),
+    referred_by_org_id: str = Form(None),
     height_cm: str = Form(None),
     weight_kg: str = Form(None),
     blood_type: str = Form(None),
@@ -170,19 +196,20 @@ async def register_patient_submit(
 ):
 
     new_token = get_or_create_csrf_token(request)
+    labs = get_all_labs(db)
 
     if not is_valid_csrf(request, csrf_token):
         return templates.TemplateResponse(
             request,
             "register.html",
-            {"request": request, "error": "خطای اعتبارسنجی امنیتی. لطفاً دوباره تلاش کنید.", "csrf_token": new_token, "user": None, "blood_type_options": BLOOD_TYPE_OPTIONS}
+            {"request": request, "error": "خطای اعتبارسنجی امنیتی. لطفاً دوباره تلاش کنید.", "csrf_token": new_token, "user": None, "blood_type_options": BLOOD_TYPE_OPTIONS, "labs": labs}
         )
 
     if password != password_confirm:
         return templates.TemplateResponse(
             request,
             "register.html",
-            {"request": request, "error": "رمز عبور و تکرار آن یکسان نیستند.", "csrf_token": new_token, "user": None, "blood_type_options": BLOOD_TYPE_OPTIONS}
+            {"request": request, "error": "رمز عبور و تکرار آن یکسان نیستند.", "csrf_token": new_token, "user": None, "blood_type_options": BLOOD_TYPE_OPTIONS, "labs": labs}
         )
 
     try:
@@ -197,7 +224,7 @@ async def register_patient_submit(
         return templates.TemplateResponse(
             request,
             "register.html",
-            {"request": request, "error": str(e), "csrf_token": new_token, "user": None, "blood_type_options": BLOOD_TYPE_OPTIONS}
+            {"request": request, "error": str(e), "csrf_token": new_token, "user": None, "blood_type_options": BLOOD_TYPE_OPTIONS, "labs": labs}
         )
 
     age_value = _parse_int(age)
@@ -206,6 +233,9 @@ async def register_patient_submit(
 
     user.age = age_value
     user.gender = gender or None
+    user.province = (province or "").strip()[:100] or None
+    user.city = (city or "").strip()[:100] or None
+    user.referred_by_org_id = _resolve_referral_org_id(db, referred_by_org_id)
     user.height_cm = _parse_int(height_cm)
     user.weight_kg = _parse_float(weight_kg)
     user.blood_type = blood_type or None

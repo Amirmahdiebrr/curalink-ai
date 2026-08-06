@@ -78,6 +78,12 @@ EMERGENCY_CONTACT_COLUMNS = [
     ("preferred_lab", "TEXT"),
 ]
 
+REFERRAL_COLUMNS = [
+    ("province", "TEXT"),
+    ("city", "TEXT"),
+    ("referred_by_org_id", "INTEGER"),
+]
+
 
 def _run_light_migrations():
     inspector = inspect(engine)
@@ -108,6 +114,8 @@ def _run_light_migrations():
             for column, ddl_type in HEALTH_PROFILE_COLUMNS:
                 _add_column_if_missing(conn, "users", column, ddl_type)
             for column, ddl_type in EMERGENCY_CONTACT_COLUMNS:
+                _add_column_if_missing(conn, "users", column, ddl_type)
+            for column, ddl_type in REFERRAL_COLUMNS:
                 _add_column_if_missing(conn, "users", column, ddl_type)
 
     if "family_members" in table_names:

@@ -146,6 +146,13 @@
                 </a>
                 {% endif %}
 
+                {% if user and user.role == 'org_admin' %}
+                <a href="/org/referrals" class="cl-nav-link">
+                    <span class="material-symbols-outlined cl-icon-sm">diversity_3</span>
+                    حساب معرفی‌شدگان
+                </a>
+                {% endif %}
+
                 {% if user and user.role == 'platform_admin' %}
                 <div class="cl-mega-item">
                     <button type="button" class="cl-mega-trigger">

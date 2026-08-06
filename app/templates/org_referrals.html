@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}حساب و تراکنش معرفی‌شدگان | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="cl-profile-section">
+    <div class="container">
+
+        <div class="cl-profile-header">
+            <div class="cl-profile-avatar">{{ (user.display_name or "?")[0] }}</div>
+            <div>
+                <h1>حساب و تراکنش معرفی‌شدگان</h1>
+                <p>
+                    بیمارانی که با معرفی «{{ user.organization_profile.org_name if user.organization_profile else user.display_name }}»
+                    ثبت‌نام کرده‌اند و مبلغ پرداختی آن‌ها
+                </p>
+            </div>
+        </div>
+
+        <div class="services-grid" style="margin-bottom:40px;">
+
+            <div class="service-card">
+                <span class="service-icon"><span class="material-symbols-outlined">diversity_3</span></span>
+                <h3>{{ total_referred_count }}</h3>
+                <p>نفر معرفی‌شده</p>
+            </div>
+
+            <div class="service-card">
+                <span class="service-icon"><span class="material-symbols-outlined">payments</span></span>
+                <h3>{{ "{:,}".format(total_paid) }} تومان</h3>
+                <p>مجموع پرداخت‌های موفق معرفی‌شدگان (کل دوره)</p>
+            </div>
+
+            <div class="service-card">
+                <span class="service-icon"><span class="material-symbols-outlined">receipt_long</span></span>
+                <h3>{{ transactions|length }}</h3>
+                <p>تراکنش موفق ثبت‌شده</p>
+            </div>
+
+        </div>
+
+        <div class="cl-profile-card" style="margin-bottom:24px;">
+            <h3 class="cl-profile-card-title">مجموع پرداختی ماهانه (برای محاسبه بونوس دعوت)</h3>
+
+            {% if monthly_totals|length == 0 %}
+            <p class="cl-profile-card-sub">هنوز تراکنش موفقی از معرفی‌شدگان ثبت نشده است.</p>
+            {% else %}
+            <div class="cl-history-list">
+                {% for row in monthly_totals %}
+                <div class="cl-history-item">
+                    <div class="cl-history-item-main">
+                        <span class="cl-history-badge">{{ row.label }}</span>
+                        <span class="cl-history-filename">{{ row.count }} تراکنش</span>
+                    </div>
+                    <span class="cl-history-date">{{ "{:,}".format(row.total) }} تومان</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="cl-profile-card" style="margin-bottom:24px;">
+            <h3 class="cl-profile-card-title">بیماران معرفی‌شده</h3>
+
+            {% if referred_users|length == 0 %}
+            <p class="cl-profile-card-sub">هنوز هیچ بیماری با معرفی شما ثبت‌نام نکرده است.</p>
+            {% else %}
+            <div class="cl-history-list">
+                {% for person in referred_users %}
+                <div class="cl-history-item">
+                    <div class="cl-history-item-main">
+                        <span class="cl-history-badge">{{ person.province or "—" }}{% if person.city %} / {{ person.city }}{% endif %}</span>
+                        <span class="cl-history-filename">{{ person.display_name }} — {{ person.phone }}</span>
+                    </div>
+                    <span class="cl-history-date">{{ person.created_at.strftime("%Y-%m-%d") }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="cl-profile-card">
+            <h3 class="cl-profile-card-title">جزئیات تراکنش‌های معرفی‌شدگان</h3>
+
+            {% if transactions|length == 0 %}
+            <p class="cl-profile-card-sub">هنوز تراکنش موفقی ثبت نشده است.</p>
+            {% else %}
+            <div class="cl-history-list">
+                {% for payment in transactions %}
+                <div class="cl-history-item">
+                    <div class="cl-history-item-main">
+                        <span class="cl-history-badge">
+                            {% if payment.purpose == 'exam_analysis' %}تحلیل آزمایش
+                            {% elif payment.purpose == 'diet_plan' %}برنامه غذایی
+                            {% elif payment.purpose == 'workout_plan' %}برنامه ورزشی
+                            {% elif payment.purpose == 'visit_prep' %}آماده‌سازی ویزیت
+                            {% elif payment.purpose == 'subscription' %}اشتراک
+                            {% else %}{{ payment.purpose }}
+                            {% endif %}
+                        </span>
+                        <span class="cl-history-filename">کاربر #{{ payment.user_id }}</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:14px;">
+                        <span class="cl-history-date">{{ payment.paid_at.strftime("%Y-%m-%d") if payment.paid_at else "" }}</span>
+                        <span class="cl-value-mono">{{ "{:,}".format(payment.amount) }} تومان</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

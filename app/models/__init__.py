@@ -52,6 +52,11 @@ class User(Base):
     address = Column(String, nullable=True)
     avatar_path = Column(String, nullable=True)
 
+    # ===== استان/شهر محل اقامت و آزمایشگاه/مرکز معرف =====
+    province = Column(String, nullable=True)
+    city = Column(String, nullable=True)
+    referred_by_org_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+
     # ===== پروفایل سلامت اولیه =====
     height_cm = Column(Integer, nullable=True)
     weight_kg = Column(Float, nullable=True)
@@ -95,6 +100,16 @@ class User(Base):
         foreign_keys="DoctorProfile.user_id",
     )
     organization_profile = relationship("OrganizationProfile", back_populates="user", uselist=False)
+
+    # آزمایشگاه/کلینیک/بیمارستانی که این کاربر را معرفی کرده (در صورت وجود).
+    # از طریق backref، روی خودِ آن آزمایشگاه، referred_users لیست تمام
+    # کاربرانی که با معرفی او ثبت‌نام کرده‌اند را برمی‌گرداند.
+    referred_by_org = relationship(
+        "User",
+        remote_side=[id],
+        foreign_keys=[referred_by_org_id],
+        backref="referred_users",
+    )
 
 
 class DoctorProfile(Base):
