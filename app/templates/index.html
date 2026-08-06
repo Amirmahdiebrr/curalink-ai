@@ -59,6 +59,7 @@
                     {% for member in family_members %}<option value="{{ member.id }}">{{ member.name }}{% if member.relation %} ({{ member.relation }}){% endif %}</option>{% endfor %}
                 </select>
                 <p class="cl-field-hint">{{ t('upload_family_hint') }}</p>
+
                 <label class="field-label" for="exam_type">{{ t('upload_examtype_label') }}</label>
                 <select name="exam_type" id="exam_type" required>
                     <option value="" disabled selected>{{ t('upload_examtype_placeholder') }}</option>
@@ -66,6 +67,9 @@
                     <option value="sonography">{{ t('exam_sonography') }}</option><option value="radiology">{{ t('exam_radiology') }}</option><option value="mri">{{ t('exam_mri') }}</option>
                     <option value="ct_scan">{{ t('exam_ctscan') }}</option><option value="mammography">{{ t('exam_mammography') }}</option><option value="hse">{{ t('exam_hse') }}</option><option value="other">{{ t('exam_other') }}</option>
                 </select>
+
+                <div id="exam-type-guide" class="cl-alert cl-alert-info" style="display:none; margin:-6px 0 4px;"></div>
+
                 <label class="upload-area" id="dropzone" for="file">
                     <input type="file" name="files" id="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif" multiple required>
                     <span class="upload-icon"><span class="material-symbols-outlined">upload_file</span></span>
@@ -219,6 +223,27 @@
 <script>
 (function(){
     document.querySelectorAll('.cl-reveal').forEach(function(el){ el.classList.add('is-visible'); });
+
+    var EXAM_GUIDES = {
+        {% for key, guide in exam_upload_guides.items() %}
+        "{{ key }}": {{ guide|tojson }}{% if not loop.last %},{% endif %}
+        {% endfor %}
+    };
+
+    var examSelect = document.getElementById('exam_type');
+    var guideBox = document.getElementById('exam-type-guide');
+
+    if (examSelect && guideBox) {
+        examSelect.addEventListener('change', function () {
+            var text = EXAM_GUIDES[examSelect.value];
+            if (text) {
+                guideBox.textContent = text;
+                guideBox.style.display = 'flex';
+            } else {
+                guideBox.style.display = 'none';
+            }
+        });
+    }
 })();
 </script>
 {% endblock %}

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.routers.auth import get_current_user
 from app.core.csrf import get_or_create_csrf_token
+from app.core.exam_upload_guides import EXAM_UPLOAD_GUIDES
 from app.services.family_service import get_family_members
 from app.services.history_service import get_due_followups
 from app.services.review_service import get_latest_reviews
@@ -43,5 +44,6 @@ async def home(request: Request, db: Session = Depends(get_db)):
             "due_followups": due_followups,
             "reviews": reviews,
             "now": datetime.utcnow(),
+            "exam_upload_guides": EXAM_UPLOAD_GUIDES,
         }
     )
