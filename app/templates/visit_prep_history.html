@@ -1,6 +1,7 @@
+<!-- app/templates/visit_prep_history.html -->
 {% extends "base.html" %}
 
-{% block title %}تاریخچه آماده‌سازی ویزیت | CuraLink AI{% endblock %}
+{% block title %}{{ t('visit_prep_history_title') }}{% endblock %}
 
 {% block content %}
 
@@ -12,16 +13,16 @@
                 {{ (user.display_name or user.nicename or "?")[0] }}
             </div>
             <div>
-                <h1>تاریخچه آماده‌سازی ویزیت</h1>
-                <p>{{ records|length }} خلاصه ثبت‌شده</p>
+                <h1>{{ t('visit_prep_history_heading') }}</h1>
+                <p>{{ t('visit_prep_history_count', n=records|length) }}</p>
             </div>
         </div>
 
         {% if records|length == 0 %}
 
         <div class="cl-history-empty">
-            <p>هنوز هیچ خلاصه‌ی آماده‌سازی ویزیتی تولید نکرده‌اید.</p>
-            <a href="/visit-prep" class="btn btn-solid">تولید اولین خلاصه</a>
+            <p>{{ t('visit_prep_history_empty') }}</p>
+            <a href="/visit-prep" class="btn btn-solid">{{ t('visit_prep_history_empty_cta') }}</a>
         </div>
 
         {% else %}
@@ -31,18 +32,18 @@
             <div class="cl-history-item">
                 <a href="/visit-prep/history/{{ record.id }}" class="cl-history-item-main" style="flex:1; min-width:0;">
                     <span class="cl-history-badge">
-                        {% if record.family_member %}{{ record.family_member.name }}{% else %}خودم{% endif %}
+                        {% if record.family_member %}{{ record.family_member.name }}{% else %}{{ t('history_badge_self') }}{% endif %}
                     </span>
                     <span class="cl-history-filename">
-                        {% if record.visit_reason %}{{ record.visit_reason[:60] }}{% else %}آماده‌سازی ویزیت عمومی{% endif %}
+                        {% if record.visit_reason %}{{ record.visit_reason[:60] }}{% else %}{{ t('visit_prep_history_generic') }}{% endif %}
                     </span>
                 </a>
 
                 <div style="display:flex; align-items:center; gap:12px; flex-shrink:0;">
                     <span class="cl-history-date">{{ record.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
-                    <a href="/visit-prep/pdf/{{ record.id }}" target="_blank" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px; gap:6px;" title="دانلود PDF">
+                    <a href="/visit-prep/pdf/{{ record.id }}" target="_blank" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px; gap:6px;" title="{{ t('history_pdf_title') }}">
                         <span class="material-symbols-outlined" style="font-size:16px;">picture_as_pdf</span>
-                        PDF
+                        {{ t('history_pdf_label') }}
                     </a>
                 </div>
             </div>
@@ -52,7 +53,7 @@
         {% endif %}
 
         <div class="result-actions">
-            <a href="/visit-prep" class="btn btn-solid">تولید خلاصه‌ی جدید</a>
+            <a href="/visit-prep" class="btn btn-solid">{{ t('visit_prep_history_new_cta') }}</a>
         </div>
 
     </div>

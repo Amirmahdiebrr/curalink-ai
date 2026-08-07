@@ -1,6 +1,7 @@
+<!-- app/templates/admin_users.html -->
 {% extends "base.html" %}
 
-{% block title %}مدیریت کاربران | CuraLink AI{% endblock %}
+{% block title %}{{ t('admin_users_title') }}{% endblock %}
 
 {% block content %}
 
@@ -10,8 +11,8 @@
         <div class="cl-profile-header">
             <div class="cl-profile-avatar">{{ (user.display_name or "?")[0] }}</div>
             <div>
-                <h1>مدیریت کاربران</h1>
-                <p>{{ users|length }} کاربر ثبت‌شده</p>
+                <h1>{{ t('admin_users_heading') }}</h1>
+                <p>{{ t('admin_users_count', n=users|length) }}</p>
             </div>
         </div>
 
@@ -21,14 +22,14 @@
                 <div class="cl-history-item">
                     <div class="cl-history-item-main">
                         <span class="cl-history-badge">
-                            {% if u.role == 'patient' %}بیمار{% elif u.role == 'doctor' %}پزشک{% elif u.role == 'org_admin' %}سازمان{% else %}ادمین{% endif %}
+                            {% if u.role == 'patient' %}{{ t('role_patient') }}{% elif u.role == 'doctor' %}{{ t('role_doctor') }}{% elif u.role == 'org_admin' %}{{ t('role_org_admin') }}{% else %}{{ t('role_platform_admin') }}{% endif %}
                         </span>
                         <span class="cl-history-filename">{{ u.display_name }} — {{ u.email }}</span>
                     </div>
                     {% if u.role != 'platform_admin' %}
-                    <form method="post" action="/admin/users/{{ u.id }}/delete" onsubmit="return confirm('این کاربر و تمام داده‌هایش حذف شود؟');">
+                    <form method="post" action="/admin/users/{{ u.id }}/delete" onsubmit="return confirm('{{ t('admin_delete_user_confirm') }}');">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                        <button type="submit" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px; border-color:var(--warn); color:var(--warn);">حذف</button>
+                        <button type="submit" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px; border-color:var(--warn); color:var(--warn);">{{ t('admin_delete_btn') }}</button>
                     </form>
                     {% endif %}
                 </div>

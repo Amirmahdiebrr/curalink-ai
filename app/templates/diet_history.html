@@ -1,6 +1,7 @@
+<!-- app/templates/diet_history.html -->
 {% extends "base.html" %}
 
-{% block title %}تاریخچه برنامه‌های غذایی | CuraLink AI{% endblock %}
+{% block title %}{{ t('diet_history_title') }}{% endblock %}
 
 {% block content %}
 
@@ -12,16 +13,16 @@
                 {{ (user.display_name or user.nicename or "?")[0] }}
             </div>
             <div>
-                <h1>تاریخچه برنامه‌های غذایی</h1>
-                <p>{{ records|length }} برنامه ثبت‌شده</p>
+                <h1>{{ t('diet_history_heading') }}</h1>
+                <p>{{ t('diet_history_count', n=records|length) }}</p>
             </div>
         </div>
 
         {% if records|length == 0 %}
 
         <div class="cl-history-empty">
-            <p>هنوز هیچ برنامه غذایی تولید نکرده‌اید.</p>
-            <a href="/diet" class="btn btn-solid">تولید اولین برنامه غذایی</a>
+            <p>{{ t('diet_history_empty') }}</p>
+            <a href="/diet" class="btn btn-solid">{{ t('diet_history_empty_cta') }}</a>
         </div>
 
         {% else %}
@@ -31,18 +32,18 @@
             <div class="cl-history-item">
                 <a href="/diet/history/{{ record.id }}" class="cl-history-item-main" style="flex:1; min-width:0;">
                     <span class="cl-history-badge">
-                        {% if record.family_member %}{{ record.family_member.name }}{% else %}خودم{% endif %}
+                        {% if record.family_member %}{{ record.family_member.name }}{% else %}{{ t('history_badge_self') }}{% endif %}
                     </span>
                     <span class="cl-history-filename">
-                        {% if record.context %}{{ record.context[:60] }}{% else %}برنامه غذایی عمومی{% endif %}
+                        {% if record.context %}{{ record.context[:60] }}{% else %}{{ t('diet_history_generic_plan') }}{% endif %}
                     </span>
                 </a>
 
                 <div style="display:flex; align-items:center; gap:12px; flex-shrink:0;">
                     <span class="cl-history-date">{{ record.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
-                    <a href="/diet/pdf/{{ record.id }}" target="_blank" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px; gap:6px;" title="دانلود PDF">
+                    <a href="/diet/pdf/{{ record.id }}" target="_blank" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px; gap:6px;" title="{{ t('history_pdf_title') }}">
                         <span class="material-symbols-outlined" style="font-size:16px;">picture_as_pdf</span>
-                        PDF
+                        {{ t('history_pdf_label') }}
                     </a>
                 </div>
             </div>
@@ -52,7 +53,7 @@
         {% endif %}
 
         <div class="result-actions">
-            <a href="/diet" class="btn btn-solid">تولید برنامه غذایی جدید</a>
+            <a href="/diet" class="btn btn-solid">{{ t('diet_history_new_cta') }}</a>
         </div>
 
     </div>

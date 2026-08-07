@@ -1,6 +1,7 @@
+<!-- app/templates/billing_plans.html -->
 {% extends "base.html" %}
 
-{% block title %}پلن‌های اشتراک | CuraLink AI{% endblock %}
+{% block title %}{{ t('billing_plans_title') }}{% endblock %}
 
 {% block content %}
 
@@ -10,12 +11,12 @@
         <div class="cl-profile-header">
             <div class="cl-profile-avatar">{{ (user.display_name or "?")[0] }}</div>
             <div>
-                <h1>پلن‌های اشتراک</h1>
+                <h1>{{ t('billing_plans_heading') }}</h1>
                 <p>
-                    {% if user.role == 'patient' %}پلن‌های ویژه‌ی بیماران
-                    {% elif user.role == 'doctor' %}پلن‌های ویژه‌ی پزشکان
-                    {% elif user.role == 'org_admin' %}پلن‌های ویژه‌ی سازمان‌ها
-                    {% else %}پلن‌های موجود
+                    {% if user.role == 'patient' %}{{ t('billing_plans_sub_patient') }}
+                    {% elif user.role == 'doctor' %}{{ t('billing_plans_sub_doctor') }}
+                    {% elif user.role == 'org_admin' %}{{ t('billing_plans_sub_org') }}
+                    {% else %}{{ t('billing_plans_sub_default') }}
                     {% endif %}
                 </p>
             </div>
@@ -23,15 +24,14 @@
 
         {% if active_subscription %}
         <div class="cl-auth-alert cl-auth-alert-success" style="text-align:right; line-height:2;">
-            ✅ شما هم‌اکنون یک اشتراک فعال (<strong>{{ active_subscription.plan.name_fa }}</strong>) دارید
-            که تا تاریخ {{ active_subscription.expires_at.strftime("%Y-%m-%d") }} معتبر است.
+            {{ t('billing_active_prefix') }}<strong>{{ active_subscription.plan.name_fa }}</strong>{{ t('billing_active_suffix', date=active_subscription.expires_at.strftime("%Y-%m-%d")) }}
         </div>
         {% endif %}
 
         {% if plans|length == 0 %}
 
         <div class="cl-history-empty">
-            <p>در حال حاضر پلنی برای نوع حساب شما تعریف نشده است.</p>
+            <p>{{ t('billing_no_plans') }}</p>
         </div>
 
         {% else %}
@@ -41,20 +41,20 @@
             <div class="cl-profile-card">
                 <h3 class="cl-profile-card-title">{{ plan.name_fa }}</h3>
                 <p class="cl-profile-card-sub">
-                    {{ "{:,}".format(plan.price) }} تومان
+                    {{ "{:,}".format(plan.price) }} {{ t('currency_toman') }}
                     /
-                    {% if plan.billing_period_days == 7 %}هفتگی{% elif plan.billing_period_days == 30 %}ماهانه{% else %}{{ plan.billing_period_days }} روزه{% endif %}
+                    {% if plan.billing_period_days == 7 %}{{ t('billing_price_period_weekly') }}{% elif plan.billing_period_days == 30 %}{{ t('billing_price_period_monthly') }}{% else %}{{ t('billing_price_period_days', days=plan.billing_period_days) }}{% endif %}
                 </p>
 
                 {% if plan.usage_limit %}
-                <p class="cl-info-note">سقف استفاده: {{ plan.usage_limit }} تحلیل در دوره</p>
+                <p class="cl-info-note">{{ t('billing_usage_limit', limit=plan.usage_limit) }}</p>
                 {% else %}
-                <p class="cl-info-note">استفاده نامحدود در دوره</p>
+                <p class="cl-info-note">{{ t('billing_usage_unlimited') }}</p>
                 {% endif %}
 
                 <form method="post" action="/billing/subscribe/{{ plan.code }}" style="margin-top:18px;">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <button type="submit" class="cl-auth-submit">خرید این پلن</button>
+                    <button type="submit" class="cl-auth-submit">{{ t('billing_buy_plan') }}</button>
                 </form>
             </div>
             {% endfor %}

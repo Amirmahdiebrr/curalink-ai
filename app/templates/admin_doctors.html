@@ -1,6 +1,7 @@
+<!-- app/templates/admin_doctors.html -->
 {% extends "base.html" %}
 
-{% block title %}تایید پزشکان | CuraLink AI{% endblock %}
+{% block title %}{{ t('admin_doctors_title') }}{% endblock %}
 
 {% block content %}
 
@@ -10,16 +11,16 @@
         <div class="cl-profile-header">
             <div class="cl-profile-avatar">{{ (user.display_name or "?")[0] }}</div>
             <div>
-                <h1>تایید حساب پزشکان</h1>
-                <p>{{ pending|length }} درخواست در انتظار بررسی</p>
+                <h1>{{ t('admin_doctors_heading') }}</h1>
+                <p>{{ t('admin_doctors_count', n=pending|length) }}</p>
             </div>
         </div>
 
         <div class="cl-profile-card" style="margin-bottom:24px;">
-            <h3 class="cl-profile-card-title">درخواست‌های در انتظار بررسی</h3>
+            <h3 class="cl-profile-card-title">{{ t('admin_doctors_pending_title') }}</h3>
 
             {% if pending|length == 0 %}
-            <p class="cl-profile-card-sub">در حال حاضر درخواست جدیدی برای بررسی وجود ندارد.</p>
+            <p class="cl-profile-card-sub">{{ t('admin_doctors_pending_empty') }}</p>
             {% else %}
 
             <div class="cl-history-list">
@@ -30,29 +31,29 @@
                         <span class="cl-history-date">{{ doctor.email }} — {{ doctor.phone }}</span>
                         {% if doctor.doctor_profile %}
                         <span class="cl-history-date">
-                            تخصص: {{ doctor.doctor_profile.specialty or "—" }} |
-                            شماره نظام پزشکی: {{ doctor.doctor_profile.medical_council_no or "—" }}
-                            {% if doctor.doctor_profile.clinic_name %} | مطب: {{ doctor.doctor_profile.clinic_name }}{% endif %}
+                            {{ t('admin_doctors_specialty_label') }}: {{ doctor.doctor_profile.specialty or "—" }} |
+                            {{ t('admin_doctors_council_label') }}: {{ doctor.doctor_profile.medical_council_no or "—" }}
+                            {% if doctor.doctor_profile.clinic_name %} | {{ t('admin_doctors_clinic_label') }}: {{ doctor.doctor_profile.clinic_name }}{% endif %}
                         </span>
                         {% if doctor.doctor_profile.license_document_path %}
                         <a href="/admin/doctors/{{ doctor.id }}/document" target="_blank" rel="noopener" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px; margin-top:4px; gap:6px;">
                             <span class="material-symbols-outlined" style="font-size:16px;">description</span>
-                            مشاهده مدرک نظام پزشکی
+                            {{ t('admin_doctors_view_document') }}
                         </a>
                         {% else %}
-                        <span class="cl-history-date" style="color:var(--warn);">مدرکی آپلود نشده است</span>
+                        <span class="cl-history-date" style="color:var(--warn);">{{ t('admin_doctors_no_document') }}</span>
                         {% endif %}
                         {% endif %}
                     </div>
 
                     <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                        <form method="post" action="/admin/doctors/{{ doctor.id }}/approve" onsubmit="return confirm('این پزشک تایید شود؟');">
+                        <form method="post" action="/admin/doctors/{{ doctor.id }}/approve" onsubmit="return confirm('{{ t('admin_doctors_approve_confirm') }}');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                            <button type="submit" class="btn btn-solid" style="height:38px; padding:0 16px; font-size:13px;">تایید</button>
+                            <button type="submit" class="btn btn-solid" style="height:38px; padding:0 16px; font-size:13px;">{{ t('admin_doctors_approve_btn') }}</button>
                         </form>
-                        <form method="post" action="/admin/doctors/{{ doctor.id }}/reject" onsubmit="return confirm('این درخواست رد شود؟');">
+                        <form method="post" action="/admin/doctors/{{ doctor.id }}/reject" onsubmit="return confirm('{{ t('admin_doctors_reject_confirm') }}');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                            <button type="submit" class="btn btn-outline" style="height:38px; padding:0 16px; font-size:13px;">رد کردن</button>
+                            <button type="submit" class="btn btn-outline" style="height:38px; padding:0 16px; font-size:13px;">{{ t('admin_doctors_reject_btn') }}</button>
                         </form>
                     </div>
                 </div>
@@ -63,10 +64,10 @@
         </div>
 
         <div class="cl-profile-card">
-            <h3 class="cl-profile-card-title">تاریخچه بررسی‌شده</h3>
+            <h3 class="cl-profile-card-title">{{ t('admin_doctors_reviewed_title') }}</h3>
 
             {% if reviewed|length == 0 %}
-            <p class="cl-profile-card-sub">هنوز هیچ پزشکی بررسی نشده است.</p>
+            <p class="cl-profile-card-sub">{{ t('admin_doctors_reviewed_empty') }}</p>
             {% else %}
 
             <div class="cl-history-list">
@@ -74,13 +75,13 @@
                 <div class="cl-history-item" style="align-items:flex-start; flex-wrap:wrap; gap:14px;">
                     <div class="cl-history-item-main" style="flex-direction:column; align-items:flex-start; gap:6px;">
                         <span class="cl-history-badge">
-                            {% if doctor.verification_status == 'approved' %}تایید‌شده{% else %}رد‌شده{% endif %}
+                            {% if doctor.verification_status == 'approved' %}{{ t('admin_doctors_status_approved') }}{% else %}{{ t('admin_doctors_status_rejected') }}{% endif %}
                         </span>
                         <span class="cl-history-filename">{{ doctor.display_name }} — {{ doctor.email }}</span>
                         {% if doctor.doctor_profile and doctor.doctor_profile.license_document_path %}
                         <a href="/admin/doctors/{{ doctor.id }}/document" target="_blank" rel="noopener" class="btn btn-outline" style="height:34px; padding:0 12px; font-size:12px; gap:6px;">
                             <span class="material-symbols-outlined" style="font-size:14px;">description</span>
-                            مشاهده مدرک
+                            {{ t('admin_doctors_view_doc_short') }}
                         </a>
                         {% endif %}
                     </div>

@@ -1,6 +1,7 @@
+<!-- app/templates/register_org.html -->
 {% extends "base.html" %}
 
-{% block title %}ثبت‌نام سازمان | CuraLink AI{% endblock %}
+{% block title %}{{ t('register_org_title') }}{% endblock %}
 
 {% block content %}
 
@@ -9,8 +10,8 @@
     <div class="cl-auth-brand">
         <div class="cl-auth-brand-inner">
             <img src="/static/images/robot.png" alt="CuraLink AI" class="cl-auth-robot">
-            <h2>ثبت‌نام سازمانی</h2>
-            <p>برای کلینیک‌ها، آزمایشگاه‌ها و بیمارستان‌هایی که می‌خواهند از تحلیل هوشمند CuraLink برای حجم بالای بیماران استفاده کنند.</p>
+            <h2>{{ t('register_org_brand_heading') }}</h2>
+            <p>{{ t('register_org_brand_desc') }}</p>
         </div>
     </div>
 
@@ -18,8 +19,8 @@
         <div class="cl-auth-box">
 
             <img src="/static/images/logo.png" alt="CuraLink AI" class="cl-auth-logo">
-            <h1 class="cl-auth-heading">ثبت‌نام سازمان</h1>
-            <p class="cl-auth-desc">اطلاعات زیر را برای ثبت‌نام تکمیل کنید</p>
+            <h1 class="cl-auth-heading">{{ t('register_org_heading') }}</h1>
+            <p class="cl-auth-desc">{{ t('register_org_desc') }}</p>
 
             {% if error %}
             <div class="cl-auth-alert cl-auth-alert-error">{{ error }}</div>
@@ -30,56 +31,56 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
                 <div class="cl-field">
-                    <label for="org_name">نام سازمان</label>
-                    <input type="text" id="org_name" name="org_name" placeholder="مثلاً: آزمایشگاه پاستور" required>
+                    <label for="org_name">{{ t('field_org_name') }}</label>
+                    <input type="text" id="org_name" name="org_name" placeholder="{{ t('field_org_name_placeholder') }}" required>
                 </div>
 
                 <div class="cl-field">
-                    <label for="org_type">نوع سازمان</label>
+                    <label for="org_type">{{ t('field_org_type') }}</label>
                     <select id="org_type" name="org_type">
-                        <option value="" selected>— انتخاب کنید —</option>
-                        <option value="clinic">مطب / کلینیک</option>
-                        <option value="lab">آزمایشگاه</option>
-                        <option value="hospital">بیمارستان</option>
-                        <option value="other">سایر</option>
+                        <option value="" selected>{{ t('org_type_placeholder') }}</option>
+                        <option value="clinic">{{ t('org_type_clinic') }}</option>
+                        <option value="lab">{{ t('org_type_lab') }}</option>
+                        <option value="hospital">{{ t('org_type_hospital') }}</option>
+                        <option value="other">{{ t('org_type_other') }}</option>
                     </select>
                 </div>
 
                 <div class="cl-field">
-                    <label for="display_name">نام مسئول / مدیر</label>
-                    <input type="text" id="display_name" name="display_name" placeholder="نام و نام خانوادگی مدیر" required>
+                    <label for="display_name">{{ t('field_manager_name') }}</label>
+                    <input type="text" id="display_name" name="display_name" placeholder="{{ t('field_manager_name_placeholder') }}" required>
                 </div>
 
                 <div class="cl-field">
-                    <label for="email">ایمیل سازمانی</label>
-                    <input type="email" id="email" name="email" placeholder="example@clinic.com" required>
+                    <label for="email">{{ t('field_email') }}</label>
+                    <input type="email" id="email" name="email" placeholder="{{ t('field_org_email_placeholder') }}" required>
                 </div>
 
                 <div class="cl-field">
-                    <label for="phone">شماره موبایل مدیر</label>
-                    <input type="text" id="phone" name="phone" placeholder="مثلاً: 09121234567" required>
+                    <label for="phone">{{ t('field_manager_phone') }}</label>
+                    <input type="text" id="phone" name="phone" placeholder="{{ t('field_manager_phone_placeholder') }}" required>
                 </div>
 
                 <div class="cl-field">
-                    <label for="password">رمز عبور</label>
+                    <label for="password">{{ t('field_password') }}</label>
                     <input type="password" id="password" name="password" required>
                 </div>
 
                 <div class="cl-field">
-                    <label for="password_confirm">تکرار رمز عبور</label>
+                    <label for="password_confirm">{{ t('field_password_confirm') }}</label>
                     <input type="password" id="password_confirm" name="password_confirm" required>
                 </div>
 
-                <button type="submit" class="cl-auth-submit">ثبت‌نام سازمان</button>
+                <button type="submit" class="cl-auth-submit">{{ t('register_org_submit') }}</button>
 
             </form>
 
             <p class="cl-auth-footer-link">
-                حساب کاربری دارید؟ <a href="/login">وارد شوید</a>
+                {{ t('register_have_account') }} <a href="/login">{{ t('register_signin') }}</a>
             </p>
 
             <p class="cl-auth-footer-link">
-                <a href="/register">بازگشت به انتخاب نوع حساب</a>
+                <a href="/register">{{ t('register_back_to_choose') }}</a>
             </p>
 
         </div>
