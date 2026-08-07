@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}اعضای خانواده | CuraLink AI{% endblock %}
+{% block title %}{{ t('family_page_title') }}{% endblock %}
 
 {% block content %}
 
@@ -12,8 +12,8 @@
                 {{ (user.display_name or user.nicename or "?")[0] }}
             </div>
             <div>
-                <h1>اعضای خانواده</h1>
-                <p>مدیریت پروفایل و اطلاعات سلامت افرادی که آزمایش‌هایشان را برایشان آپلود می‌کنید</p>
+                <h1>{{ t('family_heading') }}</h1>
+                <p>{{ t('family_subheading') }}</p>
             </div>
         </div>
 
@@ -25,104 +25,104 @@
 
             <div class="cl-profile-card">
 
-                <h3 class="cl-profile-card-title">افزودن عضو جدید</h3>
-                <p class="cl-profile-card-sub">این اطلاعات هنگام تحلیل آزمایش، برنامه غذایی و برنامه ورزشی این فرد به هوش مصنوعی کمک می‌کند.</p>
+                <h3 class="cl-profile-card-title">{{ t('family_add_title') }}</h3>
+                <p class="cl-profile-card-sub">{{ t('family_add_desc') }}</p>
 
                 <form method="post" action="/family" class="cl-auth-fields">
 
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
                     <div class="cl-field">
-                        <label for="name">نام</label>
-                        <input type="text" id="name" name="name" placeholder="مثلاً: مادر، پدر، فرزند..." required>
+                        <label for="name">{{ t('family_name_label') }}</label>
+                        <input type="text" id="name" name="name" placeholder="{{ t('family_name_placeholder') }}" required>
                     </div>
 
                     <div class="cl-field">
-                        <label for="relation">نسبت</label>
-                        <input type="text" id="relation" name="relation" placeholder="مثلاً: همسر، فرزند، پدر">
+                        <label for="relation">{{ t('family_relation_label') }}</label>
+                        <input type="text" id="relation" name="relation" placeholder="{{ t('family_relation_placeholder') }}">
                     </div>
 
                     <div class="cl-field-row">
                         <div class="cl-field">
-                            <label for="age">سن</label>
-                            <input type="number" id="age" name="age" min="0" max="120" placeholder="مثلاً ۳۰">
+                            <label for="age">{{ t('family_age_label') }}</label>
+                            <input type="number" id="age" name="age" min="0" max="120" placeholder="{{ t('family_age_placeholder') }}">
                         </div>
                         <div class="cl-field">
-                            <label for="gender">جنسیت</label>
+                            <label for="gender">{{ t('family_gender_label') }}</label>
                             <select id="gender" name="gender">
-                                <option value="" selected>— انتخاب کنید —</option>
-                                <option value="female">زن</option>
-                                <option value="male">مرد</option>
-                                <option value="other">سایر</option>
+                                <option value="" selected>{{ t('family_gender_placeholder') }}</option>
+                                <option value="female">{{ t('family_gender_female') }}</option>
+                                <option value="male">{{ t('family_gender_male') }}</option>
+                                <option value="other">{{ t('family_gender_other') }}</option>
                             </select>
                         </div>
                     </div>
 
                     <div class="cl-field-row">
                         <div class="cl-field">
-                            <label for="height_cm">قد (سانتی‌متر)</label>
+                            <label for="height_cm">{{ t('family_height_label') }}</label>
                             <input type="number" id="height_cm" name="height_cm" min="0" max="260">
                         </div>
                         <div class="cl-field">
-                            <label for="weight_kg">وزن (کیلوگرم)</label>
+                            <label for="weight_kg">{{ t('family_weight_label') }}</label>
                             <input type="number" step="0.1" id="weight_kg" name="weight_kg" min="0" max="400">
                         </div>
                     </div>
 
                     <div class="cl-field-row">
                         <div class="cl-field">
-                            <label for="blood_type">گروه خونی</label>
+                            <label for="blood_type">{{ t('family_blood_type_label') }}</label>
                             <select id="blood_type" name="blood_type">
-                                <option value="">— نامشخص —</option>
+                                <option value="">{{ t('family_blood_type_unknown') }}</option>
                                 {% for bt in blood_type_options %}
                                 <option value="{{ bt }}">{{ bt }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                         <div class="cl-field">
-                            <label for="smoking_status">وضعیت سیگار</label>
+                            <label for="smoking_status">{{ t('family_smoking_label') }}</label>
                             <select id="smoking_status" name="smoking_status">
-                                <option value="">— نامشخص —</option>
-                                <option value="none">غیرسیگاری</option>
-                                <option value="occasional">گاه‌به‌گاه</option>
-                                <option value="regular">سیگاری منظم</option>
+                                <option value="">{{ t('family_smoking_unknown') }}</option>
+                                <option value="none">{{ t('family_smoking_none') }}</option>
+                                <option value="occasional">{{ t('family_smoking_occasional') }}</option>
+                                <option value="regular">{{ t('family_smoking_regular') }}</option>
                             </select>
                         </div>
                     </div>
 
                     <div class="cl-field">
-                        <label for="activity_level">سطح فعالیت بدنی</label>
+                        <label for="activity_level">{{ t('family_activity_label') }}</label>
                         <select id="activity_level" name="activity_level">
-                            <option value="">— نامشخص —</option>
-                            <option value="sedentary">کم‌تحرک</option>
-                            <option value="light">فعالیت سبک</option>
-                            <option value="moderate">فعالیت متوسط</option>
-                            <option value="active">فعال</option>
-                            <option value="very_active">بسیار فعال / ورزشکار</option>
+                            <option value="">{{ t('family_activity_unknown') }}</option>
+                            <option value="sedentary">{{ t('family_activity_sedentary') }}</option>
+                            <option value="light">{{ t('family_activity_light') }}</option>
+                            <option value="moderate">{{ t('family_activity_moderate') }}</option>
+                            <option value="active">{{ t('family_activity_active') }}</option>
+                            <option value="very_active">{{ t('family_activity_very_active') }}</option>
                         </select>
                     </div>
 
                     <div class="cl-field">
-                        <label for="chronic_diseases">سابقه بیماری‌های مزمن (اختیاری)</label>
+                        <label for="chronic_diseases">{{ t('family_chronic_label') }}</label>
                         <textarea id="chronic_diseases" name="chronic_diseases" rows="2" maxlength="800"></textarea>
                     </div>
 
                     <div class="cl-field">
-                        <label for="allergies">حساسیت‌ها (اختیاری)</label>
+                        <label for="allergies">{{ t('family_allergies_label') }}</label>
                         <textarea id="allergies" name="allergies" rows="2" maxlength="500"></textarea>
                     </div>
 
                     <div class="cl-field">
-                        <label for="current_medications">داروهای مصرفی فعلی (اختیاری)</label>
+                        <label for="current_medications">{{ t('family_medications_label') }}</label>
                         <textarea id="current_medications" name="current_medications" rows="2" maxlength="500"></textarea>
                     </div>
 
                     <div class="cl-field">
-                        <label for="surgeries_history">سابقه جراحی (اختیاری)</label>
+                        <label for="surgeries_history">{{ t('family_surgeries_label') }}</label>
                         <textarea id="surgeries_history" name="surgeries_history" rows="2" maxlength="500"></textarea>
                     </div>
 
-                    <button type="submit" class="cl-auth-submit">افزودن عضو</button>
+                    <button type="submit" class="cl-auth-submit">{{ t('family_add_submit') }}</button>
 
                 </form>
 
@@ -130,28 +130,28 @@
 
             <div class="cl-profile-card">
 
-                <h3 class="cl-profile-card-title">اعضای ثبت‌شده</h3>
+                <h3 class="cl-profile-card-title">{{ t('family_members_title') }}</h3>
 
                 {% if members|length == 0 %}
-                <p class="cl-profile-card-sub">هنوز عضوی اضافه نکرده‌اید.</p>
+                <p class="cl-profile-card-sub">{{ t('family_no_members') }}</p>
                 {% else %}
 
                 <div class="cl-history-list">
                     {% for member in members %}
                     <div class="cl-history-item">
                         <div class="cl-history-item-main">
-                            <span class="cl-history-badge">{{ member.relation or "عضو خانواده" }}</span>
+                            <span class="cl-history-badge">{{ member.relation or t('family_member_badge_default') }}</span>
                             <span class="cl-history-filename">
                                 {{ member.name }}
-                                {% if member.age %} — {{ member.age }} سال{% endif %}
-                                {% if member.gender == 'male' %} — مرد{% elif member.gender == 'female' %} — زن{% endif %}
+                                {% if member.age %} — {{ member.age }}{% endif %}
+                                {% if member.gender == 'male' %} — {{ t('family_gender_male') }}{% elif member.gender == 'female' %} — {{ t('family_gender_female') }}{% endif %}
                                 {% if member.height_cm %} — {{ member.height_cm }}cm{% endif %}
                                 {% if member.weight_kg %} — {{ member.weight_kg }}kg{% endif %}
                             </span>
                         </div>
-                        <form method="post" action="/family/{{ member.id }}/delete" onsubmit="return confirm('این عضو حذف شود؟');">
+                        <form method="post" action="/family/{{ member.id }}/delete" onsubmit="return confirm('{{ t('family_delete_confirm') }}');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                            <button type="submit" class="btn btn-outline" style="height:38px; padding:0 16px; font-size:13px;">حذف</button>
+                            <button type="submit" class="btn btn-outline" style="height:38px; padding:0 16px; font-size:13px;">{{ t('family_delete_btn') }}</button>
                         </form>
                     </div>
                     {% endfor %}

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}برنامه غذایی | CuraLink AI{% endblock %}
+{% block title %}{{ t('diet_page_title') }}{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="/static/css/chat.css">
@@ -16,8 +16,8 @@
                 {{ (user.display_name or user.nicename or "?")[0] }}
             </div>
             <div>
-                <h1>برنامه غذایی هوشمند</h1>
-                <p>پیشنهاد تغذیه بر اساس مجموع آزمایش‌های ثبت‌شده</p>
+                <h1>{{ t('diet_heading') }}</h1>
+                <p>{{ t('diet_subheading') }}</p>
             </div>
         </div>
 
@@ -27,16 +27,16 @@
 
         <div class="cl-profile-card" style="margin-bottom:24px;">
 
-            <h3 class="cl-profile-card-title">برای چه کسی برنامه بسازیم؟</h3>
+            <h3 class="cl-profile-card-title">{{ t('diet_for_whom_title') }}</h3>
 
             <form method="post" action="/diet" class="cl-auth-fields">
 
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
                 <div class="cl-field">
-                    <label for="family_member_id">انتخاب فرد</label>
+                    <label for="family_member_id">{{ t('upload_for_whom') }}</label>
                     <select id="family_member_id" name="family_member_id">
-                        <option value="self">خودم</option>
+                        <option value="self">{{ t('upload_self') }}</option>
                         {% for member in family_members %}
                         <option value="{{ member.id }}" {% if selected_family_member_id == member.id %}selected{% endif %}>
                             {{ member.name }}{% if member.relation %} ({{ member.relation }}){% endif %}
@@ -46,24 +46,24 @@
                 </div>
 
                 <div class="cl-field">
-                    <label for="context">شرح وضعیت خاص (اختیاری)</label>
-                    <textarea id="context" name="context" rows="4" maxlength="800" placeholder="مثلاً: سابقه دیابت نوع ۲ دارم، یا: بدنساز هستم و سوخت‌وساز بالایی دارم، یا: به گلوتن حساسیت دارم و...">{{ context_value or '' }}</textarea>
-                    <p class="cl-field-hint">نوشتن بیماری خاص، هدف بدنی (لاغری/عضله‌سازی)، حساسیت غذایی یا سبک زندگی، به دقیق‌تر شدن برنامه کمک می‌کند.</p>
+                    <label for="context">{{ t('diet_context_label') }}</label>
+                    <textarea id="context" name="context" rows="4" maxlength="800" placeholder="{{ t('diet_context_placeholder') }}">{{ context_value or '' }}</textarea>
+                    <p class="cl-field-hint">{{ t('diet_context_hint') }}</p>
                 </div>
 
-                <button type="submit" class="cl-auth-submit">تولید برنامه غذایی</button>
+                <button type="submit" class="cl-auth-submit">{{ t('diet_submit') }}</button>
 
             </form>
 
         </div>
 
         <div class="result-actions" style="margin:0 0 24px;">
-            <a href="/diet/history" class="btn btn-outline">مشاهده تاریخچه برنامه‌های غذایی</a>
+            <a href="/diet/history" class="btn btn-outline">{{ t('diet_view_history_link') }}</a>
         </div>
 
         {% if diet_plan_html %}
         <div class="result-card">
-            <h2>برنامه غذایی پیشنهادی</h2>
+            <h2>{{ t('diet_result_title') }}</h2>
             <div class="analysis-content">
                 {{ diet_plan_html | safe }}
             </div>
@@ -73,7 +73,7 @@
         <div class="result-actions" style="margin:0 0 24px;">
             <a href="/diet/pdf/{{ diet_record_id }}" class="btn btn-outline" target="_blank">
                 <span class="material-symbols-outlined" style="font-size:18px;">download</span>
-                دانلود PDF
+                {{ t('diet_download_pdf') }}
             </a>
         </div>
         {% endif %}
@@ -91,11 +91,11 @@
                     <div class="cl-ai-doctor-header-info">
                         <span class="cl-ai-doctor-avatar"><span class="material-symbols-outlined">nutrition</span></span>
                         <div>
-                            <strong>دستیار تغذیه CuraLink</strong>
-                            <small>پرسش و پاسخ درباره‌ی همین برنامه غذایی</small>
+                            <strong>{{ t('diet_chat_title') }}</strong>
+                            <small>{{ t('diet_chat_sub') }}</small>
                         </div>
                     </div>
-                    <button type="button" class="cl-ai-context-toggle" aria-label="نمایش اطلاعات زمینه‌ای">
+                    <button type="button" class="cl-ai-context-toggle" aria-label="{{ t('notif_aria') }}">
                         <span class="material-symbols-outlined">info</span>
                     </button>
                 </div>
@@ -103,20 +103,20 @@
                 <div class="cl-ai-doctor-messages" id="diet-chat-messages">
                     <div class="cl-ai-welcome" id="diet-chat-empty">
                         <div class="cl-ai-welcome-icon"><span class="material-symbols-outlined">nutrition</span></div>
-                        <h3>سوالی درباره‌ی برنامه غذایی دارید؟</h3>
-                        <p>می‌توانید درباره‌ی وعده‌ها، جایگزین‌ها یا دلیل توصیه‌ها بپرسید.</p>
+                        <h3>{{ t('diet_chat_empty_title') }}</h3>
+                        <p>{{ t('diet_chat_empty_desc') }}</p>
                         <div class="cl-ai-suggested-prompts">
-                            <button type="button" class="cl-prompt-chip" data-prompt="برنامه هفتگی را خلاصه کن">خلاصه‌ی برنامه هفتگی</button>
-                            <button type="button" class="cl-prompt-chip" data-prompt="آیا می‌توانم شام را حذف کنم؟">حذف یک وعده</button>
-                            <button type="button" class="cl-prompt-chip" data-prompt="جایگزین سالم برای میان‌وعده پیشنهاد بده">جایگزین میان‌وعده</button>
+                            <button type="button" class="cl-prompt-chip" data-prompt="{{ t('diet_chat_prompt1') }}">{{ t('diet_chat_prompt1') }}</button>
+                            <button type="button" class="cl-prompt-chip" data-prompt="{{ t('diet_chat_prompt2') }}">{{ t('diet_chat_prompt2') }}</button>
+                            <button type="button" class="cl-prompt-chip" data-prompt="{{ t('diet_chat_prompt3') }}">{{ t('diet_chat_prompt3') }}</button>
                         </div>
                     </div>
                 </div>
 
                 <div class="cl-ai-doctor-composer">
                     <form>
-                        <input type="text" placeholder="مثلاً: آیا می‌توانم شام را حذف کنم؟" autocomplete="off">
-                        <button type="submit">ارسال</button>
+                        <input type="text" placeholder="{{ t('diet_chat_placeholder') }}" autocomplete="off">
+                        <button type="submit">{{ t('diet_chat_send') }}</button>
                     </form>
                 </div>
 
@@ -124,29 +124,29 @@
 
             <aside class="cl-ai-doctor-context">
 
-                <button type="button" class="cl-ai-context-close" aria-label="بستن">
+                <button type="button" class="cl-ai-context-close" aria-label="{{ t('hist_modal_close') }}">
                     <span class="material-symbols-outlined">close</span>
                 </button>
 
                 <div class="cl-context-card">
-                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">psychology_alt</span> آنچه دستیار می‌داند</h4>
+                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">psychology_alt</span> {{ t('diet_context_card_title') }}</h4>
                     <div class="cl-context-fact-row">
-                        <span class="cl-context-fact-label">فرد</span>
-                        <span class="cl-context-fact-value">{% if selected_family_member_id %}عضو خانواده{% else %}خودم{% endif %}</span>
+                        <span class="cl-context-fact-label">{{ t('diet_context_person_label') }}</span>
+                        <span class="cl-context-fact-value">{% if selected_family_member_id %}{{ t('diet_context_person_family') }}{% else %}{{ t('diet_context_person_self') }}{% endif %}</span>
                     </div>
                     <div class="cl-context-fact-row">
-                        <span class="cl-context-fact-label">شرایط خاص ثبت‌شده</span>
-                        <span class="cl-context-fact-value">{% if context_value %}دارد{% else %}ندارد{% endif %}</span>
+                        <span class="cl-context-fact-label">{{ t('diet_context_condition_label') }}</span>
+                        <span class="cl-context-fact-value">{% if context_value %}{{ t('diet_has_condition') }}{% else %}{{ t('diet_no_condition') }}{% endif %}</span>
                     </div>
                 </div>
 
                 <div class="cl-context-card">
-                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">bolt</span> اقدامات سریع</h4>
+                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">bolt</span> {{ t('diet_quick_actions') }}</h4>
                     <div class="cl-context-actions">
-                        <a href="/diet/history" class="cl-context-action-link"><span class="material-symbols-outlined">history</span> تاریخچه برنامه‌های غذایی</a>
-                        <a href="/workout" class="cl-context-action-link"><span class="material-symbols-outlined">fitness_center</span> برنامه ورزشی متناسب</a>
+                        <a href="/diet/history" class="cl-context-action-link"><span class="material-symbols-outlined">history</span> {{ t('diet_view_history_link') }}</a>
+                        <a href="/workout" class="cl-context-action-link"><span class="material-symbols-outlined">fitness_center</span> {{ t('diet_workout_link') }}</a>
                         {% if diet_record_id %}
-                        <a href="/diet/pdf/{{ diet_record_id }}" target="_blank" class="cl-context-action-link"><span class="material-symbols-outlined">picture_as_pdf</span> دانلود PDF</a>
+                        <a href="/diet/pdf/{{ diet_record_id }}" target="_blank" class="cl-context-action-link"><span class="material-symbols-outlined">picture_as_pdf</span> {{ t('diet_download_pdf') }}</a>
                         {% endif %}
                     </div>
                 </div>
@@ -160,7 +160,7 @@
         {% endif %}
 
         <p class="cl-trends-disclaimer">
-            ⚠️ این برنامه غذایی صرفاً یک پیشنهاد کلی بر اساس نتایج آزمایش است و جایگزین ویزیت متخصص تغذیه یا پزشک نیست.
+            {{ t('diet_disclaimer') }}
         </p>
 
     </div>

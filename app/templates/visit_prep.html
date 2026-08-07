@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}آماده‌سازی ویزیت | CuraLink AI{% endblock %}
+{% block title %}{{ t('visit_prep_page_title') }}{% endblock %}
 
 {% block content %}
 
@@ -12,8 +12,8 @@
                 {{ (user.display_name or user.nicename or "?")[0] }}
             </div>
             <div>
-                <h1>آماده‌سازی ویزیت پزشک</h1>
-                <p>خلاصه‌ای آماده از وضعیت آزمایش‌هایتان قبل از مراجعه به پزشک</p>
+                <h1>{{ t('visit_prep_heading') }}</h1>
+                <p>{{ t('visit_prep_subheading') }}</p>
             </div>
         </div>
 
@@ -23,16 +23,16 @@
 
         <div class="cl-profile-card" style="margin-bottom:24px;">
 
-            <h3 class="cl-profile-card-title">برای چه کسی آماده کنیم؟</h3>
+            <h3 class="cl-profile-card-title">{{ t('visit_prep_for_whom_title') }}</h3>
 
             <form method="post" action="/visit-prep" class="cl-auth-fields">
 
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
                 <div class="cl-field">
-                    <label for="family_member_id">انتخاب فرد</label>
+                    <label for="family_member_id">{{ t('upload_for_whom') }}</label>
                     <select id="family_member_id" name="family_member_id">
-                        <option value="self">خودم</option>
+                        <option value="self">{{ t('upload_self') }}</option>
                         {% for member in family_members %}
                         <option value="{{ member.id }}" {% if selected_family_member_id == member.id %}selected{% endif %}>
                             {{ member.name }}{% if member.relation %} ({{ member.relation }}){% endif %}
@@ -42,23 +42,23 @@
                 </div>
 
                 <div class="cl-field">
-                    <label for="reason">دلیل یا شرح مراجعه (اختیاری)</label>
-                    <textarea id="reason" name="reason" rows="4" maxlength="800" placeholder="مثلاً: سردرد مداوم دو هفته اخیر">{{ reason_value or '' }}</textarea>
+                    <label for="reason">{{ t('visit_prep_reason_label') }}</label>
+                    <textarea id="reason" name="reason" rows="4" maxlength="800" placeholder="{{ t('visit_prep_reason_placeholder') }}">{{ reason_value or '' }}</textarea>
                 </div>
 
-                <button type="submit" class="cl-auth-submit">تولید خلاصه‌ی ویزیت</button>
+                <button type="submit" class="cl-auth-submit">{{ t('visit_prep_submit') }}</button>
 
             </form>
 
         </div>
 
         <div class="result-actions" style="margin:0 0 24px;">
-            <a href="/visit-prep/history" class="btn btn-outline">مشاهده تاریخچه آماده‌سازی‌های ویزیت</a>
+            <a href="/visit-prep/history" class="btn btn-outline">{{ t('visit_prep_view_history_link') }}</a>
         </div>
 
         {% if summary_html %}
         <div class="result-card">
-            <h2>خلاصه‌ی آماده‌شده</h2>
+            <h2>{{ t('visit_prep_result_title') }}</h2>
             <div class="analysis-content">
                 {{ summary_html | safe }}
             </div>
@@ -68,14 +68,14 @@
         <div class="result-actions" style="margin:0 0 24px;">
             <a href="/visit-prep/pdf/{{ record_id }}" class="btn btn-outline" target="_blank">
                 <span class="material-symbols-outlined" style="font-size:18px;">download</span>
-                دانلود PDF
+                {{ t('visit_prep_download_pdf') }}
             </a>
         </div>
         {% endif %}
         {% endif %}
 
         <p class="cl-trends-disclaimer">
-            ⚠️ این خلاصه صرفاً برای بهینه‌تر کردن زمان ویزیت است و جایگزین معاینه یا نظر پزشک نیست.
+            {{ t('visit_prep_disclaimer') }}
         </p>
 
     </div>

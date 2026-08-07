@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}برنامه ورزشی | CuraLink AI{% endblock %}
+{% block title %}{{ t('workout_page_title') }}{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="/static/css/chat.css">
@@ -16,8 +16,8 @@
                 {{ (user.display_name or user.nicename or "?")[0] }}
             </div>
             <div>
-                <h1>برنامه ورزشی هوشمند</h1>
-                <p>برنامه‌ی تمرینی شخصی‌سازی‌شده بر اساس پروفایل سلامتی و آزمایش‌ها</p>
+                <h1>{{ t('workout_heading') }}</h1>
+                <p>{{ t('workout_subheading') }}</p>
             </div>
         </div>
 
@@ -27,16 +27,16 @@
 
         <div class="cl-profile-card" style="margin-bottom:24px;">
 
-            <h3 class="cl-profile-card-title">برای چه کسی برنامه بسازیم؟</h3>
+            <h3 class="cl-profile-card-title">{{ t('workout_for_whom_title') }}</h3>
 
             <form method="post" action="/workout" class="cl-auth-fields">
 
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
                 <div class="cl-field">
-                    <label for="family_member_id">انتخاب فرد</label>
+                    <label for="family_member_id">{{ t('upload_for_whom') }}</label>
                     <select id="family_member_id" name="family_member_id">
-                        <option value="self" {% if not selected_family_member_id %}selected{% endif %}>خودم</option>
+                        <option value="self" {% if not selected_family_member_id %}selected{% endif %}>{{ t('upload_self') }}</option>
                         {% for member in family_members %}
                         <option value="{{ member.id }}" {% if selected_family_member_id == member.id %}selected{% endif %}>
                             {{ member.name }}{% if member.relation %} ({{ member.relation }}){% endif %}
@@ -47,62 +47,62 @@
 
                 <div class="cl-field-row">
                     <div class="cl-field">
-                        <label for="goal">هدف تمرینی</label>
+                        <label for="goal">{{ t('workout_goal_label') }}</label>
                         <select id="goal" name="goal">
-                            <option value="fat_loss" {% if goal_value == 'fat_loss' %}selected{% endif %}>کاهش چربی</option>
-                            <option value="muscle_gain" {% if goal_value == 'muscle_gain' %}selected{% endif %}>افزایش حجم و قدرت</option>
-                            <option value="general_fitness" {% if goal_value == 'general_fitness' %}selected{% endif %}>تناسب اندام عمومی</option>
-                            <option value="endurance" {% if goal_value == 'endurance' %}selected{% endif %}>افزایش استقامت</option>
-                            <option value="rehab" {% if goal_value == 'rehab' %}selected{% endif %}>بازتوانی / بازگشت ملایم به ورزش</option>
+                            <option value="fat_loss" {% if goal_value == 'fat_loss' %}selected{% endif %}>{{ t('workout_goal_fat_loss') }}</option>
+                            <option value="muscle_gain" {% if goal_value == 'muscle_gain' %}selected{% endif %}>{{ t('workout_goal_muscle_gain') }}</option>
+                            <option value="general_fitness" {% if goal_value == 'general_fitness' %}selected{% endif %}>{{ t('workout_goal_general_fitness') }}</option>
+                            <option value="endurance" {% if goal_value == 'endurance' %}selected{% endif %}>{{ t('workout_goal_endurance') }}</option>
+                            <option value="rehab" {% if goal_value == 'rehab' %}selected{% endif %}>{{ t('workout_goal_rehab') }}</option>
                         </select>
                     </div>
                     <div class="cl-field">
-                        <label for="fitness_level">سطح آمادگی جسمانی</label>
+                        <label for="fitness_level">{{ t('workout_level_label') }}</label>
                         <select id="fitness_level" name="fitness_level">
-                            <option value="beginner" {% if fitness_level_value == 'beginner' %}selected{% endif %}>مبتدی</option>
-                            <option value="intermediate" {% if fitness_level_value == 'intermediate' %}selected{% endif %}>متوسط</option>
-                            <option value="advanced" {% if fitness_level_value == 'advanced' %}selected{% endif %}>پیشرفته</option>
+                            <option value="beginner" {% if fitness_level_value == 'beginner' %}selected{% endif %}>{{ t('workout_level_beginner') }}</option>
+                            <option value="intermediate" {% if fitness_level_value == 'intermediate' %}selected{% endif %}>{{ t('workout_level_intermediate') }}</option>
+                            <option value="advanced" {% if fitness_level_value == 'advanced' %}selected{% endif %}>{{ t('workout_level_advanced') }}</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="cl-field-row">
                     <div class="cl-field">
-                        <label for="days_per_week">روزهای تمرین در هفته</label>
+                        <label for="days_per_week">{{ t('workout_days_label') }}</label>
                         <select id="days_per_week" name="days_per_week">
                             {% for d in range(1, 8) %}
-                            <option value="{{ d }}" {% if days_per_week_value == d %}selected{% endif %}>{{ d }} روز</option>
+                            <option value="{{ d }}" {% if days_per_week_value == d %}selected{% endif %}>{{ d }} {{ t('workout_days_unit') }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="cl-field">
-                        <label for="equipment">امکانات تمرینی</label>
+                        <label for="equipment">{{ t('workout_equipment_label') }}</label>
                         <select id="equipment" name="equipment">
-                            <option value="none" {% if equipment_value == 'none' %}selected{% endif %}>بدون وسیله</option>
-                            <option value="home_basic" {% if equipment_value == 'home_basic' %}selected{% endif %}>وسایل ساده خانگی</option>
-                            <option value="full_gym" {% if equipment_value == 'full_gym' %}selected{% endif %}>دسترسی کامل به باشگاه</option>
+                            <option value="none" {% if equipment_value == 'none' %}selected{% endif %}>{{ t('workout_equipment_none') }}</option>
+                            <option value="home_basic" {% if equipment_value == 'home_basic' %}selected{% endif %}>{{ t('workout_equipment_home_basic') }}</option>
+                            <option value="full_gym" {% if equipment_value == 'full_gym' %}selected{% endif %}>{{ t('workout_equipment_full_gym') }}</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="cl-field">
-                    <label for="injuries">آسیب یا محدودیت جسمی خاص (اختیاری)</label>
-                    <textarea id="injuries" name="injuries" rows="3" maxlength="800" placeholder="مثلاً: مشکل زانو، دیسک کمر، جراحی شانه...">{{ injuries_value or '' }}</textarea>
+                    <label for="injuries">{{ t('workout_injuries_label') }}</label>
+                    <textarea id="injuries" name="injuries" rows="3" maxlength="800" placeholder="{{ t('workout_injuries_placeholder') }}">{{ injuries_value or '' }}</textarea>
                 </div>
 
-                <button type="submit" class="cl-auth-submit">تولید برنامه ورزشی</button>
+                <button type="submit" class="cl-auth-submit">{{ t('workout_submit') }}</button>
 
             </form>
 
         </div>
 
         <div class="result-actions" style="margin:0 0 24px;">
-            <a href="/workout/history" class="btn btn-outline">مشاهده تاریخچه برنامه‌های ورزشی</a>
+            <a href="/workout/history" class="btn btn-outline">{{ t('workout_view_history_link') }}</a>
         </div>
 
         {% if plan_html %}
         <div class="result-card">
-            <h2>برنامه ورزشی پیشنهادی</h2>
+            <h2>{{ t('workout_result_title') }}</h2>
             <div class="analysis-content">
                 {{ plan_html | safe }}
             </div>
@@ -112,7 +112,7 @@
         <div class="result-actions" style="margin:0 0 24px;">
             <a href="/workout/pdf/{{ workout_record_id }}" class="btn btn-outline" target="_blank">
                 <span class="material-symbols-outlined" style="font-size:18px;">download</span>
-                دانلود PDF
+                {{ t('workout_download_pdf') }}
             </a>
         </div>
         {% endif %}
@@ -130,11 +130,11 @@
                     <div class="cl-ai-doctor-header-info">
                         <span class="cl-ai-doctor-avatar"><span class="material-symbols-outlined">fitness_center</span></span>
                         <div>
-                            <strong>دستیار تمرینی CuraLink</strong>
-                            <small>پرسش و پاسخ درباره‌ی همین برنامه ورزشی</small>
+                            <strong>{{ t('workout_chat_title') }}</strong>
+                            <small>{{ t('workout_chat_sub') }}</small>
                         </div>
                     </div>
-                    <button type="button" class="cl-ai-context-toggle" aria-label="نمایش اطلاعات زمینه‌ای">
+                    <button type="button" class="cl-ai-context-toggle" aria-label="{{ t('notif_aria') }}">
                         <span class="material-symbols-outlined">info</span>
                     </button>
                 </div>
@@ -142,20 +142,20 @@
                 <div class="cl-ai-doctor-messages" id="workout-chat-messages">
                     <div class="cl-ai-welcome" id="workout-chat-empty">
                         <div class="cl-ai-welcome-icon"><span class="material-symbols-outlined">exercise</span></div>
-                        <h3>سوالی درباره‌ی برنامه ورزشی دارید؟</h3>
-                        <p>می‌توانید درباره‌ی حرکات، شدت تمرین یا جایگزین‌ها بپرسید.</p>
+                        <h3>{{ t('workout_chat_empty_title') }}</h3>
+                        <p>{{ t('workout_chat_empty_desc') }}</p>
                         <div class="cl-ai-suggested-prompts">
-                            <button type="button" class="cl-prompt-chip" data-prompt="اگر یک روز نتوانم تمرین کنم چه کنم؟">اگر یک روز جا بماند؟</button>
-                            <button type="button" class="cl-prompt-chip" data-prompt="حرکت جایگزین برای زانو درد پیشنهاد بده">حرکت جایگزین (زانو درد)</button>
-                            <button type="button" class="cl-prompt-chip" data-prompt="شدت تمرین را کمی کاهش بده">کاهش شدت تمرین</button>
+                            <button type="button" class="cl-prompt-chip" data-prompt="{{ t('workout_chat_prompt1') }}">{{ t('workout_chat_prompt1_label') }}</button>
+                            <button type="button" class="cl-prompt-chip" data-prompt="{{ t('workout_chat_prompt2') }}">{{ t('workout_chat_prompt2_label') }}</button>
+                            <button type="button" class="cl-prompt-chip" data-prompt="{{ t('workout_chat_prompt3') }}">{{ t('workout_chat_prompt3_label') }}</button>
                         </div>
                     </div>
                 </div>
 
                 <div class="cl-ai-doctor-composer">
                     <form>
-                        <input type="text" placeholder="مثلاً: اگر یک روز نتوانم تمرین کنم چه کار کنم؟" autocomplete="off">
-                        <button type="submit">ارسال</button>
+                        <input type="text" placeholder="{{ t('workout_chat_placeholder') }}" autocomplete="off">
+                        <button type="submit">{{ t('workout_chat_send') }}</button>
                     </form>
                 </div>
 
@@ -163,33 +163,33 @@
 
             <aside class="cl-ai-doctor-context">
 
-                <button type="button" class="cl-ai-context-close" aria-label="بستن">
+                <button type="button" class="cl-ai-context-close" aria-label="{{ t('hist_modal_close') }}">
                     <span class="material-symbols-outlined">close</span>
                 </button>
 
                 <div class="cl-context-card">
-                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">psychology_alt</span> آنچه دستیار می‌داند</h4>
+                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">psychology_alt</span> {{ t('workout_context_card_title') }}</h4>
                     <div class="cl-context-fact-row">
-                        <span class="cl-context-fact-label">هدف تمرینی</span>
+                        <span class="cl-context-fact-label">{{ t('workout_context_goal_label') }}</span>
                         <span class="cl-context-fact-value">{{ goal_value }}</span>
                     </div>
                     <div class="cl-context-fact-row">
-                        <span class="cl-context-fact-label">سطح آمادگی</span>
+                        <span class="cl-context-fact-label">{{ t('workout_context_level_label') }}</span>
                         <span class="cl-context-fact-value">{{ fitness_level_value }}</span>
                     </div>
                     <div class="cl-context-fact-row">
-                        <span class="cl-context-fact-label">محدودیت جسمی</span>
-                        <span class="cl-context-fact-value">{% if injuries_value %}دارد{% else %}ندارد{% endif %}</span>
+                        <span class="cl-context-fact-label">{{ t('workout_context_injuries_label') }}</span>
+                        <span class="cl-context-fact-value">{% if injuries_value %}{{ t('workout_has_injuries') }}{% else %}{{ t('workout_no_injuries') }}{% endif %}</span>
                     </div>
                 </div>
 
                 <div class="cl-context-card">
-                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">bolt</span> اقدامات سریع</h4>
+                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">bolt</span> {{ t('workout_quick_actions') }}</h4>
                     <div class="cl-context-actions">
-                        <a href="/workout/history" class="cl-context-action-link"><span class="material-symbols-outlined">history</span> تاریخچه برنامه‌های ورزشی</a>
-                        <a href="/diet" class="cl-context-action-link"><span class="material-symbols-outlined">nutrition</span> برنامه غذایی متناسب</a>
+                        <a href="/workout/history" class="cl-context-action-link"><span class="material-symbols-outlined">history</span> {{ t('workout_view_history_link') }}</a>
+                        <a href="/diet" class="cl-context-action-link"><span class="material-symbols-outlined">nutrition</span> {{ t('workout_diet_link') }}</a>
                         {% if workout_record_id %}
-                        <a href="/workout/pdf/{{ workout_record_id }}" target="_blank" class="cl-context-action-link"><span class="material-symbols-outlined">picture_as_pdf</span> دانلود PDF</a>
+                        <a href="/workout/pdf/{{ workout_record_id }}" target="_blank" class="cl-context-action-link"><span class="material-symbols-outlined">picture_as_pdf</span> {{ t('workout_download_pdf') }}</a>
                         {% endif %}
                     </div>
                 </div>
@@ -203,7 +203,7 @@
         {% endif %}
 
         <p class="cl-trends-disclaimer">
-            ⚠️ این برنامه ورزشی صرفاً یک پیشنهاد کلی است و جایگزین نظر پزشک، فیزیوتراپیست یا مربی حضوری نیست.
+            {{ t('workout_disclaimer') }}
         </p>
 
     </div>
