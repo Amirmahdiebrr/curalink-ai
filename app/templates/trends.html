@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}روند آزمایش‌ها | CuraLink AI{% endblock %}
+{% block title %}{{ t('trends_page_title') }} | CuraLink AI{% endblock %}
 
 {% block content %}
 
@@ -12,15 +12,15 @@
                 {{ (user.display_name or user.nicename or "?")[0] }}
             </div>
             <div>
-                <h1>روند آزمایش‌ها</h1>
-                <p>مقایسه‌ی مقادیر آزمایش‌های شما در طول زمان</p>
+                <h1>{{ t('trends_page_title') }}</h1>
+                <p>{{ t('trends_subtitle') }}</p>
             </div>
         </div>
 
         <form method="get" action="/trends" class="cl-field" style="max-width:320px; margin-bottom:26px;">
-            <label for="family_member_id">نمایش برای:</label>
+            <label for="family_member_id">{{ t('trends_display_for') }}</label>
             <select id="family_member_id" name="family_member_id" onchange="this.form.submit()">
-                <option value="self" {% if not selected_family_member_id %}selected{% endif %}>خودم</option>
+                <option value="self" {% if not selected_family_member_id %}selected{% endif %}>{{ t('upload_self') }}</option>
                 {% for member in family_members %}
                 <option value="{{ member.id }}" {% if selected_family_member_id == member.id %}selected{% endif %}>
                     {{ member.name }}{% if member.relation %} ({{ member.relation }}){% endif %}
@@ -32,8 +32,8 @@
         {% if latest_results|length == 0 %}
 
         <div class="cl-history-empty">
-            <p>هنوز هیچ مقدار عددی از آزمایش‌های این فرد ثبت نشده است.</p>
-            <a href="/#upload" class="btn btn-solid">شروع اولین تحلیل</a>
+            <p>{{ t('trends_empty_text') }}</p>
+            <a href="/#upload" class="btn btn-solid">{{ t('hs_empty_cta') }}</a>
         </div>
 
         {% else %}
@@ -41,7 +41,7 @@
         <div class="cl-trends-grid">
 
             <div class="cl-profile-card">
-                <h3 class="cl-profile-card-title">آخرین مقادیر ثبت‌شده</h3>
+                <h3 class="cl-profile-card-title">{{ t('trends_latest_values_title') }}</h3>
 
                 <div class="cl-trends-table">
                     {% for r in latest_results %}
@@ -50,9 +50,9 @@
                         <span class="cl-trends-value">{{ r.value_text }} {{ r.unit or '' }}</span>
                         <span class="cl-trends-range">{{ r.reference_range or '—' }}</span>
                         <span class="cl-trends-badge">
-                            {% if r.status == 'high' %}بالا
-                            {% elif r.status == 'low' %}پایین
-                            {% else %}طبیعی
+                            {% if r.status == 'high' %}{{ t('trends_legend_high') }}
+                            {% elif r.status == 'low' %}{{ t('trends_legend_low') }}
+                            {% else %}{{ t('trends_legend_normal') }}
                             {% endif %}
                         </span>
                     </div>
@@ -61,8 +61,8 @@
             </div>
 
             <div class="cl-profile-card">
-                <h3 class="cl-profile-card-title">نمودار روند</h3>
-                <p class="cl-profile-card-sub">یک آزمایش را انتخاب کنید تا روند تغییرات آن نمایش داده شود.</p>
+                <h3 class="cl-profile-card-title">{{ t('trends_chart_title') }}</h3>
+                <p class="cl-profile-card-sub">{{ t('trends_chart_sub') }}</p>
 
                 <select id="test-select" class="cl-trends-select">
                     {% for name in test_names %}
@@ -75,10 +75,10 @@
                 </div>
 
                 <div class="cl-trend-legend">
-                    <span class="cl-trend-legend-item"><i class="cl-trend-dot cl-trend-dot-normal"></i> طبیعی</span>
-                    <span class="cl-trend-legend-item"><i class="cl-trend-dot cl-trend-dot-high"></i> بالا</span>
-                    <span class="cl-trend-legend-item"><i class="cl-trend-dot cl-trend-dot-low"></i> پایین</span>
-                    <span class="cl-trend-legend-item"><i class="cl-trend-dot cl-trend-dot-band"></i> بازه مرجع</span>
+                    <span class="cl-trend-legend-item"><i class="cl-trend-dot cl-trend-dot-normal"></i> {{ t('trends_legend_normal') }}</span>
+                    <span class="cl-trend-legend-item"><i class="cl-trend-dot cl-trend-dot-high"></i> {{ t('trends_legend_high') }}</span>
+                    <span class="cl-trend-legend-item"><i class="cl-trend-dot cl-trend-dot-low"></i> {{ t('trends_legend_low') }}</span>
+                    <span class="cl-trend-legend-item"><i class="cl-trend-dot cl-trend-dot-band"></i> {{ t('trends_legend_band') }}</span>
                 </div>
 
                 <p class="cl-trends-note" id="trend-note"></p>
@@ -89,7 +89,7 @@
         {% endif %}
 
         <p class="cl-trends-disclaimer">
-            ⚠️ این نمودارها و مقادیر صرفاً جهت اطلاع و کمک به پیگیری روند آزمایشات شما تهیه شده‌اند و جایگزین تشخیص یا نظر پزشک متخصص نیستند.
+            {{ t('trends_disclaimer') }}
         </p>
 
     </div>
@@ -101,6 +101,17 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
 (function () {
+
+    var I18N = {
+        statusHigh: {{ t('trends_legend_high') | tojson }},
+        statusLow: {{ t('trends_legend_low') | tojson }},
+        statusNormal: {{ t('trends_legend_normal') | tojson }},
+        maxRangeLabel: {{ t('trends_legend_band') | tojson }},
+        minRangeLabel: {{ t('trends_legend_band') | tojson }},
+        minPointsNote: {{ t('trends_min_points_note') | tojson }},
+        statusPrefix: {{ t('trends_status_prefix') | tojson }},
+        chartLoadError: {{ t('trends_chart_load_error') | tojson }}
+    };
 
     const select = document.getElementById("test-select");
     const noteEl = document.getElementById("trend-note");
@@ -118,10 +129,10 @@
         normal: "#0FB6A8"
     };
 
-    const STATUS_LABELS_FA = {
-        high: "بالا",
-        low: "پایین",
-        normal: "طبیعی"
+    const STATUS_LABELS = {
+        high: I18N.statusHigh,
+        low: I18N.statusLow,
+        normal: I18N.statusNormal
     };
 
     function parseRange(rangeStr) {
@@ -156,7 +167,7 @@
             }
 
             if (data.points.length < 2) {
-                noteEl.textContent = "برای نمایش روند، حداقل به دو آزمایش با این نام نیاز است.";
+                noteEl.textContent = I18N.minPointsNote;
             } else {
                 noteEl.textContent = "";
             }
@@ -171,7 +182,7 @@
 
             if (range) {
                 datasets.push({
-                    label: "حداکثر بازه مرجع",
+                    label: I18N.maxRangeLabel,
                     data: labels.map(() => range.max),
                     borderColor: "transparent",
                     backgroundColor: "rgba(15, 182, 168, 0.10)",
@@ -180,7 +191,7 @@
                     order: 3,
                 });
                 datasets.push({
-                    label: "حداقل بازه مرجع",
+                    label: I18N.minRangeLabel,
                     data: labels.map(() => range.min),
                     borderColor: "transparent",
                     backgroundColor: "rgba(15, 182, 168, 0.10)",
@@ -222,8 +233,8 @@
                             callbacks: {
                                 label: function (context) {
                                     const point = data.points[context.dataIndex];
-                                    const statusText = STATUS_LABELS_FA[point.status] || "نامشخص";
-                                    return `${point.value} ${point.unit || ""} — وضعیت: ${statusText}`;
+                                    const statusText = STATUS_LABELS[point.status] || I18N.statusPrefix;
+                                    return `${point.value} ${point.unit || ""} — ${I18N.statusPrefix}: ${statusText}`;
                                 }
                             }
                         }
@@ -235,7 +246,7 @@
             });
 
         } catch (e) {
-            noteEl.textContent = "خطا در بارگذاری داده‌های نمودار.";
+            noteEl.textContent = I18N.chartLoadError;
         }
     }
 

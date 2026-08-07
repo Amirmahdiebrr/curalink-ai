@@ -1,21 +1,56 @@
 {% extends "base.html" %}
 
-{% block title %}حساب و تراکنش معرفی‌شدگان | CuraLink AI{% endblock %}
+{% block title %}تراکنش‌های {{ org.organization_profile.org_name if org.organization_profile else org.display_name }} | CuraLink AI{% endblock %}
 
 {% block content %}
 
 <section class="cl-profile-section">
     <div class="container">
 
+        <div class="result-actions" style="margin:0 0 20px; text-align:right;">
+            <a href="/admin/referrals" class="btn btn-outline">
+                <span class="material-symbols-outlined" style="font-size:18px;">arrow_forward</span>
+                بازگشت به فهرست سازمان‌ها
+            </a>
+        </div>
+
         <div class="cl-profile-header">
-            <div class="cl-profile-avatar">{{ (user.display_name or "?")[0] }}</div>
+            <div class="cl-profile-avatar">{{ (org.display_name or "?")[0] }}</div>
             <div>
                 <h1>حساب و تراکنش معرفی‌شدگان</h1>
                 <p>
-                    بیمارانی که با معرفی «{{ user.organization_profile.org_name if user.organization_profile else user.display_name }}»
+                    بیمارانی که با معرفی «{{ org.organization_profile.org_name if org.organization_profile else org.display_name }}»
                     ثبت‌نام کرده‌اند و مبلغ پرداختی آن‌ها
                 </p>
             </div>
+        </div>
+
+        <div class="cl-profile-card" style="margin-bottom:24px;">
+            <h3 class="cl-profile-card-title">اطلاعات سازمان</h3>
+            <div class="cl-info-row">
+                <span class="cl-info-label">نام مسئول / مدیر</span>
+                <span class="cl-info-value">{{ org.display_name }}</span>
+            </div>
+            <div class="cl-info-row">
+                <span class="cl-info-label">ایمیل</span>
+                <span class="cl-info-value">{{ org.email }}</span>
+            </div>
+            <div class="cl-info-row">
+                <span class="cl-info-label">شماره موبایل</span>
+                <span class="cl-info-value">{{ org.phone }}</span>
+            </div>
+            {% if org.organization_profile %}
+            <div class="cl-info-row">
+                <span class="cl-info-label">نوع سازمان</span>
+                <span class="cl-info-value">
+                    {% if org.organization_profile.org_type == 'lab' %}آزمایشگاه
+                    {% elif org.organization_profile.org_type == 'hospital' %}بیمارستان
+                    {% elif org.organization_profile.org_type == 'clinic' %}مطب / کلینیک
+                    {% else %}سایر
+                    {% endif %}
+                </span>
+            </div>
+            {% endif %}
         </div>
 
         <div class="services-grid" style="margin-bottom:40px;">
@@ -44,7 +79,7 @@
             <h3 class="cl-profile-card-title">مجموع پرداختی ماهانه (برای محاسبه بونوس دعوت)</h3>
 
             {% if monthly_totals|length == 0 %}
-            <p class="cl-profile-card-sub">هنوز تراکنش موفقی از معرفی‌شدگان ثبت نشده است.</p>
+            <p class="cl-profile-card-sub">هنوز تراکنش موفقی از معرفی‌شدگان این سازمان ثبت نشده است.</p>
             {% else %}
             <div class="cl-history-list">
                 {% for row in monthly_totals %}
@@ -64,7 +99,7 @@
             <h3 class="cl-profile-card-title">بیماران معرفی‌شده</h3>
 
             {% if referred_users|length == 0 %}
-            <p class="cl-profile-card-sub">هنوز هیچ بیماری با معرفی شما ثبت‌نام نکرده است.</p>
+            <p class="cl-profile-card-sub">هنوز هیچ بیماری با معرفی این سازمان ثبت‌نام نکرده است.</p>
             {% else %}
             <div class="cl-history-list">
                 {% for person in referred_users %}

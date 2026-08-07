@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}حساب و تراکنش معرفی‌شدگان | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="cl-profile-section">
+    <div class="container">
+
+        <div class="cl-profile-header">
+            <div class="cl-profile-avatar">{{ (user.display_name or "?")[0] }}</div>
+            <div>
+                <h1>حساب و تراکنش معرفی‌شدگان</h1>
+                <p>فهرست همه‌ی آزمایشگاه‌ها، کلینیک‌ها و بیمارستان‌ها به همراه خلاصه‌ی معرفی و مبلغ پرداختی برای محاسبه‌ی بونوس دعوت</p>
+            </div>
+        </div>
+
+        <div class="services-grid" style="margin-bottom:40px;">
+
+            <div class="service-card">
+                <span class="service-icon"><span class="material-symbols-outlined">apartment</span></span>
+                <h3>{{ summaries|length }}</h3>
+                <p>سازمان فعال</p>
+            </div>
+
+            <div class="service-card">
+                <span class="service-icon"><span class="material-symbols-outlined">diversity_3</span></span>
+                <h3>{{ total_referred_all }}</h3>
+                <p>مجموع بیماران معرفی‌شده</p>
+            </div>
+
+            <div class="service-card">
+                <span class="service-icon"><span class="material-symbols-outlined">payments</span></span>
+                <h3>{{ "{:,}".format(total_paid_all) }} تومان</h3>
+                <p>مجموع پرداخت‌های موفق همه‌ی معرفی‌شدگان</p>
+            </div>
+
+        </div>
+
+        <div class="cl-profile-card">
+            <h3 class="cl-profile-card-title">سازمان‌ها</h3>
+
+            {% if summaries|length == 0 %}
+            <p class="cl-profile-card-sub">هنوز هیچ سازمانی (آزمایشگاه/کلینیک/بیمارستان) ثبت‌نام نکرده است.</p>
+            {% else %}
+
+            <div class="cl-history-list">
+                {% for item in summaries %}
+                <a href="/admin/referrals/{{ item.org.id }}" class="cl-history-item">
+                    <div class="cl-history-item-main">
+                        <span class="cl-history-badge">
+                            {% if item.org.organization_profile and item.org.organization_profile.org_type == 'lab' %}آزمایشگاه
+                            {% elif item.org.organization_profile and item.org.organization_profile.org_type == 'hospital' %}بیمارستان
+                            {% elif item.org.organization_profile and item.org.organization_profile.org_type == 'clinic' %}مطب / کلینیک
+                            {% else %}سازمان
+                            {% endif %}
+                        </span>
+                        <span class="cl-history-filename">
+                            {{ item.org.organization_profile.org_name if item.org.organization_profile else item.org.display_name }}
+                            — {{ item.referred_count }} معرفی‌شده
+                        </span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:14px;">
+                        <span class="cl-history-date">{{ item.transaction_count }} تراکنش موفق</span>
+                        <span class="cl-value-mono">{{ "{:,}".format(item.total_paid) }} تومان</span>
+                        <span class="material-symbols-outlined" style="color:var(--color-text-muted);">chevron_left</span>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+
+            {% endif %}
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

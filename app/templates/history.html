@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}تاریخچه و روند سلامت | CuraLink AI{% endblock %}
+{% set exam_i18n_map = {
+    'blood': 'exam_blood', 'urine': 'exam_urine', 'biochemistry': 'exam_biochemistry',
+    'sonography': 'exam_sonography', 'radiology': 'exam_radiology', 'mri': 'exam_mri',
+    'ct_scan': 'exam_ctscan', 'mammography': 'exam_mammography', 'hse': 'exam_hse', 'other': 'exam_other'
+} %}
+
+{% block title %}{{ t('hist_title') }} | CuraLink AI{% endblock %}
 
 {% block content %}
 
@@ -40,9 +46,9 @@
             <div>
                 <p class="cl-result-eyebrow">
                     <span class="material-symbols-outlined cl-icon-sm">history_edu</span>
-                    داستان سلامت شما
+                    {{ t('hist_eyebrow') }}
                 </p>
-                <h1 class="result-title" style="margin:0;">تاریخچه و روند سلامت</h1>
+                <h1 class="result-title" style="margin:0;">{{ t('hist_title') }}</h1>
             </div>
         </div>
 
@@ -51,9 +57,9 @@
         <!-- ===== Empty state ===== -->
         <div class="cl-dash-empty cl-reveal">
             <span class="material-symbols-outlined cl-dash-empty-icon">history_edu</span>
-            <h2>هنوز هیچ آزمایشی ثبت نکرده‌اید</h2>
-            <p>اولین آزمایش خود را آپلود کنید تا داستان سلامت شخصی‌سازی‌شده‌ی شما شکل بگیرد.</p>
-            <a href="/#upload" class="cl-btn cl-btn-primary cl-btn-lg">شروع اولین تحلیل</a>
+            <h2>{{ t('hist_empty_title') }}</h2>
+            <p>{{ t('hist_empty_desc') }}</p>
+            <a href="/#upload" class="cl-btn cl-btn-primary cl-btn-lg">{{ t('hs_empty_cta') }}</a>
         </div>
 
         {% else %}
@@ -64,7 +70,7 @@
             <div class="cl-health-score-card {% if current_score is none %}cl-score-empty{% elif current_score >= 80 %}cl-score-good{% elif current_score >= 60 %}cl-score-warning{% elif current_score >= 40 %}cl-score-orange{% else %}cl-score-danger{% endif %}">
                 {% if current_score is not none %}
                 <div class="cl-score-ring-wrap">
-                    <svg viewBox="0 0 120 120" class="cl-score-ring" role="img" aria-label="امتیاز سلامت فعلی: {{ current_score }} از ۱۰۰">
+                    <svg viewBox="0 0 120 120" class="cl-score-ring" role="img" aria-label="{{ t('hist_score_label') }}: {{ current_score }} / {{ '۱۰۰' if current_lang() == 'fa' else '100' }}">
                         <circle cx="60" cy="60" r="52" class="cl-score-ring-track"/>
                         <circle cx="60" cy="60" r="52" class="cl-score-ring-value"
                                 stroke-dasharray="326.726"
@@ -73,7 +79,7 @@
                     </svg>
                     <div class="cl-score-ring-center">
                         <span class="cl-score-number" data-count-to="{{ current_score }}">0</span>
-                        <span class="cl-score-total">/ ۱۰۰</span>
+                        <span class="cl-score-total">/ {{ '۱۰۰' if current_lang() == 'fa' else '100' }}</span>
                     </div>
                 </div>
                 {% else %}
@@ -81,7 +87,7 @@
                     <span class="material-symbols-outlined cl-icon-xl">insights</span>
                 </div>
                 {% endif %}
-                <p class="cl-score-label">امتیاز سلامت فعلی</p>
+                <p class="cl-score-label">{{ t('hist_score_label') }}</p>
             </div>
 
             <div class="cl-summary-stats">
@@ -89,7 +95,7 @@
                 <div class="cl-card-stat cl-lift-on-hover">
                     <span class="material-symbols-outlined cl-icon-md cl-stat-icon">event</span>
                     <span class="cl-stat-value" style="font-size:15px; background:none; -webkit-text-fill-color:initial; color:var(--color-secondary);">{{ records[0].created_at.strftime("%Y-%m-%d") }}</span>
-                    <span class="cl-stat-label">آخرین آزمایش</span>
+                    <span class="cl-stat-label">{{ t('hist_last_test') }}</span>
                 </div>
 
                 <div class="cl-card-stat cl-lift-on-hover">
@@ -98,21 +104,21 @@
                     </span>
                     <span class="cl-stat-value" style="font-size:16px; background:none; -webkit-text-fill-color:initial;
                         color:{% if score_delta is none %}var(--color-text-secondary){% elif score_delta > 0 %}var(--color-success){% elif score_delta < 0 %}var(--color-danger){% else %}var(--color-secondary){% endif %};">
-                        {% if score_delta is none %}نامشخص{% elif score_delta > 0 %}+{{ score_delta }}{% else %}{{ score_delta }}{% endif %}
+                        {% if score_delta is none %}{{ t('hist_unknown') }}{% elif score_delta > 0 %}+{{ score_delta }}{% else %}{{ score_delta }}{% endif %}
                     </span>
-                    <span class="cl-stat-label">تغییر نسبت به اولین گزارش</span>
+                    <span class="cl-stat-label">{{ t('hist_change_since_first') }}</span>
                 </div>
 
                 <div class="cl-card-stat cl-lift-on-hover">
                     <span class="material-symbols-outlined cl-icon-md cl-stat-icon">folder_copy</span>
                     <span class="cl-stat-value" data-count-to="{{ records|length }}">0</span>
-                    <span class="cl-stat-label">تعداد گزارش‌ها</span>
+                    <span class="cl-stat-label">{{ t('hist_report_count') }}</span>
                 </div>
 
                 <div class="cl-card-stat cl-lift-on-hover">
                     <span class="material-symbols-outlined cl-icon-md cl-stat-icon">bloodtype</span>
                     <span class="cl-stat-value" data-count-to="{{ ns_global.total }}">0</span>
-                    <span class="cl-stat-label">پارامتر پیگیری‌شده</span>
+                    <span class="cl-stat-label">{{ t('hist_tracked_param') }}</span>
                 </div>
 
             </div>
@@ -140,38 +146,38 @@
         <div class="cl-hist-filters cl-reveal">
             <div class="cl-hist-filter-search">
                 <span class="material-symbols-outlined cl-icon-sm">search</span>
-                <input type="text" id="cl-hist-search" placeholder="جستجو در نام فایل یا نوع آزمایش...">
+                <input type="text" id="cl-hist-search" placeholder="{{ t('hist_search_placeholder') }}">
             </div>
             <div class="cl-chip-row" id="cl-hist-exam-chips">
-                <button type="button" class="cl-chip is-active" data-filter-exam="all">همه انواع</button>
+                <button type="button" class="cl-chip is-active" data-filter-exam="all">{{ t('hist_all_types') }}</button>
                 {% for exam_key in records | map(attribute='exam_type') | unique | list %}
-                <button type="button" class="cl-chip" data-filter-exam="{{ exam_key }}">{{ exam_type_labels.get(exam_key, exam_key) }}</button>
+                <button type="button" class="cl-chip" data-filter-exam="{{ exam_key }}">{{ t(exam_i18n_map.get(exam_key, exam_key)) }}</button>
                 {% endfor %}
             </div>
             <div class="cl-chip-row" id="cl-hist-status-chips">
-                <button type="button" class="cl-chip is-active" data-filter-status="all">همه وضعیت‌ها</button>
-                <button type="button" class="cl-chip" data-filter-status="reviewed">بررسی‌شده توسط پزشک</button>
-                <button type="button" class="cl-chip" data-filter-status="awaiting_doctor">در انتظار پزشک</button>
-                <button type="button" class="cl-chip" data-filter-status="not_requested">بدون بررسی پزشک</button>
+                <button type="button" class="cl-chip is-active" data-filter-status="all">{{ t('hist_all_statuses') }}</button>
+                <button type="button" class="cl-chip" data-filter-status="reviewed">{{ t('hist_status_reviewed') }}</button>
+                <button type="button" class="cl-chip" data-filter-status="awaiting_doctor">{{ t('hist_status_awaiting') }}</button>
+                <button type="button" class="cl-chip" data-filter-status="not_requested">{{ t('hist_status_not_requested') }}</button>
             </div>
         </div>
 
         <!-- ===== AI Health Story (rule-based narrative built client-side from real data) ===== -->
         <div class="cl-dash-section cl-reveal" id="cl-story-section" style="display:none;">
-            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">auto_stories</span> داستان سلامت شما</h2>
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">auto_stories</span> {{ t('hist_story_title') }}</h2>
             <div class="cl-story-list" id="cl-story-list"></div>
         </div>
 
         <!-- ===== Key Insights ===== -->
         <div class="cl-dash-section cl-reveal" id="cl-insights-hist-section" style="display:none;">
-            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">psychology</span> یافته‌های کلیدی</h2>
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">psychology</span> {{ t('hist_insights_title') }}</h2>
             <div class="cl-insights-grid" id="cl-insights-hist-grid"></div>
         </div>
 
         <!-- ===== Health Score Evolution chart ===== -->
         {% if ns_chrono.scores|length >= 2 %}
         <div class="cl-dash-section cl-reveal">
-            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">show_chart</span> روند امتیاز سلامت</h2>
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">show_chart</span> {{ t('hist_score_evolution_title') }}</h2>
             <div class="cl-card-glass">
                 <div class="cl-dash-chart-wrap">
                     <canvas id="cl-score-evolution-chart"></canvas>
@@ -182,25 +188,25 @@
 
         <!-- ===== Trend Detection ===== -->
         <div class="cl-dash-section cl-reveal" id="cl-trends-hist-section" style="display:none;">
-            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">query_stats</span> روند شاخص‌های آزمایشگاهی</h2>
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">query_stats</span> {{ t('hist_lab_trend_title') }}</h2>
             <div class="cl-trend-grid" id="cl-trend-hist-grid"></div>
         </div>
 
         <!-- ===== Compare Reports ===== -->
         <div class="cl-dash-section cl-reveal" id="cl-compare-section" style="display:none;">
-            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">compare_arrows</span> مقایسه‌ی دو گزارش</h2>
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">compare_arrows</span> {{ t('hist_compare_title') }}</h2>
 
             <div class="cl-card-glass cl-compare-controls">
                 <div class="cl-input-group">
-                    <label for="cl-compare-a">گزارش اول</label>
+                    <label for="cl-compare-a">{{ t('hist_compare_report_a') }}</label>
                     <select id="cl-compare-a" class="cl-select cl-input"></select>
                 </div>
                 <span class="material-symbols-outlined cl-compare-arrow">arrow_back</span>
                 <div class="cl-input-group">
-                    <label for="cl-compare-b">گزارش دوم</label>
+                    <label for="cl-compare-b">{{ t('hist_compare_report_b') }}</label>
                     <select id="cl-compare-b" class="cl-select cl-input"></select>
                 </div>
-                <button type="button" class="cl-btn cl-btn-primary" id="cl-compare-btn">مقایسه کن</button>
+                <button type="button" class="cl-btn cl-btn-primary" id="cl-compare-btn">{{ t('hist_compare_btn') }}</button>
             </div>
 
             <div class="cl-compare-results" id="cl-compare-results"></div>
@@ -208,7 +214,7 @@
 
         <!-- ===== Timeline ===== -->
         <div class="cl-dash-section cl-reveal">
-            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">timeline</span> جدول زمانی گزارش‌ها</h2>
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">timeline</span> {{ t('hist_timeline_title') }}</h2>
 
             <div class="cl-hist-timeline" id="cl-hist-timeline">
                 {% for record in records %}
@@ -224,7 +230,7 @@
                 <div class="cl-hist-node"
                      data-exam="{{ record.exam_type }}"
                      data-status="{{ record.review_status or 'not_requested' }}"
-                     data-search-text="{{ (record.filename or '') ~ ' ' ~ exam_type_labels.get(record.exam_type, record.exam_type or '') }}">
+                     data-search-text="{{ (record.filename or '') ~ ' ' ~ t(exam_i18n_map.get(record.exam_type, record.exam_type)) }}">
 
                     <div class="cl-hist-node-dot
                         {% if node_score is none %}cl-timeline-dot-gold
@@ -238,13 +244,13 @@
 
                         <div class="cl-hist-node-head">
                             <div>
-                                <span class="cl-badge cl-badge-info">{{ exam_type_labels.get(record.exam_type, "آزمایش") }}</span>
+                                <span class="cl-badge cl-badge-info">{{ t(exam_i18n_map.get(record.exam_type, 'hist_generic_test')) }}</span>
                                 {% if record.family_member %}<span class="cl-badge cl-badge-neutral">{{ record.family_member.name }}</span>{% endif %}
                             </div>
                             <span class="cl-text-mono cl-text-caption">{{ record.created_at.strftime("%Y-%m-%d") }}</span>
                         </div>
 
-                        <p class="cl-hist-node-filename">{{ record.filename or "بدون نام فایل" }}</p>
+                        <p class="cl-hist-node-filename">{{ record.filename or t('hist_no_filename') }}</p>
 
                         <div class="cl-hist-node-foot">
                             <div class="cl-hist-node-score">
@@ -253,20 +259,20 @@
                                     {% if node_score >= 80 %}cl-hist-mini-score-good
                                     {% elif node_score >= 50 %}cl-hist-mini-score-warn
                                     {% else %}cl-hist-mini-score-danger{% endif %}">{{ node_score }}</span>
-                                <span class="cl-text-caption">امتیاز این گزارش</span>
+                                <span class="cl-text-caption">{{ t('hist_report_score') }}</span>
                                 {% else %}
-                                <span class="cl-text-caption">فاقد مقدار عددی ساختاریافته</span>
+                                <span class="cl-text-caption">{{ t('hist_no_structured_value') }}</span>
                                 {% endif %}
                             </div>
 
                             {% if record.review_status == 'reviewed' %}
-                            <span class="cl-badge cl-badge-success">بررسی‌شده توسط پزشک</span>
+                            <span class="cl-badge cl-badge-success">{{ t('hist_status_reviewed') }}</span>
                             {% elif record.review_status == 'awaiting_doctor' %}
-                            <span class="cl-badge cl-badge-warning">در انتظار پزشک</span>
+                            <span class="cl-badge cl-badge-warning">{{ t('hist_status_awaiting') }}</span>
                             {% endif %}
 
                             <a href="/history/{{ record.id }}" class="cl-btn cl-btn-outline cl-btn-sm">
-                                مشاهده گزارش
+                                {{ t('hist_view_report') }}
                                 <span class="material-symbols-outlined cl-icon-sm">arrow_back</span>
                             </a>
                         </div>
@@ -277,7 +283,7 @@
             </div>
 
             <p class="cl-text-caption" id="cl-hist-empty-filtered" style="display:none; text-align:center; padding:24px;">
-                هیچ گزارشی با این فیلترها پیدا نشد.
+                {{ t('hist_no_filtered_results') }}
             </p>
         </div>
 
@@ -289,7 +295,7 @@
 <!-- ===== Marker detail modal ===== -->
 <div class="cl-modal-overlay" id="cl-marker-modal-overlay" aria-hidden="true">
     <div class="cl-modal" role="dialog" aria-modal="true" aria-labelledby="cl-marker-modal-title">
-        <button type="button" class="cl-modal-close" id="cl-marker-modal-close" aria-label="بستن">
+        <button type="button" class="cl-modal-close" id="cl-marker-modal-close" aria-label="{{ t('hist_modal_close') }}">
             <span class="material-symbols-outlined">close</span>
         </button>
         <h3 id="cl-marker-modal-title" class="cl-modal-title"></h3>
@@ -302,6 +308,61 @@
 {% block scripts %}
 <script>
 (function(){
+
+    /* ===== i18n strings & locale (injected server-side) ===== */
+    var LOCALE = "{{ 'fa-IR' if current_lang() == 'fa' else 'en-US' }}";
+
+    var I18N = {
+        statusHigh: {{ t('hist_js_status_high') | tojson }},
+        statusLow: {{ t('hist_js_status_low') | tojson }},
+        statusNormal: {{ t('hist_js_status_normal') | tojson }},
+        badgeImproved: {{ t('hist_js_badge_improved') | tojson }},
+        badgeAttention: {{ t('hist_js_badge_attention') | tojson }},
+        badgeStillOut: {{ t('hist_js_badge_still_out') | tojson }},
+        badgeStable: {{ t('hist_js_badge_stable') | tojson }},
+        vsPrevious: {{ t('hist_js_vs_previous') | tojson }},
+        firstRecord: {{ t('hist_js_first_record') | tojson }},
+        insightMostImproved: {{ t('hist_js_insight_most_improved') | tojson }},
+        insightReturnedNormal: {{ t('hist_js_insight_returned_normal') | tojson }},
+        insightNeedsAttention: {{ t('hist_js_insight_needs_attention') | tojson }},
+        insightStillOutside: {{ t('hist_js_insight_still_outside') | tojson }},
+        insightBiggestIncrease: {{ t('hist_js_insight_biggest_increase') | tojson }},
+        insightIncreased: {{ t('hist_js_insight_increased') | tojson }},
+        insightBiggestDecrease: {{ t('hist_js_insight_biggest_decrease') | tojson }},
+        insightDecreased: {{ t('hist_js_insight_decreased') | tojson }},
+        insightFollowupTitle: {{ t('hist_js_insight_followup_title') | tojson }},
+        insightFollowupSpecific: {{ t('hist_js_insight_followup_specific') | tojson }},
+        insightFollowupStable: {{ t('hist_js_insight_followup_stable') | tojson }},
+        storyImproved: {{ t('hist_js_story_improved') | tojson }},
+        storyDeclined: {{ t('hist_js_story_declined') | tojson }},
+        storyAttention: {{ t('hist_js_story_attention') | tojson }},
+        storyStable: {{ t('hist_js_story_stable') | tojson }},
+        chartScoreDatasetLabel: {{ t('hist_js_chart_score_dataset_label') | tojson }},
+        chartScoreTooltipPrefix: {{ t('hist_js_chart_score_tooltip_prefix') | tojson }},
+        compareSelectDifferent: {{ t('hist_js_compare_select_different') | tojson }},
+        compareNoCommon: {{ t('hist_js_compare_no_common') | tojson }},
+        compareChange: {{ t('hist_js_compare_change') | tojson }},
+        modalReferenceRange: {{ t('hist_js_modal_reference_range') | tojson }},
+        modalUnknown: {{ t('hist_unknown') | tojson }},
+        modalFullHistory: {{ t('hist_js_modal_full_history') | tojson }},
+        modalLifestyleTip: {{ t('hist_js_modal_lifestyle_tip') | tojson }},
+        modalDefaultTip: {{ t('hist_js_modal_default_tip') | tojson }},
+        modalViewFullTrend: {{ t('hist_js_modal_view_full_trend') | tojson }}
+    };
+
+    var LIFESTYLE_TIPS = {
+        'Glucose': {{ t('hist_tip_glucose') | tojson }},
+        'HbA1c': {{ t('hist_tip_hba1c') | tojson }},
+        'Vitamin D': {{ t('hist_tip_vitamin_d') | tojson }},
+        'LDL': {{ t('hist_tip_ldl') | tojson }},
+        'Hemoglobin': {{ t('hist_tip_hemoglobin') | tojson }}
+    };
+
+    function fmt(template, vars){
+        return template.replace(/\{(\w+)\}/g, function(match, key){
+            return (vars[key] !== undefined && vars[key] !== null) ? vars[key] : match;
+        });
+    }
 
     /* ===== shared reveal (same pattern as other pages) ===== */
     var revealEls = document.querySelectorAll('.cl-reveal');
@@ -322,8 +383,8 @@
             if (!start) start = ts;
             var p = Math.min((ts - start) / duration, 1);
             var eased = 1 - Math.pow(1 - p, 3);
-            el.textContent = Math.floor(eased * target).toLocaleString('fa-IR');
-            if (p < 1) requestAnimationFrame(step); else el.textContent = target.toLocaleString('fa-IR');
+            el.textContent = Math.floor(eased * target).toLocaleString(LOCALE);
+            if (p < 1) requestAnimationFrame(step); else el.textContent = target.toLocaleString(LOCALE);
         }
         requestAnimationFrame(step);
     }
@@ -373,7 +434,7 @@
 
     if (!rawPoints.length) return; // nothing structured to build trends/insights/compare from
 
-    var STATUS_LABELS = { high: 'بالا', low: 'پایین', normal: 'طبیعی' };
+    var STATUS_LABELS = { high: I18N.statusHigh, low: I18N.statusLow, normal: I18N.statusNormal };
 
     function groupByMarker(points){
         var groups = {};
@@ -432,10 +493,10 @@
         var t = trendDirection(group);
         var label = improvementLabel(group);
 
-        var badgeClass = 'cl-badge-info', badgeText = 'ثابت';
-        if (label === 'improved') { badgeClass = 'cl-badge-success'; badgeText = 'بهبود یافته'; }
-        else if (label === 'declined') { badgeClass = 'cl-badge-warning'; badgeText = 'نیاز به توجه'; }
-        else if (label === 'attention') { badgeClass = 'cl-badge-danger'; badgeText = 'همچنان خارج از محدوده'; }
+        var badgeClass = 'cl-badge-info', badgeText = I18N.badgeStable;
+        if (label === 'improved') { badgeClass = 'cl-badge-success'; badgeText = I18N.badgeImproved; }
+        else if (label === 'declined') { badgeClass = 'cl-badge-warning'; badgeText = I18N.badgeAttention; }
+        else if (label === 'attention') { badgeClass = 'cl-badge-danger'; badgeText = I18N.badgeStillOut; }
 
         var card = document.createElement('div');
         card.className = 'cl-trend-card cl-card-interactive';
@@ -455,7 +516,7 @@
                 '<span class="material-symbols-outlined cl-icon-sm ' + (t.direction === 'up' ? 'cl-trend-up' : t.direction === 'down' ? 'cl-trend-down' : '') + '">' +
                     (t.direction === 'up' ? 'trending_up' : t.direction === 'down' ? 'trending_down' : 'trending_flat') +
                 '</span>' +
-                '<span class="cl-text-caption">' + (group.length >= 2 ? Math.abs(t.changeAbs).toFixed(1) + ' نسبت به آزمایش قبلی' : 'اولین ثبت') + '</span>' +
+                '<span class="cl-text-caption">' + (group.length >= 2 ? Math.abs(t.changeAbs).toFixed(1) + ' ' + I18N.vsPrevious : I18N.firstRecord) + '</span>' +
             '</div>';
 
         card.addEventListener('click', function(){ openMarkerModal(name); });
@@ -502,18 +563,18 @@
         }
 
         [
-            insightCard('trending_up', 'بیشترین بهبود', mostImproved, 'به محدوده طبیعی بازگشته است'),
-            insightCard('priority_high', 'نیازمند توجه بیشتر', mostConcerning, 'همچنان خارج از محدوده مرجع'),
-            insightCard('arrow_upward', 'بیشترین افزایش عددی', largestPositive, 'نسبت به آزمایش قبلی افزایش یافته'),
-            insightCard('arrow_downward', 'بیشترین کاهش عددی', largestNegative, 'نسبت به آزمایش قبلی کاهش یافته')
+            insightCard('trending_up', I18N.insightMostImproved, mostImproved, I18N.insightReturnedNormal),
+            insightCard('priority_high', I18N.insightNeedsAttention, mostConcerning, I18N.insightStillOutside),
+            insightCard('arrow_upward', I18N.insightBiggestIncrease, largestPositive, I18N.insightIncreased),
+            insightCard('arrow_downward', I18N.insightBiggestDecrease, largestNegative, I18N.insightDecreased)
         ].forEach(function(card){ if (card) insightsGrid.appendChild(card); });
 
         var followupCard = document.createElement('div');
         followupCard.className = 'cl-insight-card';
         followupCard.innerHTML =
             '<div class="cl-insight-icon"><span class="material-symbols-outlined">event_repeat</span></div>' +
-            '<h4 class="cl-insight-title">پیگیری پیشنهادی</h4>' +
-            '<p>' + (mostConcerning ? 'در آزمایش بعدی، به‌طور ویژه ' + mostConcerning.name + ' را پیگیری کنید.' : 'روند فعلی پایدار است؛ ادامه‌ی آزمایش‌های دوره‌ای کافی است.') + '</p>';
+            '<h4 class="cl-insight-title">' + I18N.insightFollowupTitle + '</h4>' +
+            '<p>' + (mostConcerning ? fmt(I18N.insightFollowupSpecific, { name: mostConcerning.name }) : I18N.insightFollowupStable) + '</p>';
         insightsGrid.appendChild(followupCard);
 
         insightsSection.style.display = '';
@@ -532,13 +593,13 @@
             var sentence;
 
             if (label === 'improved') {
-                sentence = 'در بازه‌ی بین ' + first.date + ' تا ' + last.date + '، مقدار ' + name + ' شما از ' + first.value + ' به ' + last.value + ' رسیده و به محدوده‌ی طبیعی بازگشته است.';
+                sentence = fmt(I18N.storyImproved, { from: first.date, to: last.date, name: name, fv: first.value, lv: last.value });
             } else if (label === 'declined') {
-                sentence = 'مقدار ' + name + ' شما که در ' + first.date + ' طبیعی بود، در آخرین آزمایش (' + last.date + ') به ' + last.value + ' تغییر کرده و از محدوده‌ی طبیعی خارج شده است.';
+                sentence = fmt(I18N.storyDeclined, { from: first.date, to: last.date, name: name, lv: last.value });
             } else if (label === 'attention') {
-                sentence = 'مقدار ' + name + ' همچنان از ' + first.date + ' تا ' + last.date + ' خارج از محدوده‌ی طبیعی باقی مانده (از ' + first.value + ' به ' + last.value + ').';
+                sentence = fmt(I18N.storyAttention, { from: first.date, to: last.date, name: name, fv: first.value, lv: last.value });
             } else {
-                sentence = 'مقدار ' + name + ' شما در طول این بازه ثابت و در محدوده‌ی طبیعی باقی مانده است (' + first.value + ' → ' + last.value + ').';
+                sentence = fmt(I18N.storyStable, { name: name, fv: first.value, lv: last.value });
             }
 
             var item = document.createElement('div');
@@ -577,7 +638,7 @@
                 data: {
                     labels: scoreLine.map(function(p){ return p.date; }),
                     datasets: [{
-                        label: 'امتیاز سلامت',
+                        label: I18N.chartScoreDatasetLabel,
                         data: scoreLine.map(function(p){ return p.score; }),
                         borderColor: '#0F6FFF',
                         backgroundColor: 'rgba(15,111,255,.08)',
@@ -595,7 +656,7 @@
                     plugins: {
                         legend: { display: false },
                         tooltip: {
-                            callbacks: { label: function(ctx){ return 'امتیاز: ' + ctx.parsed.y; } }
+                            callbacks: { label: function(ctx){ return I18N.chartScoreTooltipPrefix + ': ' + ctx.parsed.y; } }
                         }
                     },
                     scales: {
@@ -640,7 +701,7 @@
         document.getElementById('cl-compare-btn').addEventListener('click', function(){
             var idA = compareA.value, idB = compareB.value;
             if (idA === idB) {
-                compareResults.innerHTML = '<p class="cl-text-caption">لطفاً دو گزارش متفاوت انتخاب کنید.</p>';
+                compareResults.innerHTML = '<p class="cl-text-caption">' + I18N.compareSelectDifferent + '</p>';
                 return;
             }
             var pointsA = rawPoints.filter(function(p){ return p.recordId === idA; });
@@ -653,10 +714,10 @@
                 if (!pa) return;
                 var diff = pb.value - pa.value;
                 var status;
-                if (pb.status === 'normal' && pa.status !== 'normal') status = { cls: 'cl-badge-success', text: 'بهبود یافته' };
-                else if (pb.status !== 'normal' && pa.status === 'normal') status = { cls: 'cl-badge-danger', text: 'نیاز به توجه' };
-                else if (pb.status !== 'normal') status = { cls: 'cl-badge-warning', text: 'همچنان خارج از محدوده' };
-                else status = { cls: 'cl-badge-info', text: 'ثابت' };
+                if (pb.status === 'normal' && pa.status !== 'normal') status = { cls: 'cl-badge-success', text: I18N.badgeImproved };
+                else if (pb.status !== 'normal' && pa.status === 'normal') status = { cls: 'cl-badge-danger', text: I18N.badgeAttention };
+                else if (pb.status !== 'normal') status = { cls: 'cl-badge-warning', text: I18N.badgeStillOut };
+                else status = { cls: 'cl-badge-info', text: I18N.badgeStable };
 
                 html +=
                     '<div class="cl-compare-card">' +
@@ -666,11 +727,11 @@
                             '<span class="material-symbols-outlined">arrow_back</span>' +
                             '<div><span class="cl-text-caption">' + pb.date + '</span><strong>' + pb.value + ' ' + (pb.unit||'') + '</strong></div>' +
                         '</div>' +
-                        '<p class="cl-text-caption" style="margin:8px 0 0;">تغییر: ' + (diff > 0 ? '+' : '') + diff.toFixed(1) + '</p>' +
+                        '<p class="cl-text-caption" style="margin:8px 0 0;">' + I18N.compareChange + ' ' + (diff > 0 ? '+' : '') + diff.toFixed(1) + '</p>' +
                     '</div>';
             });
 
-            compareResults.innerHTML = html || '<p class="cl-text-caption">پارامتر مشترکی بین این دو گزارش برای مقایسه پیدا نشد.</p>';
+            compareResults.innerHTML = html || '<p class="cl-text-caption">' + I18N.compareNoCommon + '</p>';
         });
 
         compareSection.style.display = '';
@@ -681,14 +742,6 @@
     var modalTitle = document.getElementById('cl-marker-modal-title');
     var modalBody = document.getElementById('cl-marker-modal-body');
     var modalClose = document.getElementById('cl-marker-modal-close');
-
-    var LIFESTYLE_TIPS = {
-        'Glucose': 'کاهش مصرف قند ساده و افزایش فعالیت بدنی می‌تواند کمک‌کننده باشد.',
-        'HbA1c': 'رژیم کم‌قند و ورزش منظم بر این شاخص تاثیرگذار است.',
-        'Vitamin D': 'قرارگیری در معرض نور آفتاب و مصرف منابع غذایی ویتامین D توصیه می‌شود.',
-        'LDL': 'کاهش چربی‌های اشباع و افزایش فیبر غذایی می‌تواند موثر باشد.',
-        'Hemoglobin': 'مصرف منابع غذایی آهن‌دار (گوشت قرمز، عدس، اسفناج) توصیه می‌شود.'
-    };
 
     function openMarkerModal(name){
         var group = markerGroups[name] || [];
@@ -702,22 +755,22 @@
                 (STATUS_LABELS[p.status] || p.status || '—') + '</span></div>';
         }).join('');
 
-        var tip = LIFESTYLE_TIPS[name] || 'برای توصیه‌های اختصاصی، نتیجه را با پزشک یا متخصص تغذیه خود در میان بگذارید.';
+        var tip = LIFESTYLE_TIPS[name] || I18N.modalDefaultTip;
 
         modalBody.innerHTML =
             '<div class="cl-modal-section">' +
-                '<span class="cl-text-caption">بازه مرجع</span>' +
-                '<p>' + (latest.range || 'نامشخص') + '</p>' +
+                '<span class="cl-text-caption">' + I18N.modalReferenceRange + '</span>' +
+                '<p>' + (latest.range || I18N.modalUnknown) + '</p>' +
             '</div>' +
             '<div class="cl-modal-section">' +
-                '<span class="cl-text-caption">تاریخچه‌ی کامل</span>' +
+                '<span class="cl-text-caption">' + I18N.modalFullHistory + '</span>' +
                 '<div class="cl-modal-history-list">' + historyRows + '</div>' +
             '</div>' +
             '<div class="cl-modal-section">' +
-                '<span class="cl-text-caption">توصیه‌ی سبک زندگی</span>' +
+                '<span class="cl-text-caption">' + I18N.modalLifestyleTip + '</span>' +
                 '<p>' + tip + '</p>' +
             '</div>' +
-            '<a href="/trends" class="cl-btn cl-btn-outline cl-btn-sm" style="margin-top:8px;">مشاهده در صفحه‌ی روند کامل</a>';
+            '<a href="/trends" class="cl-btn cl-btn-outline cl-btn-sm" style="margin-top:8px;">' + I18N.modalViewFullTrend + '</a>';
 
         modalOverlay.classList.add('is-open');
         modalOverlay.setAttribute('aria-hidden', 'false');

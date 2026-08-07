@@ -146,29 +146,23 @@
                 </a>
                 {% endif %}
 
-                {% if user and user.role == 'org_admin' %}
-                <a href="/org/referrals" class="cl-nav-link">
-                    <span class="material-symbols-outlined cl-icon-sm">diversity_3</span>
-                    حساب معرفی‌شدگان
-                </a>
-                {% endif %}
-
                 {% if user and user.role == 'platform_admin' %}
-                <div class="cl-mega-item">
-                    <button type="button" class="cl-mega-trigger">
-                        {{ t('nav_admin') }}
-                        <span class="material-symbols-outlined cl-mega-caret">expand_more</span>
-                    </button>
-                    <div class="cl-mega-panel">
-                        <div class="cl-mega-panel-inner cl-mega-panel-inner-simple">
-                            <a href="/admin" class="cl-mega-link-simple">{{ t('nav_admin_dashboard') }}</a>
-                            <a href="/admin/doctors" class="cl-mega-link-simple">{{ t('nav_admin_doctors') }}</a>
-                            <a href="/admin/users" class="cl-mega-link-simple">{{ t('nav_admin_users') }}</a>
-                            <a href="/doctor/reviews" class="cl-mega-link-simple">{{ t('nav_admin_reviews') }}</a>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
+<div class="cl-mega-item">
+    <button type="button" class="cl-mega-trigger">
+        {{ t('nav_admin') }}
+        <span class="material-symbols-outlined cl-mega-caret">expand_more</span>
+    </button>
+    <div class="cl-mega-panel">
+        <div class="cl-mega-panel-inner cl-mega-panel-inner-simple">
+            <a href="/admin" class="cl-mega-link-simple">{{ t('nav_admin_dashboard') }}</a>
+            <a href="/admin/doctors" class="cl-mega-link-simple">{{ t('nav_admin_doctors') }}</a>
+            <a href="/admin/users" class="cl-mega-link-simple">{{ t('nav_admin_users') }}</a>
+            <a href="/doctor/reviews" class="cl-mega-link-simple">{{ t('nav_admin_reviews') }}</a>
+            <a href="/admin/referrals" class="cl-mega-link-simple">حساب و تراکنش معرفی‌شدگان</a>
+        </div>
+    </div>
+</div>
+{% endif %}
 
             </nav>
 

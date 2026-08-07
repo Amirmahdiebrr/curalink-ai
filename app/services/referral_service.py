@@ -6,6 +6,11 @@ referring lab/clinic/hospital (an org_admin account). This service
 aggregates who was referred by which organization, what they paid
 for, and the total amount paid per month — so the platform can
 calculate and pay the organization's referral bonus.
+
+دسترسی به این اطلاعات (تراکنش‌ها، مبالغ، معرفی‌شدگان) فقط باید از
+طریق پنل platform_admin باشد؛ خودِ آزمایشگاه/سازمان به این داده‌ها
+دسترسی مستقیم ندارد (کنترل دسترسی در app/routers/org_referrals.py
+اعمال می‌شود).
 """
 
 from collections import defaultdict
@@ -103,3 +108,35 @@ def get_referral_summary(db: Session, org_user_id: int) -> dict:
         "total_paid": total_paid,
         "total_referred_count": len(referred_users),
     }
+
+
+def get_all_organizations_summary(db: Session) -> list[dict]:
+    """
+    برای صفحه‌ی فهرست ادمین: خلاصه‌ی وضعیت معرفی هر سازمان (تعداد
+    معرفی‌شدگان و مجموع مبلغ پرداخت‌شده‌ی موفق آن‌ها)، مرتب‌شده بر
+    اساس بیشترین مبلغ پرداختی.
+    """
+    orgs = get_all_labs(db)
+
+    summaries = []
+
+    for org in orgs:
+        referred_count = (
+            db.query(User)
+            .filter(User.referred_by_org_id == org.id)
+            .count()
+        )
+
+        transactions = get_referral_transactions(db, org.id)
+        total_paid = sum(p.amount for p in transactions)
+
+        summaries.append({
+            "org": org,
+            "referred_count": referred_count,
+            "transaction_count": len(transactions),
+            "total_paid": total_paid,
+        })
+
+    summaries.sort(key=lambda item: item["total_paid"], reverse=True)
+
+    return summaries

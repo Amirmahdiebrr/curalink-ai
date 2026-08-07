@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.routers.auth import get_current_user
+from app.services.family_service import get_family_members, get_family_member_for_user
 from app.services.history_service import (
     get_latest_results_by_test,
     get_test_history,
@@ -23,16 +24,38 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 
+def _resolve_family_member_id(db: Session, user_id: int, raw_value: str | None):
+    """
+    مقدار query param فرانت‌اند (پیش‌فرض "self") را به شناسه‌ی واقعی
+    عضو خانواده تبدیل می‌کند، فقط اگر همان عضو واقعاً متعلق به همین
+    کاربر باشد.
+    """
+    if not raw_value or raw_value.strip() == "" or raw_value.strip() == "self":
+        return None
+
+    try:
+        fm_id = int(raw_value.strip())
+    except ValueError:
+        return None
+
+    member = get_family_member_for_user(db, fm_id, user_id)
+
+    return member.id if member else None
+
+
 @router.get("/trends")
-async def trends_page(request: Request, db: Session = Depends(get_db)):
+async def trends_page(request: Request, family_member_id: str = None, db: Session = Depends(get_db)):
 
     user = get_current_user(request, db)
 
     if not user:
         return RedirectResponse(url="/login", status_code=303)
 
-    latest_results = get_latest_results_by_test(db, user.id)
-    test_names = get_distinct_test_names(db, user.id)
+    resolved_family_member_id = _resolve_family_member_id(db, user.id, family_member_id)
+
+    family_members = get_family_members(db, user.id)
+    latest_results = get_latest_results_by_test(db, user.id, resolved_family_member_id)
+    test_names = get_distinct_test_names(db, user.id, resolved_family_member_id)
 
     return templates.TemplateResponse(
         request,
@@ -42,19 +65,23 @@ async def trends_page(request: Request, db: Session = Depends(get_db)):
             "user": user,
             "latest_results": latest_results,
             "test_names": test_names,
+            "family_members": family_members,
+            "selected_family_member_id": resolved_family_member_id,
         }
     )
 
 
 @router.get("/trends/data/{test_name}")
-async def trends_data(request: Request, test_name: str, db: Session = Depends(get_db)):
+async def trends_data(request: Request, test_name: str, family_member_id: str = None, db: Session = Depends(get_db)):
 
     user = get_current_user(request, db)
 
     if not user:
         return JSONResponse({"error": "unauthorized"}, status_code=401)
 
-    history = get_test_history(db, user.id, test_name)
+    resolved_family_member_id = _resolve_family_member_id(db, user.id, family_member_id)
+
+    history = get_test_history(db, user.id, test_name, resolved_family_member_id)
 
     points = [
         {
