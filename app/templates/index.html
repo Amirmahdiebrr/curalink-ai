@@ -21,12 +21,12 @@
 {% endif %}
 
 <section class="cl-section-hero hero">
-    <div class="cl-home-date-badge">
-        <span class="material-symbols-outlined">calendar_today</span>
-        <span>{{ jdate(now, "%Y/%m/%d") }}</span>
-    </div>
     <div class="container hero-grid">
         <div class="hero-text cl-reveal">
+            <div class="cl-home-date-badge">
+                <span class="material-symbols-outlined">calendar_today</span>
+                <span>{{ jdate(now, "%Y/%m/%d") }}</span>
+            </div>
             <span class="cl-ai-badge"><span class="cl-ai-badge-dot"></span> {{ t('hero_badge') }}</span>
             <h1>{{ t('hero_title_1') }}<span>{{ t('hero_title_2') }}</span></h1>
             <p class="lead">{{ t('hero_lead') }}</p>

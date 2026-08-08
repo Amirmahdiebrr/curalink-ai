@@ -5156,10 +5156,18 @@ pre{
     position:relative;
 }
 
+/* ============================================================
+   HOME DATE BADGE — REPOSITION FIX
+   جایگزین بلاک قدیمی ".cl-section-hero{position:relative;}" و
+   ".cl-home-date-badge{...}" و مدیای کوئری مربوطه در انتهای
+   style.css شود. حالا بج تاریخ داخل فلوی عادی صفحه (بالای عنوان
+   هیرو، داخل .hero-text) رندر می‌شود، نه absolute روی گوشه‌ی
+   صفحه؛ در نتیجه در هر دو حالت RTL (فارسی) و LTR (انگلیسی)
+   هم‌راستا و طبیعی نمایش داده می‌شود.
+   ============================================================ */
+
 .cl-home-date-badge{
-    position:absolute;
-    top:14px;
-    left:14px;
+    position:static;
     display:inline-flex;
     align-items:center;
     gap:8px;
@@ -5171,7 +5179,7 @@ pre{
     font-weight:700;
     color:var(--color-secondary);
     box-shadow:var(--shadow-sm);
-    z-index:5;
+    margin-bottom:18px;
 }
 .cl-home-date-badge .material-symbols-outlined{
     font-size:16px;
@@ -5180,8 +5188,6 @@ pre{
 
 @media(max-width:960px){
     .cl-home-date-badge{
-        position:static;
-        margin:0 0 16px;
-        width:fit-content;
+        margin:0 auto 16px;
     }
 }
