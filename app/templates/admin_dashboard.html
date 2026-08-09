@@ -1,6 +1,7 @@
+<!-- app/templates/admin_dashboard.html -->
 {% extends "base.html" %}
 
-{% block title %}داشبورد مدیریت | CuraLink AI{% endblock %}
+{% block title %}{{ t('admin_dash_title') }} | CuraLink AI{% endblock %}
 
 {% block content %}
 
@@ -10,14 +11,14 @@
         <div class="cl-profile-header">
             <div class="cl-profile-avatar">{{ (user.display_name or "?")[0] }}</div>
             <div>
-                <h1>داشبورد مدیریت</h1>
-                <p>نمای کلی از وضعیت سیستم</p>
+                <h1>{{ t('admin_dash_title') }}</h1>
+                <p>{{ t('admin_dash_subtitle') }}</p>
             </div>
         </div>
 
         <div class="result-actions" style="margin:0 0 30px; display:flex; gap:14px; justify-content:flex-start;">
-            <a href="/admin/doctors" class="btn btn-outline">تایید پزشکان</a>
-            <a href="/doctor/reviews" class="btn btn-outline">بررسی گزارش‌ها</a>
+            <a href="/admin/doctors" class="btn btn-outline">{{ t('admin_dash_doctors_link') }}</a>
+            <a href="/doctor/reviews" class="btn btn-outline">{{ t('admin_dash_reviews_link') }}</a>
         </div>
 
         <div class="services-grid" style="margin-bottom:40px;">
@@ -25,61 +26,61 @@
             <div class="service-card">
                 <span class="service-icon"><span class="material-symbols-outlined">group</span></span>
                 <h3>{{ stats.total_patients }}</h3>
-                <p>بیمار ثبت‌نام‌شده</p>
+                <p>{{ t('admin_dash_stat_patients') }}</p>
             </div>
 
             <div class="service-card">
                 <span class="service-icon"><span class="material-symbols-outlined">medical_services</span></span>
                 <h3>{{ stats.total_doctors }}</h3>
-                <p>پزشک ({{ stats.pending_doctor_approvals }} در انتظار تایید)</p>
+                <p>{{ t('admin_dash_stat_doctors', n=stats.pending_doctor_approvals) }}</p>
             </div>
 
             <div class="service-card">
                 <span class="service-icon"><span class="material-symbols-outlined">local_hospital</span></span>
                 <h3>{{ stats.total_orgs }}</h3>
-                <p>سازمان</p>
+                <p>{{ t('admin_dash_stat_orgs') }}</p>
             </div>
 
             <div class="service-card">
                 <span class="service-icon"><span class="material-symbols-outlined">science</span></span>
                 <h3>{{ stats.total_analyses }}</h3>
-                <p>آنالیز انجام‌شده</p>
+                <p>{{ t('admin_dash_stat_analyses') }}</p>
             </div>
 
             <div class="service-card">
                 <span class="service-icon"><span class="material-symbols-outlined">assignment</span></span>
                 <h3>{{ stats.pending_doctor_reviews }}</h3>
-                <p>در انتظار بررسی پزشک</p>
+                <p>{{ t('admin_dash_stat_pending_reviews') }}</p>
             </div>
 
             <div class="service-card">
                 <span class="service-icon"><span class="material-symbols-outlined">workspace_premium</span></span>
                 <h3>{{ stats.active_subscriptions }}</h3>
-                <p>اشتراک فعال</p>
+                <p>{{ t('admin_dash_stat_subscriptions') }}</p>
             </div>
 
             <div class="service-card">
                 <span class="service-icon"><span class="material-symbols-outlined">payments</span></span>
-                <h3>{{ "{:,}".format(stats.total_revenue) }} تومان</h3>
-                <p>مجموع پرداخت‌های موفق ({{ stats.total_paid_payments }} تراکنش)</p>
+                <h3>{{ "{:,}".format(stats.total_revenue) }} {{ t('currency_toman') }}</h3>
+                <p>{{ t('admin_dash_stat_revenue', n=stats.total_paid_payments) }}</p>
             </div>
 
         </div>
 
         <div class="cl-profile-card" style="margin-bottom:24px;">
-            <h3 class="cl-profile-card-title">آنالیزهای اخیر (۲۰ مورد آخر)</h3>
+            <h3 class="cl-profile-card-title">{{ t('admin_dash_recent_analyses_title') }}</h3>
 
             {% if recent_analyses|length == 0 %}
-            <p class="cl-profile-card-sub">هنوز آنالیزی ثبت نشده است.</p>
+            <p class="cl-profile-card-sub">{{ t('admin_dash_recent_analyses_empty') }}</p>
             {% else %}
             <div class="cl-history-list">
                 {% for record in recent_analyses %}
                 <a href="/admin/analysis/{{ record.id }}" class="cl-history-item">
                     <div class="cl-history-item-main">
-                        <span class="cl-history-badge">{{ exam_type_labels.get(record.exam_type, "آزمایش") }}</span>
+                        <span class="cl-history-badge">{{ exam_type_labels.get(record.exam_type, t('hist_generic_test')) }}</span>
                         <span class="cl-history-filename">
-                            {{ record.filename }} — کاربر #{{ record.user_id }}
-                            {% if record.review_status == 'awaiting_doctor' %} — در انتظار پزشک{% elif record.review_status == 'reviewed' %} — بررسی‌شده{% endif %}
+                            {{ record.filename }} — {{ t('admin_ref_detail_user_label', id=record.user_id) }}
+                            {% if record.review_status == 'awaiting_doctor' %} — {{ t('admin_dash_awaiting_doctor') }}{% elif record.review_status == 'reviewed' %} — {{ t('admin_dash_reviewed') }}{% endif %}
                         </span>
                     </div>
                     <span class="cl-history-date">{{ record.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
@@ -90,17 +91,17 @@
         </div>
 
         <div class="cl-profile-card" style="margin-bottom:24px;">
-            <h3 class="cl-profile-card-title">کاربران اخیر (۲۰ مورد آخر)</h3>
+            <h3 class="cl-profile-card-title">{{ t('admin_dash_recent_users_title') }}</h3>
 
             {% if recent_users|length == 0 %}
-            <p class="cl-profile-card-sub">کاربری ثبت نشده است.</p>
+            <p class="cl-profile-card-sub">{{ t('admin_dash_recent_users_empty') }}</p>
             {% else %}
             <div class="cl-history-list">
                 {% for u in recent_users %}
                 <div class="cl-history-item">
                     <div class="cl-history-item-main">
                         <span class="cl-history-badge">
-                            {% if u.role == 'patient' %}بیمار{% elif u.role == 'doctor' %}پزشک{% elif u.role == 'org_admin' %}سازمان{% else %}ادمین{% endif %}
+                            {% if u.role == 'patient' %}{{ t('admin_dash_role_patient') }}{% elif u.role == 'doctor' %}{{ t('admin_dash_role_doctor') }}{% elif u.role == 'org_admin' %}{{ t('admin_dash_role_org') }}{% else %}{{ t('admin_dash_role_admin') }}{% endif %}
                         </span>
                         <span class="cl-history-filename">{{ u.display_name }} — {{ u.email }}</span>
                     </div>
@@ -112,19 +113,19 @@
         </div>
 
         <div class="cl-profile-card">
-            <h3 class="cl-profile-card-title">پرداخت‌های اخیر (۲۰ مورد آخر)</h3>
+            <h3 class="cl-profile-card-title">{{ t('admin_dash_recent_payments_title') }}</h3>
 
             {% if recent_payments|length == 0 %}
-            <p class="cl-profile-card-sub">پرداختی ثبت نشده است.</p>
+            <p class="cl-profile-card-sub">{{ t('admin_dash_recent_payments_empty') }}</p>
             {% else %}
             <div class="cl-history-list">
                 {% for p in recent_payments %}
                 <div class="cl-history-item">
                     <div class="cl-history-item-main">
                         <span class="cl-history-badge">
-                            {% if p.status == 'paid' %}موفق{% elif p.status == 'failed' %}ناموفق{% else %}در انتظار{% endif %}
+                            {% if p.status == 'paid' %}{{ t('admin_dash_payment_paid') }}{% elif p.status == 'failed' %}{{ t('admin_dash_payment_failed') }}{% else %}{{ t('admin_dash_payment_pending') }}{% endif %}
                         </span>
-                        <span class="cl-history-filename">{{ p.purpose }} — {{ "{:,}".format(p.amount) }} تومان — کاربر #{{ p.user_id }}</span>
+                        <span class="cl-history-filename">{{ p.purpose }} — {{ "{:,}".format(p.amount) }} {{ t('currency_toman') }} — {{ t('admin_ref_detail_user_label', id=p.user_id) }}</span>
                     </div>
                     <span class="cl-history-date">{{ p.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
                 </div>

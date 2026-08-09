@@ -1,6 +1,7 @@
+<!-- app/templates/admin_referrals_list.html -->
 {% extends "base.html" %}
 
-{% block title %}حساب و تراکنش معرفی‌شدگان | CuraLink AI{% endblock %}
+{% block title %}{{ t('admin_ref_list_title') }} | CuraLink AI{% endblock %}
 
 {% block content %}
 
@@ -10,8 +11,8 @@
         <div class="cl-profile-header">
             <div class="cl-profile-avatar">{{ (user.display_name or "?")[0] }}</div>
             <div>
-                <h1>حساب و تراکنش معرفی‌شدگان</h1>
-                <p>فهرست همه‌ی آزمایشگاه‌ها، کلینیک‌ها و بیمارستان‌ها به همراه خلاصه‌ی معرفی و مبلغ پرداختی برای محاسبه‌ی بونوس دعوت</p>
+                <h1>{{ t('admin_ref_list_title') }}</h1>
+                <p>{{ t('admin_ref_list_subtitle') }}</p>
             </div>
         </div>
 
@@ -20,28 +21,28 @@
             <div class="service-card">
                 <span class="service-icon"><span class="material-symbols-outlined">apartment</span></span>
                 <h3>{{ summaries|length }}</h3>
-                <p>سازمان فعال</p>
+                <p>{{ t('admin_ref_list_stat_active_orgs') }}</p>
             </div>
 
             <div class="service-card">
                 <span class="service-icon"><span class="material-symbols-outlined">diversity_3</span></span>
                 <h3>{{ total_referred_all }}</h3>
-                <p>مجموع بیماران معرفی‌شده</p>
+                <p>{{ t('admin_ref_list_stat_total_referred') }}</p>
             </div>
 
             <div class="service-card">
                 <span class="service-icon"><span class="material-symbols-outlined">payments</span></span>
-                <h3>{{ "{:,}".format(total_paid_all) }} تومان</h3>
-                <p>مجموع پرداخت‌های موفق همه‌ی معرفی‌شدگان</p>
+                <h3>{{ "{:,}".format(total_paid_all) }} {{ t('currency_toman') }}</h3>
+                <p>{{ t('admin_ref_list_stat_total_paid') }}</p>
             </div>
 
         </div>
 
         <div class="cl-profile-card">
-            <h3 class="cl-profile-card-title">سازمان‌ها</h3>
+            <h3 class="cl-profile-card-title">{{ t('admin_ref_list_orgs_title') }}</h3>
 
             {% if summaries|length == 0 %}
-            <p class="cl-profile-card-sub">هنوز هیچ سازمانی (آزمایشگاه/کلینیک/بیمارستان) ثبت‌نام نکرده است.</p>
+            <p class="cl-profile-card-sub">{{ t('admin_ref_list_empty') }}</p>
             {% else %}
 
             <div class="cl-history-list">
@@ -49,20 +50,20 @@
                 <a href="/admin/referrals/{{ item.org.id }}" class="cl-history-item">
                     <div class="cl-history-item-main">
                         <span class="cl-history-badge">
-                            {% if item.org.organization_profile and item.org.organization_profile.org_type == 'lab' %}آزمایشگاه
-                            {% elif item.org.organization_profile and item.org.organization_profile.org_type == 'hospital' %}بیمارستان
-                            {% elif item.org.organization_profile and item.org.organization_profile.org_type == 'clinic' %}مطب / کلینیک
-                            {% else %}سازمان
+                            {% if item.org.organization_profile and item.org.organization_profile.org_type == 'lab' %}{{ t('admin_ref_list_type_lab') }}
+                            {% elif item.org.organization_profile and item.org.organization_profile.org_type == 'hospital' %}{{ t('admin_ref_list_type_hospital') }}
+                            {% elif item.org.organization_profile and item.org.organization_profile.org_type == 'clinic' %}{{ t('admin_ref_list_type_clinic') }}
+                            {% else %}{{ t('admin_ref_list_type_org') }}
                             {% endif %}
                         </span>
                         <span class="cl-history-filename">
                             {{ item.org.organization_profile.org_name if item.org.organization_profile else item.org.display_name }}
-                            — {{ item.referred_count }} معرفی‌شده
+                            — {{ t('admin_ref_list_referred_count', n=item.referred_count) }}
                         </span>
                     </div>
                     <div style="display:flex; align-items:center; gap:14px;">
-                        <span class="cl-history-date">{{ item.transaction_count }} تراکنش موفق</span>
-                        <span class="cl-value-mono">{{ "{:,}".format(item.total_paid) }} تومان</span>
+                        <span class="cl-history-date">{{ t('admin_ref_list_transaction_count', n=item.transaction_count) }}</span>
+                        <span class="cl-value-mono">{{ "{:,}".format(item.total_paid) }} {{ t('currency_toman') }}</span>
                         <span class="material-symbols-outlined" style="color:var(--color-text-muted);">chevron_left</span>
                     </div>
                 </a>

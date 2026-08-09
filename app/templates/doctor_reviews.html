@@ -1,41 +1,42 @@
+<!-- app/templates/doctor_reviews.html -->
 {% extends "workspace_base.html" %}
 
-{% block title %}فضای کاری پزشک | CuraLink AI{% endblock %}
+{% block title %}{{ t('doc_rev_workspace_name') }} | CuraLink AI{% endblock %}
 
-{% block workspace_name %}فضای کاری پزشک{% endblock %}
+{% block workspace_name %}{{ t('doc_rev_workspace_name') }}{% endblock %}
 
 {% block workspace_nav %}
-<div class="cl-ws-nav-group-title">صف بررسی</div>
+<div class="cl-ws-nav-group-title">{{ t('doc_rev_nav_queue_title') }}</div>
 <a href="/doctor/reviews" class="cl-ws-nav-link is-active">
     <span class="material-symbols-outlined">assignment</span>
-    گزارش‌های در انتظار
+    {{ t('doc_rev_nav_awaiting') }}
     {% if awaiting|length > 0 %}<span class="cl-ws-nav-badge">{{ awaiting|length }}</span>{% endif %}
 </a>
 <a href="#reviewed-section" class="cl-ws-nav-link">
     <span class="material-symbols-outlined">task_alt</span>
-    بررسی‌شده توسط من
+    {{ t('doc_rev_nav_reviewed_by_me') }}
 </a>
 
-<div class="cl-ws-nav-group-title">ابزارها (به‌زودی)</div>
+<div class="cl-ws-nav-group-title">{{ t('doc_rev_nav_tools_title') }}</div>
 <a href="#" class="cl-ws-nav-link" aria-disabled="true">
-    <span class="material-symbols-outlined">edit_note</span> یادداشت‌های پزشکی
+    <span class="material-symbols-outlined">edit_note</span> {{ t('doc_rev_nav_notes') }}
 </a>
 <a href="#" class="cl-ws-nav-link" aria-disabled="true">
-    <span class="material-symbols-outlined">medication</span> نسخه‌نویسی
+    <span class="material-symbols-outlined">medication</span> {{ t('doc_rev_nav_prescription') }}
 </a>
 <a href="#" class="cl-ws-nav-link" aria-disabled="true">
-    <span class="material-symbols-outlined">event_repeat</span> پیگیری بیمار
+    <span class="material-symbols-outlined">event_repeat</span> {{ t('doc_rev_nav_followup') }}
 </a>
 {% endblock %}
 
-{% block workspace_breadcrumb %}فضای کاری &nbsp;/&nbsp; بررسی گزارش‌ها{% endblock %}
-{% block workspace_title %}صف بررسی گزارش‌های پزشکی{% endblock %}
-{% block workspace_subtitle %}تحلیل‌های هوش مصنوعی که نیازمند تایید یا نظر تخصصی شما هستند{% endblock %}
+{% block workspace_breadcrumb %}{{ t('doc_rev_breadcrumb') }}{% endblock %}
+{% block workspace_title %}{{ t('doc_rev_title') }}{% endblock %}
+{% block workspace_subtitle %}{{ t('doc_rev_subtitle') }}{% endblock %}
 
 {% block workspace_header_actions %}
 <div class="cl-ws-search">
     <span class="material-symbols-outlined">search</span>
-    <input type="text" placeholder="جستجوی نام فایل یا نوع آزمایش..." data-ws-search data-ws-search-target="#cl-ws-awaiting-body">
+    <input type="text" placeholder="{{ t('doc_rev_search_placeholder') }}" data-ws-search data-ws-search-target="#cl-ws-awaiting-body">
     <kbd>/</kbd>
 </div>
 {% endblock %}
@@ -49,40 +50,40 @@
         <span class="cl-ws-stat-icon is-gold"><span class="material-symbols-outlined">hourglass_top</span></span>
         <div class="cl-ws-stat-body">
             <strong>{{ awaiting|length }}</strong>
-            <span>در انتظار بررسی</span>
+            <span>{{ t('doc_rev_stat_awaiting') }}</span>
         </div>
     </div>
     <div class="cl-ws-stat">
         <span class="cl-ws-stat-icon is-teal"><span class="material-symbols-outlined">task_alt</span></span>
         <div class="cl-ws-stat-body">
             <strong>{{ reviewed|length }}</strong>
-            <span>بررسی‌شده توسط من</span>
+            <span>{{ t('doc_rev_stat_reviewed_by_me') }}</span>
         </div>
     </div>
     <div class="cl-ws-stat">
         <span class="cl-ws-stat-icon is-blue"><span class="material-symbols-outlined">science</span></span>
         <div class="cl-ws-stat-body">
             <strong>{{ total_count }}</strong>
-            <span>مجموع پرونده‌های مرتبط</span>
+            <span>{{ t('doc_rev_stat_total') }}</span>
         </div>
     </div>
     <div class="cl-ws-stat">
         <span class="cl-ws-stat-icon is-danger"><span class="material-symbols-outlined">priority_high</span></span>
         <div class="cl-ws-stat-body">
-            <strong>{% if awaiting|length > 0 %}بالا{% else %}—{% endif %}</strong>
-            <span>اولویت رسیدگی امروز</span>
+            <strong>{% if awaiting|length > 0 %}{{ t('doc_rev_priority_high') }}{% else %}—{% endif %}</strong>
+            <span>{{ t('doc_rev_stat_priority') }}</span>
         </div>
     </div>
 </div>
 
 <div class="cl-ws-section">
     <div class="cl-ws-section-head">
-        <h2 class="cl-ws-section-title"><span class="material-symbols-outlined">assignment</span> در انتظار بررسی</h2>
+        <h2 class="cl-ws-section-title"><span class="material-symbols-outlined">assignment</span> {{ t('doc_rev_section_awaiting') }}</h2>
     </div>
 
     {% if awaiting|length > 0 %}
     <div class="cl-ws-filterbar" data-ws-filter-group data-ws-filter-target="#cl-ws-awaiting-body">
-        <button type="button" class="cl-ws-filter-chip is-active" data-ws-filter-value="all">همه انواع</button>
+        <button type="button" class="cl-ws-filter-chip is-active" data-ws-filter-value="all">{{ t('doc_rev_filter_all') }}</button>
         {% for exam_key in awaiting | map(attribute='exam_type') | unique | list %}
         <button type="button" class="cl-ws-filter-chip" data-ws-filter-value="{{ exam_key }}">{{ exam_type_labels.get(exam_key, exam_key) }}</button>
         {% endfor %}
@@ -93,9 +94,9 @@
         <table class="cl-ws-table">
             <thead>
                 <tr>
-                    <th>پرونده</th>
-                    <th>نوع آزمایش</th>
-                    <th>تاریخ ارسال</th>
+                    <th>{{ t('doc_rev_table_col_case') }}</th>
+                    <th>{{ t('doc_rev_table_col_type') }}</th>
+                    <th>{{ t('doc_rev_table_col_date') }}</th>
                     <th></th>
                 </tr>
             </thead>
@@ -110,16 +111,16 @@
                         <div class="cl-ws-cell-main">
                             <span class="cl-ws-cell-avatar"><span class="material-symbols-outlined" style="font-size:18px;">description</span></span>
                             <div>
-                                <strong>{{ record.filename or "بدون نام فایل" }}</strong>
-                                <span>پرونده #{{ record.id }}</span>
+                                <strong>{{ record.filename or t('doc_rev_no_filename') }}</strong>
+                                <span>{{ t('doc_rev_case_number', id=record.id) }}</span>
                             </div>
                         </div>
                     </td>
-                    <td><span class="cl-badge cl-badge-info">{{ exam_type_labels.get(record.exam_type, "آزمایش") }}</span></td>
+                    <td><span class="cl-badge cl-badge-info">{{ exam_type_labels.get(record.exam_type, t('hist_generic_test')) }}</span></td>
                     <td class="cl-value-mono">{{ record.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
                     <td>
                         <a href="/doctor/reviews/{{ record.id }}" class="btn btn-outline" style="height:34px; padding:0 14px; font-size:12.5px;" onclick="event.stopPropagation();">
-                            بررسی
+                            {{ t('doc_rev_review_btn') }}
                             <span class="material-symbols-outlined" style="font-size:16px;">arrow_back</span>
                         </a>
                     </td>
@@ -131,26 +132,26 @@
         {% if awaiting|length == 0 %}
         <div class="cl-ws-table-empty">
             <span class="material-symbols-outlined">task_alt</span>
-            <p>در حال حاضر گزارشی در انتظار بررسی نیست.</p>
+            <p>{{ t('doc_rev_awaiting_empty') }}</p>
         </div>
         {% endif %}
         <div class="cl-ws-table-empty" data-ws-empty style="display:none;">
             <span class="material-symbols-outlined">search_off</span>
-            <p>موردی با این جستجو/فیلتر پیدا نشد.</p>
+            <p>{{ t('doc_rev_no_search_results') }}</p>
         </div>
     </div>
 </div>
 
 <div class="cl-ws-section" id="reviewed-section">
     <div class="cl-ws-section-head">
-        <h2 class="cl-ws-section-title"><span class="material-symbols-outlined">history</span> بررسی‌شده توسط من</h2>
+        <h2 class="cl-ws-section-title"><span class="material-symbols-outlined">history</span> {{ t('doc_rev_section_reviewed') }}</h2>
     </div>
 
     <div class="cl-ws-card">
         {% if reviewed|length == 0 %}
         <div class="cl-ws-placeholder">
             <span class="material-symbols-outlined">edit_note</span>
-            <p>هنوز هیچ گزارشی را بررسی و نظر ثبت نکرده‌اید.</p>
+            <p>{{ t('doc_rev_reviewed_empty') }}</p>
         </div>
         {% else %}
         <div class="cl-ws-timeline">
@@ -160,7 +161,7 @@
                     <span class="material-symbols-outlined">check</span>
                 </span>
                 <div class="cl-ws-timeline-body">
-                    <strong>{{ exam_type_labels.get(record.exam_type, "آزمایش") }} — {{ record.filename or "بدون نام فایل" }}</strong>
+                    <strong>{{ exam_type_labels.get(record.exam_type, t('hist_generic_test')) }} — {{ record.filename or t('doc_rev_no_filename') }}</strong>
                     <span>{{ record.doctor_opinion_at.strftime("%Y-%m-%d %H:%M") if record.doctor_opinion_at else "" }}</span>
                 </div>
             </div>
@@ -172,20 +173,20 @@
 
 <div class="cl-ws-section">
     <div class="cl-ws-section-head">
-        <h2 class="cl-ws-section-title"><span class="material-symbols-outlined">bolt</span> ابزارهای تکمیلی</h2>
+        <h2 class="cl-ws-section-title"><span class="material-symbols-outlined">bolt</span> {{ t('doc_rev_section_tools') }}</h2>
     </div>
     <div class="cl-grid-3">
         <div class="cl-ws-placeholder">
             <span class="material-symbols-outlined">edit_note</span>
-            <p>یادداشت‌های پزشکی — به‌زودی</p>
+            <p>{{ t('doc_rev_tools_notes_soon') }}</p>
         </div>
         <div class="cl-ws-placeholder">
             <span class="material-symbols-outlined">medication</span>
-            <p>نسخه‌نویسی دیجیتال — به‌زودی</p>
+            <p>{{ t('doc_rev_tools_prescription_soon') }}</p>
         </div>
         <div class="cl-ws-placeholder">
             <span class="material-symbols-outlined">event_repeat</span>
-            <p>یادآوری پیگیری بیمار — به‌زودی</p>
+            <p>{{ t('doc_rev_tools_followup_soon') }}</p>
         </div>
     </div>
 </div>

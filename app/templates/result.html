@@ -1,6 +1,7 @@
+<!-- app/templates/result.html -->
 {% extends "base.html" %}
 
-{% block title %}نتیجه تحلیل | CuraLink AI{% endblock %}
+{% block title %}{{ t('result_title') }} | CuraLink AI{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="/static/css/chat.css">
@@ -47,14 +48,14 @@
             <div>
                 <p class="cl-result-eyebrow">
                     <span class="material-symbols-outlined cl-icon-sm">smart_toy</span>
-                    گزارش تحلیل هوش مصنوعی
+                    {{ t('result_eyebrow') }}
                 </p>
-                <h1 class="result-title" style="margin:0;">نتیجه تحلیل آزمایش شما</h1>
+                <h1 class="result-title" style="margin:0;">{{ t('result_title') }}</h1>
             </div>
 
             <div class="cl-result-status-chip">
                 <span class="cl-status-dot"></span>
-                تحلیل تکمیل شد
+                {{ t('result_status_chip') }}
             </div>
         </div>
 
@@ -62,9 +63,7 @@
         <div class="cl-alert cl-alert-warning cl-reveal" style="margin-bottom:20px;">
             <span class="material-symbols-outlined cl-icon-md">info</span>
             <div>
-                شما نوع آزمایش را <strong>«{{ result.requested_exam_type_label }}»</strong> انتخاب کرده بودید،
-                اما سیستم تشخیص داد این مدرک از نوع <strong>«{{ result.detected_exam_type_label }}»</strong> است.
-                تحلیل بر همین اساس انجام شده است.
+                {{ t('result_mismatch_text', requested=result.requested_exam_type_label, detected=result.detected_exam_type_label) }}
             </div>
         </div>
         {% endif %}
@@ -80,9 +79,7 @@
         <div class="cl-alert cl-alert-danger cl-reveal" style="margin-bottom:20px;">
             <span class="material-symbols-outlined cl-icon-md">emergency</span>
             <div>
-                <strong>{{ ns.severe }} مورد نیاز به توجه ویژه دارد:</strong>
-                {{ ns.severe_names | join('، ') }}.
-                توصیه می‌شود نتیجه را حتماً با پزشک خود در میان بگذارید.
+                {{ t('result_severe_alert', n=ns.severe, names=ns.severe_names | join('، ')) }}
             </div>
         </div>
         {% endif %}
@@ -93,7 +90,7 @@
             <div class="cl-health-score-card {{ score_class }}">
                 {% if health_score is not none %}
                 <div class="cl-score-ring-wrap">
-                    <svg viewBox="0 0 120 120" class="cl-score-ring" role="img" aria-label="امتیاز سلامت: {{ health_score }} از ۱۰۰">
+                    <svg viewBox="0 0 120 120" class="cl-score-ring" role="img" aria-label="{{ t('result_score_label') }}: {{ health_score }} / 100">
                         <circle cx="60" cy="60" r="52" class="cl-score-ring-track"/>
                         <circle cx="60" cy="60" r="52" class="cl-score-ring-value"
                                 stroke-dasharray="{{ score_circumference }}"
@@ -102,17 +99,17 @@
                     </svg>
                     <div class="cl-score-ring-center">
                         <span class="cl-score-number" data-count-to="{{ health_score }}">0</span>
-                        <span class="cl-score-total">/ ۱۰۰</span>
+                        <span class="cl-score-total">/ {{ '۱۰۰' if current_lang() == 'fa' else '100' }}</span>
                     </div>
                 </div>
-                <p class="cl-score-label">امتیاز کلی سلامت آزمایش</p>
-                <p class="cl-score-caption">{{ ns.normal }} از {{ ns.total }} پارامتر در محدوده طبیعی</p>
+                <p class="cl-score-label">{{ t('result_score_label') }}</p>
+                <p class="cl-score-caption">{{ t('result_score_caption', normal=ns.normal, total=ns.total) }}</p>
                 {% else %}
                 <div class="cl-score-ring-wrap cl-score-ring-empty">
                     <span class="material-symbols-outlined cl-icon-xl">insights</span>
                 </div>
-                <p class="cl-score-label">امتیاز سلامت در دسترس نیست</p>
-                <p class="cl-score-caption">این نوع گزارش مقدار عددی ساختاریافته ندارد؛ نتیجه در قالب تحلیل متنی ارائه شده است.</p>
+                <p class="cl-score-label">{{ t('result_score_empty_label') }}</p>
+                <p class="cl-score-caption">{{ t('result_score_empty_caption') }}</p>
                 {% endif %}
             </div>
 
@@ -120,28 +117,28 @@
 
                 <div class="cl-card-stat cl-lift-on-hover">
                     <span class="material-symbols-outlined cl-icon-md cl-stat-icon">person</span>
-                    <span class="cl-stat-value" style="font-size:16px; background:none; -webkit-text-fill-color:initial; color:var(--color-secondary);">{{ user.display_name if user else "کاربر" }}</span>
-                    <span class="cl-stat-label">نام بیمار</span>
+                    <span class="cl-stat-value" style="font-size:16px; background:none; -webkit-text-fill-color:initial; color:var(--color-secondary);">{{ user.display_name if user else t('result_patient_name_default') }}</span>
+                    <span class="cl-stat-label">{{ t('result_patient_name_label') }}</span>
                 </div>
 
                 <div class="cl-card-stat cl-lift-on-hover">
                     <span class="material-symbols-outlined cl-icon-md cl-stat-icon">description</span>
-                    <span class="cl-stat-value" style="font-size:14px; background:none; -webkit-text-fill-color:initial; color:var(--color-secondary); word-break:break-word;">{{ result.filename or "—" }}</span>
-                    <span class="cl-stat-label">فایل تحلیل‌شده</span>
+                    <span class="cl-stat-value" style="font-size:14px; background:none; -webkit-text-fill-color:initial; color:var(--color-secondary); word-break:break-word;">{{ result.filename or t('result_filename_default') }}</span>
+                    <span class="cl-stat-label">{{ t('result_filename_label') }}</span>
                 </div>
 
                 <div class="cl-card-stat cl-lift-on-hover">
                     <span class="material-symbols-outlined cl-icon-md cl-stat-icon">verified</span>
                     <span class="cl-stat-value" style="font-size:16px; background:none; -webkit-text-fill-color:initial; color:var(--color-success);">
-                        {% if result.ocr_warning %}نیاز به بررسی{% else %}مطلوب{% endif %}
+                        {% if result.ocr_warning %}{{ t('result_ocr_quality_needs_review') }}{% else %}{{ t('result_ocr_quality_good') }}{% endif %}
                     </span>
-                    <span class="cl-stat-label">کیفیت استخراج متن</span>
+                    <span class="cl-stat-label">{{ t('result_ocr_quality_label') }}</span>
                 </div>
 
                 <div class="cl-card-stat cl-lift-on-hover">
                     <span class="material-symbols-outlined cl-icon-md cl-stat-icon">bolt</span>
-                    <span class="cl-stat-value" style="font-size:16px; background:none; -webkit-text-fill-color:initial; color:var(--color-secondary);">تکمیل‌شده</span>
-                    <span class="cl-stat-label">وضعیت پردازش</span>
+                    <span class="cl-stat-value" style="font-size:16px; background:none; -webkit-text-fill-color:initial; color:var(--color-secondary);">{{ t('result_process_status_done') }}</span>
+                    <span class="cl-stat-label">{{ t('result_process_status_label') }}</span>
                 </div>
 
             </div>
@@ -156,7 +153,7 @@
 
         {% if result.symptoms %}
         <div class="cl-card-glass cl-reveal" style="margin-bottom:24px;">
-            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">edit_note</span> شرح علائم و سابقه‌ی وارد‌شده توسط شما</h2>
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">edit_note</span> {{ t('result_symptoms_title') }}</h2>
             <p style="margin:0; line-height:2; color:var(--color-text-primary);">{{ result.symptoms }}</p>
         </div>
         {% endif %}
@@ -165,7 +162,7 @@
         <div class="cl-ai-summary-card cl-reveal" id="cl-ai-summary-card">
             <h2 class="cl-block-title">
                 <span class="cl-ai-summary-badge"><span class="material-symbols-outlined">auto_awesome</span></span>
-                خلاصه‌ی هوش مصنوعی
+                {{ t('result_ai_summary_title') }}
             </h2>
             <div id="cl-ai-summary-content" class="cl-ai-summary-body"></div>
         </div>
@@ -177,14 +174,14 @@
 
         <!-- ===== AI Insights (auto-built from the remaining sections of the same analysis) ===== -->
         <div id="cl-ai-insights-section" class="cl-insights-section" style="display:none;">
-            <h2 class="cl-block-title cl-reveal"><span class="material-symbols-outlined cl-icon-md">psychology</span> یافته‌ها و توصیه‌های هوش مصنوعی</h2>
+            <h2 class="cl-block-title cl-reveal"><span class="material-symbols-outlined cl-icon-md">psychology</span> {{ t('result_ai_insights_title') }}</h2>
             <div class="cl-insights-grid" id="cl-ai-insights-grid"></div>
         </div>
 
         <!-- ===== Lab Parameters ===== -->
         {% if organ_groups %}
         <div class="cl-params-section">
-            <h2 class="cl-block-title cl-reveal"><span class="material-symbols-outlined cl-icon-md">biotech</span> مقادیر آزمایش به تفکیک ارگان</h2>
+            <h2 class="cl-block-title cl-reveal"><span class="material-symbols-outlined cl-icon-md">biotech</span> {{ t('result_params_title') }}</h2>
 
             {% for group in organ_groups %}
             <div class="cl-organ-block cl-reveal">
@@ -206,11 +203,11 @@
                         <div class="cl-param-head">
                             <span class="cl-param-name">{{ item.name }}</span>
                             {% if item.status == 'normal' %}
-                            <span class="cl-badge cl-badge-success">طبیعی</span>
+                            <span class="cl-badge cl-badge-success">{{ t('result_badge_normal') }}</span>
                             {% elif is_severe %}
-                            <span class="cl-badge cl-badge-danger">{{ item.status_label }} — قابل‌توجه</span>
+                            <span class="cl-badge cl-badge-danger">{{ item.status_label }} {{ t('result_badge_severe_suffix') }}</span>
                             {% elif is_mild %}
-                            <span class="cl-badge cl-badge-warning">{{ item.status_label }} — خفیف</span>
+                            <span class="cl-badge cl-badge-warning">{{ item.status_label }} {{ t('result_badge_mild_suffix') }}</span>
                             {% else %}
                             <span class="cl-badge cl-badge-info">{{ item.status_label }}</span>
                             {% endif %}
@@ -235,12 +232,12 @@
                             </div>
                             <div class="cl-param-range-labels">
                                 <span>{{ item.bar.range_min_label }}</span>
-                                <span class="cl-text-muted">بازه مرجع</span>
+                                <span class="cl-text-muted">{{ t('result_reference_range_label') }}</span>
                                 <span>{{ item.bar.range_max_label }}</span>
                             </div>
                         </div>
                         {% else %}
-                        <p class="cl-param-range-plain">بازه مرجع: {{ item.reference_range }}</p>
+                        <p class="cl-param-range-plain">{{ t('result_reference_range_plain', range=item.reference_range) }}</p>
                         {% endif %}
 
                     </div>
@@ -254,20 +251,20 @@
         <!-- ===== Doctor review ===== -->
         {% if record_id %}
         <div class="cl-card-glass cl-reveal" style="margin-bottom:28px;">
-            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">medical_services</span> بررسی توسط پزشک</h2>
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">medical_services</span> {{ t('result_doctor_review_title') }}</h2>
 
             {% if result.review_status == 'reviewed' %}
-            <p class="cl-badge cl-badge-success" style="margin-bottom:14px;">این گزارش توسط پزشک بررسی شده است</p>
+            <p class="cl-badge cl-badge-success" style="margin-bottom:14px;">{{ t('result_doctor_reviewed_badge') }}</p>
             <div style="white-space:pre-wrap; line-height:2; color:var(--color-text-primary);">{{ result.doctor_opinion_text }}</div>
 
             {% elif result.review_status == 'awaiting_doctor' %}
-            <p class="cl-badge cl-badge-info">در انتظار بررسی پزشک</p>
+            <p class="cl-badge cl-badge-info">{{ t('result_doctor_awaiting_badge') }}</p>
 
             {% else %}
-            <p style="margin:0 0 16px; color:var(--color-text-secondary);">می‌توانید این گزارش را برای بررسی توسط یک پزشک متخصص ارسال کنید.</p>
+            <p style="margin:0 0 16px; color:var(--color-text-secondary);">{{ t('result_doctor_request_desc') }}</p>
             <form method="post" action="/history/{{ record_id }}/request-review">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <button type="submit" class="cl-btn cl-btn-primary">درخواست بررسی توسط پزشک</button>
+                <button type="submit" class="cl-btn cl-btn-primary">{{ t('result_doctor_request_btn') }}</button>
             </form>
             {% endif %}
         </div>
@@ -275,51 +272,51 @@
 
         <!-- ===== Next Actions ===== -->
         <div class="cl-next-actions-section cl-reveal">
-            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">task_alt</span> گام‌های بعدی پیشنهادی</h2>
+            <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">task_alt</span> {{ t('result_next_actions_title') }}</h2>
 
             <div class="cl-grid-3">
 
                 <a href="#chat-box" class="cl-action-card cl-card-interactive">
                     <span class="cl-action-icon"><span class="material-symbols-outlined">forum</span></span>
-                    <strong>پرسش از دستیار AI</strong>
-                    <span>سوال خود را درباره‌ی این گزارش بپرسید</span>
+                    <strong>{{ t('result_action_chat_title') }}</strong>
+                    <span>{{ t('result_action_chat_desc') }}</span>
                 </a>
 
                 <a href="/diet" class="cl-action-card cl-card-interactive">
                     <span class="cl-action-icon"><span class="material-symbols-outlined">nutrition</span></span>
-                    <strong>برنامه غذایی متناسب</strong>
-                    <span>بر اساس همین نتایج، رژیم شخصی‌سازی‌شده بگیرید</span>
+                    <strong>{{ t('result_action_diet_title') }}</strong>
+                    <span>{{ t('result_action_diet_desc') }}</span>
                 </a>
 
                 <a href="/workout" class="cl-action-card cl-card-interactive">
                     <span class="cl-action-icon"><span class="material-symbols-outlined">fitness_center</span></span>
-                    <strong>برنامه ورزشی متناسب</strong>
-                    <span>برنامه‌ی تمرینی هماهنگ با وضعیت سلامتی</span>
+                    <strong>{{ t('result_action_workout_title') }}</strong>
+                    <span>{{ t('result_action_workout_desc') }}</span>
                 </a>
 
                 <a href="/visit-prep" class="cl-action-card cl-card-interactive">
                     <span class="cl-action-icon"><span class="material-symbols-outlined">assignment</span></span>
-                    <strong>آماده‌سازی ویزیت پزشک</strong>
-                    <span>خلاصه‌ای آماده برای مراجعه‌ی حضوری</span>
+                    <strong>{{ t('result_action_visit_title') }}</strong>
+                    <span>{{ t('result_action_visit_desc') }}</span>
                 </a>
 
                 <a href="/trends" class="cl-action-card cl-card-interactive">
                     <span class="cl-action-icon"><span class="material-symbols-outlined">trending_up</span></span>
-                    <strong>پیگیری روند</strong>
-                    <span>مقایسه‌ی این نتایج با آزمایش‌های بعدی</span>
+                    <strong>{{ t('result_action_trends_title') }}</strong>
+                    <span>{{ t('result_action_trends_desc') }}</span>
                 </a>
 
                 <a href="/history" class="cl-action-card cl-card-interactive">
                     <span class="cl-action-icon"><span class="material-symbols-outlined">folder_shared</span></span>
-                    <strong>تاریخچه‌ی کامل</strong>
-                    <span>مشاهده‌ی همه‌ی تحلیل‌های قبلی</span>
+                    <strong>{{ t('result_action_history_title') }}</strong>
+                    <span>{{ t('result_action_history_desc') }}</span>
                 </a>
 
             </div>
         </div>
 
         <details class="ocr-details cl-reveal" style="margin-top:24px;">
-            <summary>مشاهده متن خام استخراج‌شده (OCR)</summary>
+            <summary>{{ t('result_ocr_toggle') }}</summary>
             <pre>{{ result.ocr }}</pre>
         </details>
 
@@ -330,11 +327,11 @@
                     <div class="cl-ai-doctor-header-info">
                         <span class="cl-ai-doctor-avatar"><span class="material-symbols-outlined">stethoscope</span></span>
                         <div>
-                            <strong>دستیار پزشکی CuraLink</strong>
-                            <small>پرسش و پاسخ درباره‌ی همین گزارش</small>
+                            <strong>{{ t('result_chat_title') }}</strong>
+                            <small>{{ t('result_chat_subtitle') }}</small>
                         </div>
                     </div>
-                    <button type="button" class="cl-ai-context-toggle" aria-label="نمایش اطلاعات زمینه‌ای">
+                    <button type="button" class="cl-ai-context-toggle" aria-label="{{ t('result_chat_context_toggle_aria') }}">
                         <span class="material-symbols-outlined">info</span>
                     </button>
                 </div>
@@ -342,33 +339,33 @@
                 <div class="cl-ai-doctor-messages" id="chat-messages">
                     <div class="cl-ai-welcome" id="chat-empty">
                         <div class="cl-ai-welcome-icon"><span class="material-symbols-outlined">health_and_safety</span></div>
-                        <h3>چه چیزی می‌خواهید بدانید؟</h3>
-                        <p>می‌توانید درباره‌ی مقادیر این گزارش، معنای پزشکی آن‌ها، یا نکات پیگیری سوال بپرسید.</p>
+                        <h3>{{ t('result_chat_empty_title') }}</h3>
+                        <p>{{ t('result_chat_empty_desc') }}</p>
                         <div class="cl-ai-suggested-prompts">
-                            <button type="button" class="cl-prompt-chip" data-prompt="این آزمایش را برایم ساده توضیح بده">این آزمایش را ساده توضیح بده</button>
-                            <button type="button" class="cl-prompt-chip" data-prompt="کدام مقادیر غیرطبیعی هستند و چرا؟">کدام مقادیر غیرطبیعی‌اند؟</button>
-                            <button type="button" class="cl-prompt-chip" data-prompt="آیا باید به پزشک مراجعه کنم؟">آیا باید به پزشک مراجعه کنم؟</button>
-                            <button type="button" class="cl-prompt-chip" data-prompt="چه تغییری در سبک زندگی توصیه می‌شود؟">توصیه‌ی سبک زندگی</button>
+                            <button type="button" class="cl-prompt-chip" data-prompt="{{ t('result_chat_prompt1_full') }}">{{ t('result_chat_prompt1_label') }}</button>
+                            <button type="button" class="cl-prompt-chip" data-prompt="{{ t('result_chat_prompt2_full') }}">{{ t('result_chat_prompt2_label') }}</button>
+                            <button type="button" class="cl-prompt-chip" data-prompt="{{ t('result_chat_prompt3_full') }}">{{ t('result_chat_prompt3_label') }}</button>
+                            <button type="button" class="cl-prompt-chip" data-prompt="{{ t('result_chat_prompt4_full') }}">{{ t('result_chat_prompt4_label') }}</button>
                         </div>
                     </div>
                 </div>
 
                 <div class="cl-ai-doctor-composer">
                     <form>
-                        <input type="text" placeholder="مثلاً: این عدد هموگلوبین بالا چه معنی‌ای دارد؟" autocomplete="off">
-                        <button type="submit">ارسال</button>
+                        <input type="text" placeholder="{{ t('result_chat_placeholder') }}" autocomplete="off">
+                        <button type="submit">{{ t('result_chat_send') }}</button>
                     </form>
                 </div>
             </div>
 
             <aside class="cl-ai-doctor-context">
-                <button type="button" class="cl-ai-context-close" aria-label="بستن">
+                <button type="button" class="cl-ai-context-close" aria-label="{{ t('result_chat_context_close_aria') }}">
                     <span class="material-symbols-outlined">close</span>
                 </button>
 
                 {% if organ_groups %}
                 <div class="cl-context-card">
-                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">monitor_heart</span> وضعیت این گزارش</h4>
+                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">monitor_heart</span> {{ t('result_context_status_title') }}</h4>
                     {% set cctx = namespace(total=0, abnormal=0) %}
                     {% for group in organ_groups %}{% for item in group['items'] %}
                         {% set cctx.total = cctx.total + 1 %}
@@ -376,24 +373,24 @@
                     {% endfor %}{% endfor %}
                     <div class="cl-context-mini-score">
                         <span class="cl-context-mini-score-ring" style="background:{% if cctx.abnormal == 0 %}var(--color-success){% elif cctx.abnormal <= 2 %}var(--color-warning){% else %}var(--color-danger){% endif %};">{{ cctx.total - cctx.abnormal }}/{{ cctx.total }}</span>
-                        <span class="cl-text-caption">پارامتر در محدوده‌ی طبیعی</span>
+                        <span class="cl-text-caption">{{ t('result_context_status_caption') }}</span>
                     </div>
                 </div>
                 {% endif %}
 
                 <div class="cl-context-card">
-                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">psychology_alt</span> آنچه دستیار می‌داند</h4>
+                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">psychology_alt</span> {{ t('result_context_known_title') }}</h4>
                     <div class="cl-context-fact-row">
-                        <span class="cl-context-fact-label">نوع آزمایش</span>
+                        <span class="cl-context-fact-label">{{ t('result_context_exam_type_label') }}</span>
                         <span class="cl-context-fact-value">{{ result.exam_type }}</span>
                     </div>
                     <div class="cl-context-fact-row">
-                        <span class="cl-context-fact-label">علائم ثبت‌شده</span>
-                        <span class="cl-context-fact-value">{% if result.symptoms %}دارد{% else %}ندارد{% endif %}</span>
+                        <span class="cl-context-fact-label">{{ t('result_context_symptoms_label') }}</span>
+                        <span class="cl-context-fact-value">{% if result.symptoms %}{{ t('result_context_has') }}{% else %}{{ t('result_context_none') }}{% endif %}</span>
                     </div>
                     {% if organ_groups %}
                     <div class="cl-context-fact-row">
-                        <span class="cl-context-fact-label">موارد نیازمند توجه</span>
+                        <span class="cl-context-fact-label">{{ t('result_context_attention_label') }}</span>
                         <span class="cl-context-fact-value">{{ cctx.abnormal }}</span>
                     </div>
                     {% endif %}
@@ -402,7 +399,7 @@
                 {% if organ_groups %}
                 <div class="cl-context-card cl-context-reference">
                     <details>
-                        <summary class="cl-context-card-title"><span class="material-symbols-outlined">library_books</span> بازه‌های مرجع این گزارش</summary>
+                        <summary class="cl-context-card-title"><span class="material-symbols-outlined">library_books</span> {{ t('result_context_reference_toggle') }}</summary>
                         <div style="margin-top:10px;">
                             {% for group in organ_groups %}{% for item in group['items'] %}
                             <div class="cl-context-reference-row">
@@ -416,12 +413,12 @@
                 {% endif %}
 
                 <div class="cl-context-card">
-                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">bolt</span> اقدامات سریع</h4>
+                    <h4 class="cl-context-card-title"><span class="material-symbols-outlined">bolt</span> {{ t('result_context_quick_actions') }}</h4>
                     <div class="cl-context-actions">
-                        <a href="/diet" class="cl-context-action-link"><span class="material-symbols-outlined">nutrition</span> برنامه غذایی متناسب</a>
-                        <a href="/workout" class="cl-context-action-link"><span class="material-symbols-outlined">fitness_center</span> برنامه ورزشی متناسب</a>
-                        <a href="/visit-prep" class="cl-context-action-link"><span class="material-symbols-outlined">assignment</span> آماده‌سازی ویزیت</a>
-                        <a href="/history" class="cl-context-action-link"><span class="material-symbols-outlined">folder_shared</span> تاریخچه‌ی کامل</a>
+                        <a href="/diet" class="cl-context-action-link"><span class="material-symbols-outlined">nutrition</span> {{ t('result_action_diet_title') }}</a>
+                        <a href="/workout" class="cl-context-action-link"><span class="material-symbols-outlined">fitness_center</span> {{ t('result_action_workout_title') }}</a>
+                        <a href="/visit-prep" class="cl-context-action-link"><span class="material-symbols-outlined">assignment</span> {{ t('result_action_visit_title') }}</a>
+                        <a href="/history" class="cl-context-action-link"><span class="material-symbols-outlined">folder_shared</span> {{ t('result_action_history_title') }}</a>
                     </div>
                 </div>
             </aside>
@@ -435,35 +432,35 @@
                 {% if job_id %}
                 <a href="/result/{{ job_id }}/pdf" target="_blank" class="cl-download-card cl-card-interactive">
                     <span class="material-symbols-outlined cl-icon-lg">picture_as_pdf</span>
-                    <strong>دانلود PDF</strong>
+                    <strong>{{ t('result_download_pdf') }}</strong>
                 </a>
                 {% elif record_id %}
                 <a href="/history/{{ record_id }}/pdf" target="_blank" class="cl-download-card cl-card-interactive">
                     <span class="material-symbols-outlined cl-icon-lg">picture_as_pdf</span>
-                    <strong>دانلود PDF</strong>
+                    <strong>{{ t('result_download_pdf') }}</strong>
                 </a>
                 {% endif %}
 
                 <button type="button" class="cl-download-card cl-card-interactive" id="cl-print-btn">
                     <span class="material-symbols-outlined cl-icon-lg">print</span>
-                    <strong>چاپ گزارش</strong>
+                    <strong>{{ t('result_print_report') }}</strong>
                 </button>
 
                 <button type="button" class="cl-download-card cl-card-interactive" id="cl-share-btn">
                     <span class="material-symbols-outlined cl-icon-lg">ios_share</span>
-                    <strong>اشتراک‌گذاری لینک</strong>
+                    <strong>{{ t('result_share_link') }}</strong>
                 </button>
 
                 <a href="/history" class="cl-download-card cl-card-interactive">
                     <span class="material-symbols-outlined cl-icon-lg">folder_shared</span>
-                    <strong>تاریخچه گزارش‌ها</strong>
+                    <strong>{{ t('result_history_link') }}</strong>
                 </a>
 
             </div>
         </div>
 
         <div class="result-actions">
-            <a href="/" class="btn btn-solid">تحلیل آزمایش جدید</a>
+            <a href="/" class="btn btn-solid">{{ t('result_new_analysis_btn') }}</a>
         </div>
 
     </div>
@@ -474,6 +471,12 @@
 {% block scripts %}
 <script>
 (function () {
+
+    var I18N = {
+        shareTitle: {{ t('result_share_dialog_title') | tojson }},
+        shareCopied: {{ t('result_share_link_copied') | tojson }},
+        shareLinkLabel: {{ t('result_share_link') | tojson }}
+    };
 
     /* ===== Scroll reveal (same pattern as landing page) ===== */
     function initReveal(){
@@ -510,13 +513,14 @@
             var target = parseInt(scoreNumberEl.getAttribute('data-count-to'), 10) || 0;
             var start = null;
             var duration = 1100;
+            var locale = "{{ 'fa-IR' if current_lang() == 'fa' else 'en-US' }}";
             function step(ts){
                 if (!start) start = ts;
                 var progress = Math.min((ts - start) / duration, 1);
                 var eased = 1 - Math.pow(1 - progress, 3);
-                scoreNumberEl.textContent = Math.floor(eased * target).toLocaleString('fa-IR');
+                scoreNumberEl.textContent = Math.floor(eased * target).toLocaleString(locale);
                 if (progress < 1) requestAnimationFrame(step);
-                else scoreNumberEl.textContent = target.toLocaleString('fa-IR');
+                else scoreNumberEl.textContent = target.toLocaleString(locale);
             }
             requestAnimationFrame(step);
         }
@@ -540,7 +544,11 @@
     /* ===== Restructure the AI narrative into a Summary card + Insight cards.
        This ONLY reorganizes the exact HTML CuraLink's AI already returned
        (result.analysis_html rendered inside #cl-ai-raw-content) — no new
-       data is invented, no backend call is made. ===== */
+       data is invented, no backend call is made. Note: the AI's own
+       narrative text (section headings) is always Persian regardless of
+       UI language, since AI-generated report content is not translated,
+       so the heading-matching heuristics below intentionally match
+       Persian keywords. ===== */
     (function buildAISections(){
         var raw = document.getElementById('cl-ai-raw-content');
         var summaryCard = document.getElementById('cl-ai-summary-card');
@@ -631,13 +639,13 @@
         shareBtn.addEventListener('click', async function(){
             var url = window.location.href;
             if (navigator.share) {
-                try { await navigator.share({ title: 'گزارش تحلیل CuraLink', url: url }); }
+                try { await navigator.share({ title: I18N.shareTitle, url: url }); }
                 catch (e) { /* user cancelled — no-op */ }
             } else if (navigator.clipboard) {
                 try {
                     await navigator.clipboard.writeText(url);
-                    shareBtn.querySelector('strong').textContent = 'لینک کپی شد!';
-                    setTimeout(function(){ shareBtn.querySelector('strong').textContent = 'اشتراک‌گذاری لینک'; }, 2000);
+                    shareBtn.querySelector('strong').textContent = I18N.shareCopied;
+                    setTimeout(function(){ shareBtn.querySelector('strong').textContent = I18N.shareLinkLabel; }, 2000);
                 } catch (e) { /* clipboard unavailable — no-op */ }
             }
         });

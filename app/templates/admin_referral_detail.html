@@ -1,6 +1,9 @@
+<!-- app/templates/admin_referral_detail.html -->
 {% extends "base.html" %}
 
-{% block title %}تراکنش‌های {{ org.organization_profile.org_name if org.organization_profile else org.display_name }} | CuraLink AI{% endblock %}
+{% set admin_ref_org_name = org.organization_profile.org_name if org.organization_profile else org.display_name %}
+
+{% block title %}{{ t('admin_ref_detail_title', org=admin_ref_org_name) }} | CuraLink AI{% endblock %}
 
 {% block content %}
 
@@ -10,43 +13,40 @@
         <div class="result-actions" style="margin:0 0 20px; text-align:right;">
             <a href="/admin/referrals" class="btn btn-outline">
                 <span class="material-symbols-outlined" style="font-size:18px;">arrow_forward</span>
-                بازگشت به فهرست سازمان‌ها
+                {{ t('admin_ref_detail_back') }}
             </a>
         </div>
 
         <div class="cl-profile-header">
             <div class="cl-profile-avatar">{{ (org.display_name or "?")[0] }}</div>
             <div>
-                <h1>حساب و تراکنش معرفی‌شدگان</h1>
-                <p>
-                    بیمارانی که با معرفی «{{ org.organization_profile.org_name if org.organization_profile else org.display_name }}»
-                    ثبت‌نام کرده‌اند و مبلغ پرداختی آن‌ها
-                </p>
+                <h1>{{ t('admin_ref_detail_heading') }}</h1>
+                <p>{{ t('admin_ref_detail_subtitle', org=admin_ref_org_name) }}</p>
             </div>
         </div>
 
         <div class="cl-profile-card" style="margin-bottom:24px;">
-            <h3 class="cl-profile-card-title">اطلاعات سازمان</h3>
+            <h3 class="cl-profile-card-title">{{ t('admin_ref_detail_org_info_title') }}</h3>
             <div class="cl-info-row">
-                <span class="cl-info-label">نام مسئول / مدیر</span>
+                <span class="cl-info-label">{{ t('admin_ref_detail_manager_label') }}</span>
                 <span class="cl-info-value">{{ org.display_name }}</span>
             </div>
             <div class="cl-info-row">
-                <span class="cl-info-label">ایمیل</span>
+                <span class="cl-info-label">{{ t('admin_ref_detail_email_label') }}</span>
                 <span class="cl-info-value">{{ org.email }}</span>
             </div>
             <div class="cl-info-row">
-                <span class="cl-info-label">شماره موبایل</span>
+                <span class="cl-info-label">{{ t('admin_ref_detail_phone_label') }}</span>
                 <span class="cl-info-value">{{ org.phone }}</span>
             </div>
             {% if org.organization_profile %}
             <div class="cl-info-row">
-                <span class="cl-info-label">نوع سازمان</span>
+                <span class="cl-info-label">{{ t('admin_ref_detail_org_type_label') }}</span>
                 <span class="cl-info-value">
-                    {% if org.organization_profile.org_type == 'lab' %}آزمایشگاه
-                    {% elif org.organization_profile.org_type == 'hospital' %}بیمارستان
-                    {% elif org.organization_profile.org_type == 'clinic' %}مطب / کلینیک
-                    {% else %}سایر
+                    {% if org.organization_profile.org_type == 'lab' %}{{ t('admin_ref_list_type_lab') }}
+                    {% elif org.organization_profile.org_type == 'hospital' %}{{ t('admin_ref_list_type_hospital') }}
+                    {% elif org.organization_profile.org_type == 'clinic' %}{{ t('admin_ref_list_type_clinic') }}
+                    {% else %}{{ t('admin_ref_detail_org_type_other') }}
                     {% endif %}
                 </span>
             </div>
@@ -58,37 +58,37 @@
             <div class="service-card">
                 <span class="service-icon"><span class="material-symbols-outlined">diversity_3</span></span>
                 <h3>{{ total_referred_count }}</h3>
-                <p>نفر معرفی‌شده</p>
+                <p>{{ t('admin_ref_detail_stat_referred') }}</p>
             </div>
 
             <div class="service-card">
                 <span class="service-icon"><span class="material-symbols-outlined">payments</span></span>
-                <h3>{{ "{:,}".format(total_paid) }} تومان</h3>
-                <p>مجموع پرداخت‌های موفق معرفی‌شدگان (کل دوره)</p>
+                <h3>{{ "{:,}".format(total_paid) }} {{ t('currency_toman') }}</h3>
+                <p>{{ t('admin_ref_detail_stat_total_paid') }}</p>
             </div>
 
             <div class="service-card">
                 <span class="service-icon"><span class="material-symbols-outlined">receipt_long</span></span>
                 <h3>{{ transactions|length }}</h3>
-                <p>تراکنش موفق ثبت‌شده</p>
+                <p>{{ t('admin_ref_detail_stat_transactions') }}</p>
             </div>
 
         </div>
 
         <div class="cl-profile-card" style="margin-bottom:24px;">
-            <h3 class="cl-profile-card-title">مجموع پرداختی ماهانه (برای محاسبه بونوس دعوت)</h3>
+            <h3 class="cl-profile-card-title">{{ t('admin_ref_detail_monthly_title') }}</h3>
 
             {% if monthly_totals|length == 0 %}
-            <p class="cl-profile-card-sub">هنوز تراکنش موفقی از معرفی‌شدگان این سازمان ثبت نشده است.</p>
+            <p class="cl-profile-card-sub">{{ t('admin_ref_detail_monthly_empty') }}</p>
             {% else %}
             <div class="cl-history-list">
                 {% for row in monthly_totals %}
                 <div class="cl-history-item">
                     <div class="cl-history-item-main">
                         <span class="cl-history-badge">{{ row.label }}</span>
-                        <span class="cl-history-filename">{{ row.count }} تراکنش</span>
+                        <span class="cl-history-filename">{{ t('admin_ref_detail_monthly_txn_count', n=row.count) }}</span>
                     </div>
-                    <span class="cl-history-date">{{ "{:,}".format(row.total) }} تومان</span>
+                    <span class="cl-history-date">{{ "{:,}".format(row.total) }} {{ t('currency_toman') }}</span>
                 </div>
                 {% endfor %}
             </div>
@@ -96,10 +96,10 @@
         </div>
 
         <div class="cl-profile-card" style="margin-bottom:24px;">
-            <h3 class="cl-profile-card-title">بیماران معرفی‌شده</h3>
+            <h3 class="cl-profile-card-title">{{ t('admin_ref_detail_referred_users_title') }}</h3>
 
             {% if referred_users|length == 0 %}
-            <p class="cl-profile-card-sub">هنوز هیچ بیماری با معرفی این سازمان ثبت‌نام نکرده است.</p>
+            <p class="cl-profile-card-sub">{{ t('admin_ref_detail_referred_users_empty') }}</p>
             {% else %}
             <div class="cl-history-list">
                 {% for person in referred_users %}
@@ -116,29 +116,29 @@
         </div>
 
         <div class="cl-profile-card">
-            <h3 class="cl-profile-card-title">جزئیات تراکنش‌های معرفی‌شدگان</h3>
+            <h3 class="cl-profile-card-title">{{ t('admin_ref_detail_transactions_title') }}</h3>
 
             {% if transactions|length == 0 %}
-            <p class="cl-profile-card-sub">هنوز تراکنش موفقی ثبت نشده است.</p>
+            <p class="cl-profile-card-sub">{{ t('admin_ref_detail_transactions_empty') }}</p>
             {% else %}
             <div class="cl-history-list">
                 {% for payment in transactions %}
                 <div class="cl-history-item">
                     <div class="cl-history-item-main">
                         <span class="cl-history-badge">
-                            {% if payment.purpose == 'exam_analysis' %}تحلیل آزمایش
-                            {% elif payment.purpose == 'diet_plan' %}برنامه غذایی
-                            {% elif payment.purpose == 'workout_plan' %}برنامه ورزشی
-                            {% elif payment.purpose == 'visit_prep' %}آماده‌سازی ویزیت
-                            {% elif payment.purpose == 'subscription' %}اشتراک
+                            {% if payment.purpose == 'exam_analysis' %}{{ t('admin_ref_detail_purpose_exam') }}
+                            {% elif payment.purpose == 'diet_plan' %}{{ t('admin_ref_detail_purpose_diet') }}
+                            {% elif payment.purpose == 'workout_plan' %}{{ t('admin_ref_detail_purpose_workout') }}
+                            {% elif payment.purpose == 'visit_prep' %}{{ t('admin_ref_detail_purpose_visit') }}
+                            {% elif payment.purpose == 'subscription' %}{{ t('admin_ref_detail_purpose_subscription') }}
                             {% else %}{{ payment.purpose }}
                             {% endif %}
                         </span>
-                        <span class="cl-history-filename">کاربر #{{ payment.user_id }}</span>
+                        <span class="cl-history-filename">{{ t('admin_ref_detail_user_label', id=payment.user_id) }}</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:14px;">
                         <span class="cl-history-date">{{ payment.paid_at.strftime("%Y-%m-%d") if payment.paid_at else "" }}</span>
-                        <span class="cl-value-mono">{{ "{:,}".format(payment.amount) }} تومان</span>
+                        <span class="cl-value-mono">{{ "{:,}".format(payment.amount) }} {{ t('currency_toman') }}</span>
                     </div>
                 </div>
                 {% endfor %}
