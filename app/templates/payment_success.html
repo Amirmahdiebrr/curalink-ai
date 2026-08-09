@@ -1,23 +1,24 @@
+<!-- app/templates/payment_success.html -->
 {% extends "base.html" %}
 
-{% block title %}پرداخت موفق | CuraLink AI{% endblock %}
+{% block title %}{{ t('payment_success_title') }} | CuraLink AI{% endblock %}
 
 {% block content %}
 
 <div class="container py-5 text-center">
 
-    <i class="fa-solid fa-circle-check" style="font-size:44px;color:var(--accent);"></i>
+    <span class="material-symbols-outlined" style="font-size:44px;color:var(--accent);">check_circle</span>
 
-    <h2 class="mt-4">پرداخت با موفقیت انجام شد</h2>
+    <h2 class="mt-4">{{ t('payment_success_heading') }}</h2>
 
     <p>
-        مبلغ {{ "{:,}".format(payment.amount) }} تومان با موفقیت پرداخت شد.
+        {{ t('payment_success_amount_text', amount="{:,}".format(payment.amount)) }}
         {% if payment.zarinpal_ref_id %}
-        <br>کد پیگیری: {{ payment.zarinpal_ref_id }}
+        <br>{{ t('payment_success_ref_id_label') }}: {{ payment.zarinpal_ref_id }}
         {% endif %}
     </p>
 
-    <a href="/" class="btn btn-primary">بازگشت به خانه</a>
+    <a href="/" class="btn btn-solid">{{ t('payment_success_back_home') }}</a>
 
 </div>
 

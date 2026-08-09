@@ -674,4 +674,51 @@ FA_TRANSLATIONS = {
     "profile_danger_confirm_password_label": "رمز عبور برای تایید",
     "profile_danger_delete_btn": "حذف حساب کاربری من",
     "profile_danger_confirm_dialog": "آیا مطمئن هستید؟ این عملیات غیرقابل بازگشت است.",
+
+    # ===== Generic error page =====
+    "error_page_heading": "خطایی رخ داده است",
+    "error_page_back_btn": "بازگشت",
+
+    # ===== Verify email page =====
+    "verify_email_title": "تایید ایمیل",
+    "verify_email_user_not_found": "کاربر پیدا نشد.",
+    "verify_email_already_verified": "ایمیل شما قبلاً تایید شده است.",
+    "verify_email_success": "ایمیل شما با موفقیت تایید شد.",
+    "verify_email_invalid": "لینک تایید نامعتبر یا منقضی شده است.",
+    "verify_email_back_home": "بازگشت به خانه",
+
+    # ===== Verify phone page =====
+    "verify_phone_title": "تایید شماره موبایل",
+    "verify_phone_send_desc": "برای دریافت کد تایید روی دکمه زیر بزنید.",
+    "verify_phone_send_btn": "ارسال کد تایید",
+    "verify_phone_code_desc": "کد ۶ رقمی ارسال‌شده به {phone} را وارد کنید.",
+    "verify_phone_code_label": "کد تایید",
+    "verify_phone_confirm_btn": "تایید کد",
+    "verify_phone_resend_btn": "ارسال مجدد کد",
+
+    # ===== Forgot password page =====
+    "forgot_password_title": "فراموشی رمز عبور",
+    "forgot_password_heading": "بازیابی رمز عبور",
+    "forgot_password_desc": "ایمیل حساب کاربری خود را وارد کنید تا لینک بازیابی رمز عبور برایتان ارسال شود.",
+    "forgot_password_page_heading": "فراموشی رمز عبور",
+    "forgot_password_sent_msg": "در صورتی که این ایمیل در سیستم ثبت شده باشد، لینک بازیابی رمز عبور برایش ارسال شد.",
+    "forgot_password_submit": "ارسال لینک بازیابی",
+    "forgot_password_back_to_login": "بازگشت به صفحه ورود",
+
+    # ===== Reset password page =====
+    "reset_password_title": "تنظیم رمز عبور جدید",
+    "reset_password_heading": "تنظیم رمز عبور جدید",
+    "reset_password_desc": "رمز عبور جدید خود را وارد کنید.",
+    "reset_password_page_heading": "رمز عبور جدید",
+    "reset_password_new_label": "رمز عبور جدید",
+    "reset_password_new_placeholder": "حداقل ۸ کاراکتر، ترکیبی از حروف و عدد",
+    "reset_password_confirm_label": "تکرار رمز عبور جدید",
+    "reset_password_submit": "ثبت رمز عبور جدید",
+
+    # ===== Payment success page =====
+    "payment_success_title": "پرداخت موفق",
+    "payment_success_heading": "پرداخت با موفقیت انجام شد",
+    "payment_success_amount_text": "مبلغ {amount} تومان با موفقیت پرداخت شد.",
+    "payment_success_ref_id_label": "کد پیگیری",
+    "payment_success_back_home": "بازگشت به خانه",
 }

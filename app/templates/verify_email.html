@@ -1,6 +1,7 @@
+<!-- app/templates/verify_email.html -->
 {% extends "base.html" %}
 
-{% block title %}تایید ایمیل | CuraLink AI{% endblock %}
+{% block title %}{{ t('verify_email_title') }} | CuraLink AI{% endblock %}
 
 {% block content %}
 
@@ -14,7 +15,7 @@
 
     <h2 class="mt-4">{{ message }}</h2>
 
-    <a href="/" class="btn btn-solid">بازگشت به خانه</a>
+    <a href="/" class="btn btn-solid">{{ t('verify_email_back_home') }}</a>
 
 </div>
 

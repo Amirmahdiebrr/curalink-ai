@@ -1,4 +1,7 @@
+<!-- app/templates/error.html -->
 {% extends "base.html" %}
+
+{% block title %}{{ t('error_page_heading') }} | CuraLink AI{% endblock %}
 
 {% block content %}
 
@@ -8,7 +11,7 @@
 
 <h2 class="mt-4">
 
-خطایی رخ داده است
+{{ t('error_page_heading') }}
 
 </h2>
 
@@ -20,7 +23,7 @@
 
 <a href="/" class="btn btn-solid">
 
-بازگشت
+{{ t('error_page_back_btn') }}
 
 </a>
 

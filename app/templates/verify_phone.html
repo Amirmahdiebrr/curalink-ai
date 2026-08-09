@@ -1,6 +1,7 @@
+<!-- app/templates/verify_phone.html -->
 {% extends "base.html" %}
 
-{% block title %}تایید شماره موبایل | CuraLink AI{% endblock %}
+{% block title %}{{ t('verify_phone_title') }} | CuraLink AI{% endblock %}
 
 {% block content %}
 
@@ -10,7 +11,7 @@
         <div class="cl-profile-header">
             <div class="cl-profile-avatar">{{ (user.display_name or "?")[0] }}</div>
             <div>
-                <h1>تایید شماره موبایل</h1>
+                <h1>{{ t('verify_phone_title') }}</h1>
                 <p>{{ user.phone }}</p>
             </div>
         </div>
@@ -23,29 +24,29 @@
 
             {% if not sent %}
 
-            <p class="cl-profile-card-sub">برای دریافت کد تایید روی دکمه زیر بزنید.</p>
+            <p class="cl-profile-card-sub">{{ t('verify_phone_send_desc') }}</p>
 
             <form method="post" action="/verify-phone/send">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <button type="submit" class="cl-auth-submit">ارسال کد تایید</button>
+                <button type="submit" class="cl-auth-submit">{{ t('verify_phone_send_btn') }}</button>
             </form>
 
             {% else %}
 
-            <p class="cl-profile-card-sub">کد ۶ رقمی ارسال‌شده به {{ user.phone }} را وارد کنید.</p>
+            <p class="cl-profile-card-sub">{{ t('verify_phone_code_desc', phone=user.phone) }}</p>
 
             <form method="post" action="/verify-phone/verify" class="cl-auth-fields">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <div class="cl-field">
-                    <label for="code">کد تایید</label>
+                    <label for="code">{{ t('verify_phone_code_label') }}</label>
                     <input type="text" id="code" name="code" maxlength="6" required>
                 </div>
-                <button type="submit" class="cl-auth-submit">تایید کد</button>
+                <button type="submit" class="cl-auth-submit">{{ t('verify_phone_confirm_btn') }}</button>
             </form>
 
             <form method="post" action="/verify-phone/send" style="margin-top:14px;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                <button type="submit" class="btn btn-outline" style="width:100%;">ارسال مجدد کد</button>
+                <button type="submit" class="btn btn-outline" style="width:100%;">{{ t('verify_phone_resend_btn') }}</button>
             </form>
 
             {% endif %}

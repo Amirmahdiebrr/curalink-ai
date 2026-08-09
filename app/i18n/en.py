@@ -674,4 +674,51 @@ EN_TRANSLATIONS = {
     "profile_danger_confirm_password_label": "Password to confirm",
     "profile_danger_delete_btn": "Delete my account",
     "profile_danger_confirm_dialog": "Are you sure? This action cannot be undone.",
+
+    # ===== Generic error page =====
+    "error_page_heading": "An error occurred",
+    "error_page_back_btn": "Go back",
+
+    # ===== Verify email page =====
+    "verify_email_title": "Verify Email",
+    "verify_email_user_not_found": "User not found.",
+    "verify_email_already_verified": "Your email has already been verified.",
+    "verify_email_success": "Your email has been successfully verified.",
+    "verify_email_invalid": "The verification link is invalid or expired.",
+    "verify_email_back_home": "Back to home",
+
+    # ===== Verify phone page =====
+    "verify_phone_title": "Verify Phone Number",
+    "verify_phone_send_desc": "Click the button below to receive a verification code.",
+    "verify_phone_send_btn": "Send verification code",
+    "verify_phone_code_desc": "Enter the 6-digit code sent to {phone}.",
+    "verify_phone_code_label": "Verification code",
+    "verify_phone_confirm_btn": "Confirm code",
+    "verify_phone_resend_btn": "Resend code",
+
+    # ===== Forgot password page =====
+    "forgot_password_title": "Forgot Password",
+    "forgot_password_heading": "Password recovery",
+    "forgot_password_desc": "Enter your account email and we'll send you a password reset link.",
+    "forgot_password_page_heading": "Forgot password",
+    "forgot_password_sent_msg": "If this email is registered in our system, a password reset link has been sent to it.",
+    "forgot_password_submit": "Send reset link",
+    "forgot_password_back_to_login": "Back to sign in",
+
+    # ===== Reset password page =====
+    "reset_password_title": "Set New Password",
+    "reset_password_heading": "Set a new password",
+    "reset_password_desc": "Enter your new password.",
+    "reset_password_page_heading": "New password",
+    "reset_password_new_label": "New password",
+    "reset_password_new_placeholder": "At least 8 characters, letters and numbers",
+    "reset_password_confirm_label": "Confirm new password",
+    "reset_password_submit": "Set new password",
+
+    # ===== Payment success page =====
+    "payment_success_title": "Payment Successful",
+    "payment_success_heading": "Payment completed successfully",
+    "payment_success_amount_text": "The amount of {amount} Toman was paid successfully.",
+    "payment_success_ref_id_label": "Reference code",
+    "payment_success_back_home": "Back to home",
 }
