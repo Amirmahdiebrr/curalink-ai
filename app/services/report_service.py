@@ -158,6 +158,7 @@ class ReportService:
         logger.info(f"HAS SYMPTOMS: {bool(symptoms and symptoms.strip())}")
         logger.info("=" * 50)
 
+        requested_exam_type = exam_type if exam_type in VALID_EXAM_TYPES else None
         requested_label = EXAM_TYPE_LABELS.get(exam_type, exam_type)
 
         self._notify(on_stage, "saving")
@@ -208,14 +209,22 @@ class ReportService:
 
         ocr_warning = self._notify_ocr_failures(failed_filenames)
 
-        exam_type_mismatch = False
-        final_exam_type = exam_type
-        detected_exam_type = None
+        # ==========================
+        # تشخیص نوع آزمایش:
+        # - اگر کاربر اصلاً نوعی انتخاب نکرده (یا نامعتبر بوده)، همیشه تشخیص AI اجرا می‌شود.
+        # - اگر کاربر نوع معتبری انتخاب کرده، باز هم تشخیص AI اجرا می‌شود تا با
+        #   انتخاب کاربر مقایسه شود و در صورت اختلاف به او هشدار داده شود.
+        # ==========================
+        detected_exam_type = await self._detect_exam_type(limited_text)
 
-        if not exam_type or exam_type not in VALID_EXAM_TYPES:
-            detected_exam_type = await self._detect_exam_type(limited_text)
-            if detected_exam_type:
-                final_exam_type = detected_exam_type
+        if requested_exam_type:
+            final_exam_type = requested_exam_type
+            exam_type_mismatch = bool(
+                detected_exam_type and detected_exam_type != requested_exam_type
+            )
+        else:
+            final_exam_type = detected_exam_type or "other"
+            exam_type_mismatch = False
 
         self._notify(on_stage, "ai")
 
@@ -240,7 +249,8 @@ class ReportService:
 
         logger.info(
             f"[ReportService] Finished in {total_elapsed:.2f}s, "
-            f"structured_results: {len(structured_results)}"
+            f"structured_results: {len(structured_results)}, "
+            f"exam_type_mismatch: {exam_type_mismatch}"
         )
 
         if len(original_names) == 1:

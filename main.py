@@ -20,7 +20,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-from app.config import SESSION_SECRET_KEY, APP_BASE_URL, IS_PRODUCTION
+from app.config import SESSION_SECRET_KEY, IS_PRODUCTION
 from app.database import init_db, SessionLocal
 from app.core.limiter import limiter
 from app.core.language import LanguageMiddleware
@@ -40,13 +40,13 @@ from app.routers.reviews import router as reviews_router
 from app.routers.health_status import router as health_status_router
 from app.routers.language import router as language_router
 from app.routers.org_referrals import router as org_referrals_router
+from app.routers.admin import router as admin_router
+from app.routers.payment import router as payment_router
+from app.routers.education import router as education_router
 
 from app.services.job_store import purge_old_jobs
 from app.services import pending_action_store
 from app.services.reminder_service import ReminderService
-from app.routers.admin import router as admin_router
-
-from app.routers.payment import router as payment_router
 
 JOB_CLEANUP_INTERVAL_SECONDS = 60 * 30
 REMINDER_CHECK_INTERVAL_SECONDS = 60 * 60 * 24
@@ -79,6 +79,10 @@ app.mount(
     name="static"
 )
 
+# ==========================
+# Routers
+# ==========================
+
 app.include_router(home_router)
 app.include_router(analyze_router)
 app.include_router(auth_router)
@@ -96,7 +100,12 @@ app.include_router(reviews_router)
 app.include_router(health_status_router)
 app.include_router(language_router)
 app.include_router(org_referrals_router)
+app.include_router(education_router)
 
+
+# ==========================
+# Background tasks
+# ==========================
 
 async def _job_cleanup_loop():
     while True:
@@ -131,6 +140,11 @@ async def start_job_cleanup_task():
 @app.on_event("startup")
 async def start_reminder_check_task():
     asyncio.create_task(_reminder_check_loop())
+
+
+@app.get("/healthz")
+async def health_check():
+    return {"status": "ok"}
 
 
 logger.info("Application configured. Routes registered: %d", len(app.routes))

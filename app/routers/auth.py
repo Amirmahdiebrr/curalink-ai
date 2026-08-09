@@ -56,12 +56,51 @@ sms_service = SMSService()
 DOCTOR_DOCS_DIR = Path("uploads/doctor_docs")
 DOCTOR_DOCS_DIR.mkdir(parents=True, exist_ok=True)
 
+# مسیر فیزیکی پوشه‌ی آواتارها روی دیسک، برای حذف فایل قدیمی هنگام
+# آپلود عکس جدید. avatar_path در دیتابیس به‌صورت مسیر وب ذخیره
+# می‌شود (مثلاً "/static/avatars/xxxx.png")؛ همین‌جا آن را به مسیر
+# واقعی فایل روی دیسک ترجمه می‌کنیم.
+AVATAR_DIR = Path("app/static/avatars").resolve()
+
 
 def get_current_user(request: Request, db: Session = Depends(get_db)):
     user_id = request.session.get("user_id")
     if not user_id:
         return None
     return get_user_by_id(db, user_id)
+
+
+def _start_authenticated_session(request: Request, user_id: int) -> None:
+    """
+    قبل از ورود کاربر به سیستم، کل سشن قبلی را پاک می‌کند تا از حمله‌ی
+    Session Fixation جلوگیری شود (اگر مهاجم قبل از لاگین یک کوکی سشن
+    برای قربانی تنظیم کرده باشد، آن سشن بعد از لاگین دیگر معتبر نخواهد
+    بود چون کاملاً از نو ساخته می‌شود).
+    """
+    request.session.clear()
+    request.session["user_id"] = user_id
+
+
+def _delete_avatar_file(avatar_path: str | None) -> None:
+    """
+    فایل آواتار قبلی را از روی دیسک حذف می‌کند تا با هر آپلود جدید،
+    فایل‌های یتیم روی سرور انباشته نشوند.
+    """
+    if not avatar_path or not avatar_path.startswith("/static/avatars/"):
+        return
+
+    filename = avatar_path.rsplit("/", 1)[-1]
+    filepath = (AVATAR_DIR / filename).resolve()
+
+    if AVATAR_DIR not in filepath.parents:
+        logger.warning(f"[Auth] Refused to delete avatar outside allowed dir: {filepath}")
+        return
+
+    try:
+        if filepath.exists():
+            filepath.unlink()
+    except Exception as e:
+        logger.warning(f"[Auth] Failed to delete old avatar file {filepath}: {e}")
 
 
 def _parse_int(value):
@@ -231,13 +270,21 @@ async def register_patient_submit(
     if age_value is not None and not (0 <= age_value <= 120):
         age_value = None
 
+    height_value = _parse_int(height_cm)
+    if height_value is not None and not (0 <= height_value <= 260):
+        height_value = None
+
+    weight_value = _parse_float(weight_kg)
+    if weight_value is not None and not (0 <= weight_value <= 400):
+        weight_value = None
+
     user.age = age_value
     user.gender = gender or None
     user.province = (province or "").strip()[:100] or None
     user.city = (city or "").strip()[:100] or None
     user.referred_by_org_id = _resolve_referral_org_id(db, referred_by_org_id)
-    user.height_cm = _parse_int(height_cm)
-    user.weight_kg = _parse_float(weight_kg)
+    user.height_cm = height_value
+    user.weight_kg = weight_value
     user.blood_type = blood_type or None
     user.chronic_diseases = (chronic_diseases or "").strip()[:800] or None
     user.allergies = (allergies or "").strip()[:500] or None
@@ -253,7 +300,7 @@ async def register_patient_submit(
     except Exception as e:
         logger.error(f"[Auth] Failed to queue verification email: {e}")
 
-    request.session["user_id"] = user.id
+    _start_authenticated_session(request, user.id)
 
     return RedirectResponse(url="/billing/plans", status_code=303)
 
@@ -428,7 +475,7 @@ async def register_org_submit(
     except Exception as e:
         logger.error(f"[Auth] Failed to queue verification email (org): {e}")
 
-    request.session["user_id"] = user.id
+    _start_authenticated_session(request, user.id)
 
     return RedirectResponse(url="/billing/plans", status_code=303)
 
@@ -472,7 +519,7 @@ async def login_submit(
             {"request": request, "error": str(e), "csrf_token": new_token, "user": None}
         )
 
-    request.session["user_id"] = user.id
+    _start_authenticated_session(request, user.id)
 
     return RedirectResponse(url="/", status_code=303)
 
@@ -806,8 +853,24 @@ async def profile_update(
     user.national_id = encrypt_value(national_id.strip()) if national_id and national_id.strip() else None
     user.address = address or None
 
-    user.height_cm = _parse_int(height_cm)
-    user.weight_kg = _parse_float(weight_kg)
+    height_value = _parse_int(height_cm)
+    if height_value is not None and not (0 <= height_value <= 260):
+        return templates.TemplateResponse(
+            request,
+            "profile.html",
+            _profile_context(request, user, new_token, error="قد وارد شده معتبر نیست."),
+        )
+
+    weight_value = _parse_float(weight_kg)
+    if weight_value is not None and not (0 <= weight_value <= 400):
+        return templates.TemplateResponse(
+            request,
+            "profile.html",
+            _profile_context(request, user, new_token, error="وزن وارد شده معتبر نیست."),
+        )
+
+    user.height_cm = height_value
+    user.weight_kg = weight_value
     user.blood_type = blood_type or None
     user.chronic_diseases = (chronic_diseases or "").strip()[:800] or None
     user.allergies = (allergies or "").strip()[:500] or None
@@ -868,8 +931,10 @@ async def profile_avatar_upload(
 
     try:
         content = await avatar.read()
-        avatar_path = save_avatar(content, avatar.filename)
-        update_avatar(db, user, avatar_path)
+        new_avatar_path = save_avatar(content, avatar.filename)
+        old_avatar_path = user.avatar_path
+        update_avatar(db, user, new_avatar_path)
+        _delete_avatar_file(old_avatar_path)
     except AvatarError as e:
         logger.error(f"[Auth] Avatar upload failed: {e}")
 
@@ -972,6 +1037,7 @@ async def profile_delete_account(
         )
 
     email = user.email
+    avatar_path = user.avatar_path
 
     try:
         delete_own_account(db, user, current_password)
@@ -980,6 +1046,8 @@ async def profile_delete_account(
             request, "profile.html",
             _profile_context(request, user, new_token, error=str(e))
         )
+
+    _delete_avatar_file(avatar_path)
 
     background_tasks.add_task(email_service.send_account_deleted_notice, email, False)
 
