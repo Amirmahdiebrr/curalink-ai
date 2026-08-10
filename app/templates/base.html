@@ -18,6 +18,39 @@
 
     <link rel="stylesheet" href="/static/css/style.css">
 
+    <script>
+        (function () {
+            var htmlEl = document.documentElement;
+            var FALLBACK_TIMEOUT_MS = 2500;
+            var settled = false;
+
+            function markLoaded() {
+                if (settled) return;
+                settled = true;
+                htmlEl.classList.add("cl-icons-loaded");
+            }
+            function markFailed() {
+                if (settled) return;
+                settled = true;
+                htmlEl.classList.add("cl-icons-unavailable");
+            }
+
+            if (window.document.fonts && window.document.fonts.load) {
+                document.fonts.load('24px "Material Symbols Outlined"').then(function () {
+                    if (document.fonts.check('24px "Material Symbols Outlined"')) {
+                        markLoaded();
+                    } else {
+                        markFailed();
+                    }
+                }).catch(markFailed);
+            }
+
+            setTimeout(function () {
+                if (!settled) markFailed();
+            }, FALLBACK_TIMEOUT_MS);
+        })();
+    </script>
+
     {% block head %}{% endblock %}
 
 </head>
@@ -164,6 +197,24 @@
 </div>
 {% endif %}
 
+                <!-- ===== Mobile-only header actions (desktop cl-header-actions
+                     is hidden under 960px, so this duplicate lives inside the
+                     hamburger menu instead) ===== -->
+                <div class="cl-header-actions-mobile" aria-hidden="false">
+                    <button type="button" class="cl-icon-btn" id="cl-search-toggle-mobile" aria-label="{{ t('search_aria') }}" title="{{ t('search_aria') }}">
+                        <span class="material-symbols-outlined">search</span>
+                    </button>
+                    {% if user %}
+                    <button type="button" class="cl-icon-btn" id="cl-notif-drawer-toggle-mobile" aria-label="{{ t('notif_aria') }}" title="{{ t('notif_aria') }}" style="position:relative;">
+                        <span class="material-symbols-outlined">notifications</span>
+                        {% if due_followups is defined and due_followups %}<span class="cl-notif-badge-unread">{{ due_followups|length }}</span>{% endif %}
+                    </button>
+                    {% endif %}
+                    <a href="/set-language/{{ 'en' if current_lang() == 'fa' else 'fa' }}" class="cl-icon-btn cl-header-lang-btn" aria-label="{{ t('lang_switch_aria') }}" title="{{ t('lang_switch_aria') }}">
+                        <span class="cl-lang-switch-link">{{ 'EN' if current_lang() == 'fa' else 'FA' }}</span>
+                    </a>
+                </div>
+
             </nav>
 
             <div class="cl-header-actions" aria-hidden="false">
@@ -207,7 +258,7 @@
             <div class="container footer-badge-inner">
                 <div class="footer-brand-block">
                     <img src="/static/images/logo.png" alt="CuraLink" class="footer-brand-logo">
-                    <div>
+                    <div dir="rtl" style="text-align:right;">
                         <strong>کیورالینک</strong>
                         <span>شرکت درمان پیوند ایرانیان</span>
                     </div>
@@ -276,7 +327,7 @@
 
                 <div class="footer-col">
                     <h5 class="footer-col-title">{{ t('footer_address_title') }}</h5>
-                    <p class="footer-address-text">
+                    <p class="footer-address-text" dir="rtl" style="text-align:right;">
                         استان آذربایجان غربی، ارومیه، گلشهر یک، کوی گلنار،
                         مجتمع گلستان یک، بلوک یاس
                     </p>
@@ -329,15 +380,21 @@
     <script>
     (function(){
         var notifToggle = document.getElementById('cl-notif-drawer-toggle');
+        var notifToggleMobile = document.getElementById('cl-notif-drawer-toggle-mobile');
         var notifOverlay = document.getElementById('cl-notif-drawer-overlay');
         var notifPanel = document.getElementById('cl-notif-drawer');
         var notifClose = document.getElementById('cl-notif-drawer-close');
 
+        function openNotif(){
+            notifOverlay.classList.add('is-open');
+            notifPanel.classList.add('is-open');
+        }
+
         if (notifToggle && notifOverlay && notifPanel) {
-            notifToggle.addEventListener('click', function(){
-                notifOverlay.classList.add('is-open');
-                notifPanel.classList.add('is-open');
-            });
+            notifToggle.addEventListener('click', openNotif);
+        }
+        if (notifToggleMobile && notifOverlay && notifPanel) {
+            notifToggleMobile.addEventListener('click', openNotif);
         }
         if (notifClose && notifOverlay && notifPanel) {
             notifClose.addEventListener('click', function(){
@@ -357,6 +414,16 @@
     </script>
     {% endif %}
 
+    <script>
+        window.CL_I18N = {
+            uploadDropzoneDefault: {{ t('upload_dropzone_text') | tojson }},
+            uploadFileSelectedCount: {{ t('upload_file_selected_count') | tojson }},
+            uploadSubmitText: {{ t('upload_submit') | tojson }},
+            uploadSubmittingText: {{ t('upload_submitting_text') | tojson }},
+            uploadCsrfError: {{ t('upload_csrf_error') | tojson }},
+            uploadGenericError: {{ t('upload_generic_error') | tojson }}
+        };
+    </script>
     <script src="/static/js/main.js"></script>
     <script>
     (function(){
@@ -428,6 +495,7 @@
         ];
 
         var toggle = document.getElementById("cl-search-toggle");
+        var toggleMobile = document.getElementById("cl-search-toggle-mobile");
         var overlay = document.getElementById("cl-search-overlay");
         var drawer = document.getElementById("cl-search-drawer");
         var closeBtn = document.getElementById("cl-search-close");
@@ -470,6 +538,7 @@
         }
 
         if (toggle) toggle.addEventListener("click", openSearch);
+        if (toggleMobile) toggleMobile.addEventListener("click", openSearch);
         if (closeBtn) closeBtn.addEventListener("click", closeSearch);
         if (overlay) overlay.addEventListener("click", function(e){ if (e.target === overlay) closeSearch(); });
         if (input) input.addEventListener("input", function(){ renderResults(input.value); });

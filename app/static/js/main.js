@@ -1,5 +1,14 @@
 document.addEventListener("DOMContentLoaded", function () {
 
+    var I18N = window.CL_I18N || {
+        uploadDropzoneDefault: "یک یا چند فایل PDF/تصویر آزمایش را انتخاب کنید",
+        uploadFileSelectedCount: "{n} فایل انتخاب شد",
+        uploadSubmitText: "شروع تحلیل با AI",
+        uploadSubmittingText: "در حال ارسال...",
+        uploadCsrfError: "خطای اعتبارسنجی امنیتی. لطفاً صفحه را رفرش کرده و دوباره تلاش کنید.",
+        uploadGenericError: "خطا در ارسال فایل. لطفاً دوباره تلاش کنید."
+    };
+
     const fileInput = document.getElementById("file");
     const fileLabel = document.getElementById("file-label");
     const dropzone = document.getElementById("dropzone");
@@ -8,7 +17,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         function updateLabel(fileList) {
             if (!fileList || fileList.length === 0) {
-                fileLabel.textContent = "یک یا چند فایل PDF/تصویر آزمایش را انتخاب کنید";
+                fileLabel.textContent = I18N.uploadDropzoneDefault;
                 return;
             }
 
@@ -17,7 +26,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
-            fileLabel.textContent = `${fileList.length} فایل انتخاب شد`;
+            fileLabel.textContent = I18N.uploadFileSelectedCount.replace("{n}", fileList.length);
         }
 
         fileInput.addEventListener("change", function () {
@@ -56,7 +65,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const submitBtn = form.querySelector("button[type='submit']");
             if (submitBtn) {
                 submitBtn.disabled = true;
-                submitBtn.textContent = "در حال ارسال...";
+                submitBtn.textContent = I18N.uploadSubmittingText;
             }
 
             try {
@@ -94,10 +103,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
 
                 if (res.status === 403) {
-                    alert("خطای اعتبارسنجی امنیتی. لطفاً صفحه را رفرش کرده و دوباره تلاش کنید.");
+                    alert(I18N.uploadCsrfError);
                     if (submitBtn) {
                         submitBtn.disabled = false;
-                        submitBtn.textContent = "شروع تحلیل با AI";
+                        submitBtn.textContent = I18N.uploadSubmitText;
                     }
                     return;
                 }
@@ -123,9 +132,9 @@ document.addEventListener("DOMContentLoaded", function () {
             } catch (err) {
                 if (submitBtn) {
                     submitBtn.disabled = false;
-                    submitBtn.textContent = "شروع تحلیل با AI";
+                    submitBtn.textContent = I18N.uploadSubmitText;
                 }
-                alert("خطا در ارسال فایل. لطفاً دوباره تلاش کنید.");
+                alert(I18N.uploadGenericError);
             }
         });
     }
