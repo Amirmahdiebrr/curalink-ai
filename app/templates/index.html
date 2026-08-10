@@ -154,7 +154,7 @@
         <div class="section-head cl-reveal"><p class="eyebrow eyebrow--teal">{{ t('testimonials_eyebrow') }}</p><h2>{{ t('testimonials_title') }}</h2></div>
         <div class="cl-testimonials-grid cl-reveal">
             {% for review in reviews %}
-            <div class="cl-testimonial-card"><p class="cl-testimonial-text">"{{ review.comment }}"</p><div class="cl-testimonial-author"><span class="cl-testimonial-avatar">{{ (review.user.display_name or "?")[0] }}</span><div><strong>{{ review.user.display_name }}</strong><small>{{ "★" * review.rating }}</small></div></div></div>
+            <div class="cl-testimonial-card"><p class="cl-testimonial-text" dir="rtl" style="text-align:right;">"{{ review.comment }}"</p><div class="cl-testimonial-author"><span class="cl-testimonial-avatar">{{ (review.user.display_name or "?")[0] }}</span><div><strong>{{ review.user.display_name }}</strong><small>{{ "★" * review.rating }}</small></div></div></div>
             {% endfor %}
         </div>
         {% if user %}

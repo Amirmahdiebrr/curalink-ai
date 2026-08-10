@@ -148,11 +148,6 @@ EN_TRANSLATIONS = {
     "upload_family_hint": "If the person isn't listed, add them first from the <a href=\"/family\">Family page</a>.",
     "upload_examtype_label": "Select the test type",
     "upload_examtype_placeholder": "— Select —",
-    "upload_file_selected_count": "{n} files selected",
-    "upload_submitting_text": "Submitting...",
-    "upload_csrf_error": "Security validation error. Please refresh the page and try again.",
-    "upload_generic_error": "Error uploading file. Please try again.",
-
     "exam_blood": "Blood test",
     "exam_urine": "Urine test",
     "exam_biochemistry": "Biochemistry",
@@ -174,6 +169,10 @@ EN_TRANSLATIONS = {
     "upload_locked_cta": "Sign in to your account",
     "upload_locked_register": "Don't have an account?",
     "upload_locked_register_link": "Sign up now",
+    "upload_file_selected_count": "{n} files selected",
+    "upload_submitting_text": "Submitting...",
+    "upload_csrf_error": "Security validation error. Please refresh the page and try again.",
+    "upload_generic_error": "Error uploading file. Please try again.",
 
     "ai_eyebrow": "CuraLink AI",
     "ai_title": "One smart pipeline, from raw file to medical advice",
@@ -727,8 +726,6 @@ EN_TRANSLATIONS = {
     "payment_success_ref_id_label": "Reference code",
     "payment_success_back_home": "Back to home",
 
-# ===== Append to app/i18n/en.py — insert before the closing "}" =====
-
     # ===== Admin dashboard =====
     "admin_dash_title": "Admin Dashboard",
     "admin_dash_subtitle": "Overview of system status",
@@ -801,8 +798,6 @@ EN_TRANSLATIONS = {
     "admin_ref_detail_purpose_subscription": "Subscription",
     "admin_ref_detail_user_label": "User #{id}",
 
-# ===== Append to app/i18n/en.py — insert before the closing "}" =====
-
     # ===== Doctor reviews queue =====
     "doc_rev_workspace_name": "Doctor Workspace",
     "doc_rev_nav_queue_title": "Review Queue",
@@ -853,6 +848,27 @@ EN_TRANSLATIONS = {
     "doc_rev_detail_opinion_placeholder": "Write your opinion, confirmation, or corrections on the AI analysis...",
     "doc_rev_detail_submit_btn": "Submit opinion and close review",
     "doc_rev_detail_back_to_queue": "Back to review queue",
+
+    # ===== Admin doctors page =====
+    "admin_doctors_title": "Approve Doctors",
+    "admin_doctors_heading": "Review & Approve Doctor Accounts",
+    "admin_doctors_count": "{n} requests awaiting review",
+    "admin_doctors_pending_title": "Pending approval requests",
+    "admin_doctors_pending_empty": "No pending requests.",
+    "admin_doctors_specialty_label": "Specialty",
+    "admin_doctors_council_label": "Medical council number",
+    "admin_doctors_clinic_label": "Clinic name",
+    "admin_doctors_view_document": "View medical license document",
+    "admin_doctors_no_document": "No document has been submitted for this doctor.",
+    "admin_doctors_approve_confirm": "Approve this doctor?",
+    "admin_doctors_approve_btn": "Approve",
+    "admin_doctors_reject_confirm": "Reject this request?",
+    "admin_doctors_reject_btn": "Reject",
+    "admin_doctors_reviewed_title": "Reviewed requests",
+    "admin_doctors_reviewed_empty": "No requests reviewed yet.",
+    "admin_doctors_status_approved": "Approved",
+    "admin_doctors_status_rejected": "Rejected",
+    "admin_doctors_view_doc_short": "Document",
 
     # ===== Education page =====
     "edu_page_title": "Health Education",
@@ -937,8 +953,6 @@ EN_TRANSLATIONS = {
     "analytics_chart_followup_active": "Active",
     "analytics_chart_followup_completed": "Completed",
 
-# ===== Append to app/i18n/en.py — insert before the closing "}" =====
-
     # ===== Result page =====
     "result_eyebrow": "AI Analysis Report",
     "result_title": "Your Test Analysis Result",
@@ -1019,24 +1033,4 @@ EN_TRANSLATIONS = {
     "result_share_dialog_title": "CuraLink Analysis Report",
     "result_history_link": "Report history",
     "result_new_analysis_btn": "Analyze a new test",
-# ===== Admin doctors page =====
-    "admin_doctors_title": "Approve Doctors",
-    "admin_doctors_heading": "Review & Approve Doctor Accounts",
-    "admin_doctors_count": "{n} requests awaiting review",
-    "admin_doctors_pending_title": "Pending approval requests",
-    "admin_doctors_pending_empty": "No pending requests.",
-    "admin_doctors_specialty_label": "Specialty",
-    "admin_doctors_council_label": "Medical council number",
-    "admin_doctors_clinic_label": "Clinic name",
-    "admin_doctors_view_document": "View medical license document",
-    "admin_doctors_no_document": "No document has been submitted for this doctor.",
-    "admin_doctors_approve_confirm": "Approve this doctor?",
-    "admin_doctors_approve_btn": "Approve",
-    "admin_doctors_reject_confirm": "Reject this request?",
-    "admin_doctors_reject_btn": "Reject",
-    "admin_doctors_reviewed_title": "Reviewed requests",
-    "admin_doctors_reviewed_empty": "No requests reviewed yet.",
-    "admin_doctors_status_approved": "Approved",
-    "admin_doctors_status_rejected": "Rejected",
-    "admin_doctors_view_doc_short": "Document",
 }
