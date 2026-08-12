@@ -89,6 +89,12 @@ INSURANCE_COLUMNS = [
     ("insurance_number", "TEXT"),
 ]
 
+UNLIMITED_ACCESS_COLUMNS = [
+    ("unlimited_access", "BOOLEAN DEFAULT 0"),
+    ("unlimited_access_granted_by", "INTEGER"),
+    ("unlimited_access_granted_at", "DATETIME"),
+]
+
 
 def _run_light_migrations():
     inspector = inspect(engine)
@@ -123,6 +129,8 @@ def _run_light_migrations():
             for column, ddl_type in REFERRAL_COLUMNS:
                 _add_column_if_missing(conn, "users", column, ddl_type)
             for column, ddl_type in INSURANCE_COLUMNS:
+                _add_column_if_missing(conn, "users", column, ddl_type)
+            for column, ddl_type in UNLIMITED_ACCESS_COLUMNS:
                 _add_column_if_missing(conn, "users", column, ddl_type)
 
     if "family_members" in table_names:

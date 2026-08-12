@@ -94,6 +94,14 @@ class User(Base):
     insurance_type = Column(String, nullable=True)
     insurance_number = Column(String, nullable=True)
 
+    # ===== دسترسی نامحدود و رایگان (اعطاشده توسط ادمین پلتفرم) =====
+    # وقتی True باشد، این کاربر مثل platform_admin به همه‌ی سرویس‌های
+    # پولی (تحلیل آزمایش، برنامه غذایی/ورزشی، آماده‌سازی ویزیت و...)
+    # به‌صورت رایگان و بدون محدودیت دسترسی دارد.
+    unlimited_access = Column(Boolean, default=False, nullable=False)
+    unlimited_access_granted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    unlimited_access_granted_at = Column(DateTime, nullable=True)
+
     is_active = Column(Boolean, default=True, nullable=False)
     verification_status = Column(String, nullable=True)
     verification_note = Column(Text, nullable=True)
@@ -177,7 +185,6 @@ class FamilyMember(Base):
     age = Column(Integer, nullable=True)
     gender = Column(String, nullable=True)
 
-    # ===== پروفایل سلامت اولیه =====
     height_cm = Column(Integer, nullable=True)
     weight_kg = Column(Float, nullable=True)
     blood_type = Column(String, nullable=True)

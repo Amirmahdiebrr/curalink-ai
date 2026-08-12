@@ -5,7 +5,7 @@ Platform-admin panel:
 - /admin: داشبورد نظارتی کلی
 - /admin/analysis/{id}: مشاهده‌ی هر گزارش آزمایشی از هر کاربری
 - /admin/doctors: بررسی و تایید/رد ثبت‌نام پزشکان + مشاهده مدرک
-- /admin/users: مدیریت و حذف کاربران
+- /admin/users: مدیریت و حذف کاربران، اعطای دسترسی نامحدود رایگان
 
 فقط برای کاربرانی با role=platform_admin در دسترس است.
 """
@@ -36,6 +36,11 @@ from app.services.auth_service import (
 from app.services.email_service import EmailService
 from app.services.history_service import get_record_for_admin, get_test_results_for_analysis
 from app.services.organ_display_service import group_results_by_organ
+from app.services.billing_service import (
+    grant_unlimited_access,
+    revoke_unlimited_access,
+    BillingError,
+)
 from app.core.exam_types import EXAM_TYPE_LABELS
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.limiter import limiter
@@ -317,7 +322,7 @@ async def admin_reject_doctor(
 
 
 # ==========================
-# مدیریت کاربران (حذف توسط ادمین)
+# مدیریت کاربران (حذف توسط ادمین، اعطای دسترسی نامحدود)
 # ==========================
 
 @router.get("/admin/users")
@@ -369,5 +374,61 @@ async def admin_delete_user_route(
         background_tasks.add_task(email_service.send_account_deleted_notice, deleted_user.email, True)
     except AuthError as e:
         logger.error(f"[Admin] Delete user failed: {e}")
+
+    return RedirectResponse(url="/admin/users", status_code=303)
+
+
+@router.post("/admin/users/{target_user_id}/grant-unlimited")
+@limiter.limit("30/hour")
+async def admin_grant_unlimited_access(
+    target_user_id: int,
+    request: Request,
+    csrf_token: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    """
+    ادمین پلتفرم می‌تواند به یک کاربر (مثلاً بیمار) دسترسی نامحدود و
+    رایگان به همه‌ی سرویس‌های پولی بدهد. این کار معادل رفتار
+    platform_admin در billing_service است، اما نقش کاربر تغییر
+    نمی‌کند.
+    """
+
+    admin_user = _require_admin(request, db)
+
+    if not admin_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not is_valid_csrf(request, csrf_token):
+        return RedirectResponse(url="/admin/users", status_code=303)
+
+    try:
+        grant_unlimited_access(db, target_user_id, admin_user.id)
+    except BillingError as e:
+        logger.error(f"[Admin] Grant unlimited access failed: {e}")
+
+    return RedirectResponse(url="/admin/users", status_code=303)
+
+
+@router.post("/admin/users/{target_user_id}/revoke-unlimited")
+@limiter.limit("30/hour")
+async def admin_revoke_unlimited_access(
+    target_user_id: int,
+    request: Request,
+    csrf_token: str = Form(...),
+    db: Session = Depends(get_db),
+):
+
+    admin_user = _require_admin(request, db)
+
+    if not admin_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not is_valid_csrf(request, csrf_token):
+        return RedirectResponse(url="/admin/users", status_code=303)
+
+    try:
+        revoke_unlimited_access(db, target_user_id)
+    except BillingError as e:
+        logger.error(f"[Admin] Revoke unlimited access failed: {e}")
 
     return RedirectResponse(url="/admin/users", status_code=303)

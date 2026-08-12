@@ -31,9 +31,56 @@ class BillingError(Exception):
     pass
 
 
+def _get_user(db: Session, user_id: int) -> User | None:
+    return db.query(User).filter(User.id == user_id).first()
+
+
 def _is_platform_admin(db: Session, user_id: int) -> bool:
-    user = db.query(User).filter(User.id == user_id).first()
+    user = _get_user(db, user_id)
     return bool(user and user.role == ROLE_PLATFORM_ADMIN)
+
+
+def has_unlimited_access(db: Session, user_id: int) -> bool:
+    """
+    True اگر کاربر platform_admin باشد یا ادمین به‌صراحت دسترسی
+    نامحدود و رایگان به همه‌ی سرویس‌ها را برایش فعال کرده باشد.
+    """
+    user = _get_user(db, user_id)
+    if not user:
+        return False
+    return user.role == ROLE_PLATFORM_ADMIN or bool(user.unlimited_access)
+
+
+def grant_unlimited_access(db: Session, target_user_id: int, granted_by_admin_id: int) -> User:
+    user = _get_user(db, target_user_id)
+
+    if not user:
+        raise BillingError("کاربر مورد نظر پیدا نشد.")
+
+    user.unlimited_access = True
+    user.unlimited_access_granted_by = granted_by_admin_id
+    user.unlimited_access_granted_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(user)
+
+    return user
+
+
+def revoke_unlimited_access(db: Session, target_user_id: int) -> User:
+    user = _get_user(db, target_user_id)
+
+    if not user:
+        raise BillingError("کاربر مورد نظر پیدا نشد.")
+
+    user.unlimited_access = False
+    user.unlimited_access_granted_by = None
+    user.unlimited_access_granted_at = None
+
+    db.commit()
+    db.refresh(user)
+
+    return user
 
 
 def get_service_price(db: Session, service_key: str) -> int:
@@ -141,10 +188,10 @@ def patient_can_use_free(db: Session, user_id: int) -> bool:
 
 def check_exam_access(db: Session, user_id: int, exam_type: str) -> dict:
 
-    if _is_platform_admin(db, user_id):
+    if has_unlimited_access(db, user_id):
         return {
             "free": True, "requires_payment": False, "price": None,
-            "reason": "platform_admin_free_access", "org_covered": False, "org_user_id": None,
+            "reason": "unlimited_access_granted", "org_covered": False, "org_user_id": None,
         }
 
     if patient_has_active_subscription(db, user_id):
@@ -174,8 +221,8 @@ def check_exam_access(db: Session, user_id: int, exam_type: str) -> dict:
 
 def check_visit_prep_access(db: Session, user_id: int) -> dict:
 
-    if _is_platform_admin(db, user_id):
-        return {"free": True, "requires_payment": False, "price": None, "reason": "platform_admin_free_access"}
+    if has_unlimited_access(db, user_id):
+        return {"free": True, "requires_payment": False, "price": None, "reason": "unlimited_access_granted"}
 
     if patient_has_active_subscription(db, user_id):
         return {"free": True, "requires_payment": False, "price": None, "reason": "covered_by_subscription"}
@@ -199,8 +246,8 @@ def _diet_plans_used_this_week(db: Session, user_id: int) -> int:
 
 def check_diet_plan_access(db: Session, user_id: int) -> dict:
 
-    if _is_platform_admin(db, user_id):
-        return {"free": True, "requires_payment": False, "price": None, "reason": "platform_admin_free_access"}
+    if has_unlimited_access(db, user_id):
+        return {"free": True, "requires_payment": False, "price": None, "reason": "unlimited_access_granted"}
 
     subscription = patient_has_active_subscription(db, user_id)
 
@@ -237,8 +284,8 @@ def _workout_plans_used_this_week(db: Session, user_id: int) -> int:
 
 def check_workout_plan_access(db: Session, user_id: int) -> dict:
 
-    if _is_platform_admin(db, user_id):
-        return {"free": True, "requires_payment": False, "price": None, "reason": "platform_admin_free_access"}
+    if has_unlimited_access(db, user_id):
+        return {"free": True, "requires_payment": False, "price": None, "reason": "unlimited_access_granted"}
 
     subscription = patient_has_active_subscription(db, user_id)
 
@@ -296,4 +343,4 @@ def increment_organization_usage(db: Session, org_user_id: int) -> None:
 
 
 def patient_review_is_free(db: Session, patient_user_id: int) -> bool:
-    return patient_has_active_subscription(db, patient_user_id) is not None
+    return has_unlimited_access(db, patient_user_id) or patient_has_active_subscription(db, patient_user_id) is not None

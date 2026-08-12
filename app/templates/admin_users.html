@@ -19,19 +19,41 @@
         <div class="cl-profile-card">
             <div class="cl-history-list">
                 {% for u in users %}
-                <div class="cl-history-item">
+                <div class="cl-history-item" style="flex-wrap:wrap; gap:12px;">
                     <div class="cl-history-item-main">
                         <span class="cl-history-badge">
                             {% if u.role == 'patient' %}{{ t('role_patient') }}{% elif u.role == 'doctor' %}{{ t('role_doctor') }}{% elif u.role == 'org_admin' %}{{ t('role_org_admin') }}{% else %}{{ t('role_platform_admin') }}{% endif %}
                         </span>
                         <span class="cl-history-filename">{{ u.display_name }} — {{ u.email }}</span>
+                        {% if u.unlimited_access %}
+                        <span class="cl-badge cl-badge-success" title="دسترسی نامحدود و رایگان فعال است">دسترسی نامحدود</span>
+                        {% endif %}
                     </div>
-                    {% if u.role != 'platform_admin' %}
-                    <form method="post" action="/admin/users/{{ u.id }}/delete" onsubmit="return confirm('{{ t('admin_delete_user_confirm') }}');">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                        <button type="submit" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px; border-color:var(--warn); color:var(--warn);">{{ t('admin_delete_btn') }}</button>
-                    </form>
-                    {% endif %}
+
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+
+                        {% if u.role != 'platform_admin' %}
+                            {% if u.unlimited_access %}
+                            <form method="post" action="/admin/users/{{ u.id }}/revoke-unlimited" onsubmit="return confirm('دسترسی نامحدود این کاربر لغو شود؟');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px;">لغو دسترسی نامحدود</button>
+                            </form>
+                            {% else %}
+                            <form method="post" action="/admin/users/{{ u.id }}/grant-unlimited" onsubmit="return confirm('به این کاربر دسترسی نامحدود و رایگان به همه‌ی سرویس‌ها داده شود؟');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-solid" style="height:36px; padding:0 14px; font-size:12.5px;">اعطای دسترسی نامحدود</button>
+                            </form>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if u.role != 'platform_admin' %}
+                        <form method="post" action="/admin/users/{{ u.id }}/delete" onsubmit="return confirm('{{ t('admin_delete_user_confirm') }}');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px; border-color:var(--warn); color:var(--warn);">{{ t('admin_delete_btn') }}</button>
+                        </form>
+                        {% endif %}
+
+                    </div>
                 </div>
                 {% endfor %}
             </div>
