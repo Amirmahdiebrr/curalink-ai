@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap');
+
+    @page {
+        size: A4;
+        margin: 2.4cm 1.8cm 3.4cm 1.8cm;
+
+        @bottom-center {
+            content: element(pdf-footer);
+        }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+        font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+        direction: rtl;
+        text-align: right;
+        color: #2A2E38;
+        font-size: 12.5px;
+        line-height: 1.9;
+    }
+
+    .pdf-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 2px solid #28457F;
+        padding-bottom: 14px;
+        margin-bottom: 22px;
+    }
+
+    .pdf-header-brand { display: flex; align-items: center; gap: 10px; }
+    .pdf-header-brand img { height: 40px; }
+    .pdf-header-brand strong { display: block; font-size: 16px; color: #28457F; }
+    .pdf-header-meta { text-align: left; font-size: 11px; color: #6B7690; }
+
+    .pdf-title { font-size: 19px; font-weight: 800; color: #28457F; margin: 0 0 4px; }
+    .pdf-subtitle { font-size: 12px; color: #6B7690; margin: 0 0 20px; }
+
+    .rx-code-box {
+        background: #EAF5FF;
+        border: 2px dashed #0F6FFF;
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .rx-code-box .rx-code-label { font-size: 12px; color: #6B7690; }
+    .rx-code-box .rx-code-value { font-size: 20px; font-weight: 800; color: #0B3D91; letter-spacing: 1px; }
+
+    .pdf-info-box {
+        background: #F1F5FF;
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        font-size: 12px;
+    }
+    .pdf-info-row { display: flex; justify-content: space-between; padding: 3px 0; gap: 16px; }
+    .pdf-info-label { color: #6B7690; flex-shrink: 0; }
+    .pdf-info-value { color: #28457F; font-weight: 600; text-align: left; }
+
+    .pdf-section-title {
+        font-size: 14.5px;
+        font-weight: 800;
+        color: #28457F;
+        background: #F1F5FF;
+        padding: 8px 14px;
+        border-radius: 8px;
+        border-right: 3px solid #28457F;
+        margin: 22px 0 10px;
+    }
+
+    table.rx-table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 12px; }
+    table.rx-table th { background: #28457F; color: #fff; padding: 8px 10px; text-align: right; }
+    table.rx-table td { padding: 8px 10px; border-bottom: 1px solid #E4EAF5; }
+    table.rx-table tr:nth-child(even) { background: #F7FAFD; }
+
+    .pdf-disclaimer {
+        margin-top: 24px;
+        background: #FEF3C7;
+        color: #92400E;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 11px;
+    }
+
+    .pdf-footer {
+        position: running(pdf-footer);
+        border-top: 1px solid #D8DFEE;
+        padding-top: 8px;
+        font-size: 9.5px;
+        color: #6B7690;
+        text-align: center;
+        line-height: 1.7;
+    }
+    .pdf-footer strong { color: #28457F; }
+</style>
+</head>
+<body>
+
+    <div class="pdf-header">
+        <div class="pdf-header-brand">
+            <img src="{{ company.logo_path }}" alt="{{ company.name }}">
+            <div>
+                <strong>{{ company.name }}</strong>
+                <span style="font-size:11px; color:#6B7690;">{{ company.legal_name }}</span>
+            </div>
+        </div>
+        <div class="pdf-header-meta">
+            تاریخ صدور نسخه: {{ prescription.created_at.strftime("%Y-%m-%d") }}<br>
+            تاریخ تولید فایل: {{ generated_at.strftime("%Y-%m-%d %H:%M") }}
+        </div>
+    </div>
+
+    <h1 class="pdf-title">نسخه‌ی دیجیتال</h1>
+    <p class="pdf-subtitle">صادر‌شده توسط پلتفرم {{ company.name }}</p>
+
+    <div class="rx-code-box">
+        <span class="rx-code-label">کد پیگیری نسخه</span>
+        <span class="rx-code-value">{{ prescription.code }}</span>
+    </div>
+
+    <div class="pdf-info-box">
+        <div class="pdf-info-row">
+            <span class="pdf-info-label">نام بیمار</span>
+            <span class="pdf-info-value">{{ patient_name }}</span>
+        </div>
+        <div class="pdf-info-row">
+            <span class="pdf-info-label">نوع بیمه</span>
+            <span class="pdf-info-value">{{ insurance_label }}</span>
+        </div>
+        {% if prescription.insurance_number %}
+        <div class="pdf-info-row">
+            <span class="pdf-info-label">شماره بیمه</span>
+            <span class="pdf-info-value">{{ prescription.insurance_number }}</span>
+        </div>
+        {% endif %}
+        <div class="pdf-info-row">
+            <span class="pdf-info-label">پزشک تجویزکننده</span>
+            <span class="pdf-info-value">
+                {{ doctor_name }}
+                {% if doctor_specialty %} — {{ doctor_specialty }}{% endif %}
+            </span>
+        </div>
+        {% if doctor_council_no %}
+        <div class="pdf-info-row">
+            <span class="pdf-info-label">شماره نظام پزشکی</span>
+            <span class="pdf-info-value">{{ doctor_council_no }}</span>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if prescription.diagnosis_note %}
+    <div class="pdf-section-title">تشخیص / توضیح بالینی</div>
+    <p>{{ prescription.diagnosis_note }}</p>
+    {% endif %}
+
+    <div class="pdf-section-title">داروهای تجویز‌شده</div>
+    <table class="rx-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>نام دارو</th>
+                <th>دوز</th>
+                <th>تعداد دفعات</th>
+                <th>مدت مصرف</th>
+                <th>توضیحات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in prescription.items %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ item.drug_name }}</td>
+                <td>{{ item.dosage or "—" }}</td>
+                <td>{{ item.frequency or "—" }}</td>
+                <td>{{ item.duration or "—" }}</td>
+                <td>{{ item.instructions or "—" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="pdf-disclaimer">
+        ⚠️ این نسخه توسط پزشک تجویزکننده صادر شده است. مصرف داروها باید دقیقاً طبق دستور پزشک انجام شود. برای تایید اصالت این نسخه، کد پیگیری بالا را در سامانه‌ی {{ company.name }} استعلام کنید.
+    </div>
+
+    <div class="pdf-footer">
+        <strong>{{ company.name }}</strong> — {{ company.legal_name }} | {{ company.registration_note }}<br>
+        {{ company.address }}<br>
+        {{ company.phones | join(' | ') }} — {{ company.email }} — {{ company.website }}
+    </div>
+
+</body>
+</html>

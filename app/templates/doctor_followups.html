@@ -1,0 +1,69 @@
+{% extends "workspace_base.html" %}
+
+{% block title %}پیگیری بیماران | CuraLink AI{% endblock %}
+
+{% block workspace_name %}فضای کاری پزشک{% endblock %}
+
+{% block workspace_nav %}
+<div class="cl-ws-nav-group-title">صف بررسی</div>
+<a href="/doctor/reviews" class="cl-ws-nav-link">
+    <span class="material-symbols-outlined">assignment</span> گزارش‌های در انتظار
+</a>
+<div class="cl-ws-nav-group-title">ابزارهای تکمیلی</div>
+<a href="/doctor/prescriptions" class="cl-ws-nav-link">
+    <span class="material-symbols-outlined">medication</span> نسخه‌های دیجیتال
+</a>
+<a href="/doctor/followups" class="cl-ws-nav-link is-active">
+    <span class="material-symbols-outlined">event_repeat</span> پیگیری بیماران
+</a>
+{% endblock %}
+
+{% block workspace_breadcrumb %}فضای کاری / پیگیری بیماران{% endblock %}
+{% block workspace_title %}یادآوری‌های پیگیری بیمار{% endblock %}
+{% block workspace_subtitle %}پیامک یادآوری بر اساس نوع بیمه‌ی بیمار، پیش از موعد پیگیری ارسال می‌شود{% endblock %}
+
+{% block workspace_content %}
+
+<div class="cl-ws-table-wrap">
+    <table class="cl-ws-table">
+        <thead>
+            <tr>
+                <th>بیمار</th>
+                <th>تاریخ پیگیری</th>
+                <th>بیمه</th>
+                <th>یادداشت</th>
+                <th>وضعیت یادآوری</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in followups %}
+            <tr data-ws-row>
+                <td>{{ item.patient_user.display_name if item.patient_user else "—" }}</td>
+                <td class="cl-value-mono">{{ item.followup_date.strftime("%Y-%m-%d") }}</td>
+                <td><span class="cl-badge cl-badge-info">{{ insurance_labels.get(item.insurance_type, "بدون بیمه") }}</span></td>
+                <td>{{ item.note or "—" }}</td>
+                <td>
+                    {% if item.reminder_sent %}<span class="cl-badge cl-badge-success">ارسال‌شده</span>
+                    {% else %}<span class="cl-badge cl-badge-warning">در انتظار ارسال</span>{% endif %}
+                </td>
+                <td>
+                    <form method="post" action="/doctor/followups/{{ item.id }}/delete">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-outline" style="height:32px; padding:0 12px; font-size:12px; color:var(--color-danger); border-color:var(--color-danger);">حذف</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if followups|length == 0 %}
+    <div class="cl-ws-table-empty">
+        <span class="material-symbols-outlined">event_repeat</span>
+        <p>هنوز یادآوری پیگیری ثبت نکرده‌اید. از صفحه‌ی بررسی هر گزارش می‌توانید ثبت کنید.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

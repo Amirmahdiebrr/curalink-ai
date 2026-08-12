@@ -17,15 +17,12 @@
     {{ t('doc_rev_nav_reviewed_by_me') }}
 </a>
 
-<div class="cl-ws-nav-group-title">{{ t('doc_rev_nav_tools_title') }}</div>
-<a href="#" class="cl-ws-nav-link" aria-disabled="true">
-    <span class="material-symbols-outlined">edit_note</span> {{ t('doc_rev_nav_notes') }}
+<div class="cl-ws-nav-group-title">ابزارهای تکمیلی</div>
+<a href="/doctor/prescriptions" class="cl-ws-nav-link">
+    <span class="material-symbols-outlined">medication</span> نسخه‌های دیجیتال
 </a>
-<a href="#" class="cl-ws-nav-link" aria-disabled="true">
-    <span class="material-symbols-outlined">medication</span> {{ t('doc_rev_nav_prescription') }}
-</a>
-<a href="#" class="cl-ws-nav-link" aria-disabled="true">
-    <span class="material-symbols-outlined">event_repeat</span> {{ t('doc_rev_nav_followup') }}
+<a href="/doctor/followups" class="cl-ws-nav-link">
+    <span class="material-symbols-outlined">event_repeat</span> پیگیری بیماران
 </a>
 {% endblock %}
 
@@ -61,17 +58,17 @@
         </div>
     </div>
     <div class="cl-ws-stat">
-        <span class="cl-ws-stat-icon is-blue"><span class="material-symbols-outlined">science</span></span>
+        <span class="cl-ws-stat-icon is-blue"><span class="material-symbols-outlined">medication</span></span>
         <div class="cl-ws-stat-body">
-            <strong>{{ total_count }}</strong>
-            <span>{{ t('doc_rev_stat_total') }}</span>
+            <strong>{{ my_prescriptions|length }}</strong>
+            <span>نسخه‌های اخیر</span>
         </div>
     </div>
     <div class="cl-ws-stat">
-        <span class="cl-ws-stat-icon is-danger"><span class="material-symbols-outlined">priority_high</span></span>
+        <span class="cl-ws-stat-icon is-danger"><span class="material-symbols-outlined">event_repeat</span></span>
         <div class="cl-ws-stat-body">
-            <strong>{% if awaiting|length > 0 %}{{ t('doc_rev_priority_high') }}{% else %}—{% endif %}</strong>
-            <span>{{ t('doc_rev_stat_priority') }}</span>
+            <strong>{{ my_followups|length }}</strong>
+            <span>پیگیری‌های ثبت‌شده</span>
         </div>
     </div>
 </div>
@@ -176,17 +173,17 @@
         <h2 class="cl-ws-section-title"><span class="material-symbols-outlined">bolt</span> {{ t('doc_rev_section_tools') }}</h2>
     </div>
     <div class="cl-grid-3">
+        <a href="/doctor/prescriptions" class="cl-ws-placeholder" style="text-decoration:none; cursor:pointer;">
+            <span class="material-symbols-outlined">medication</span>
+            <p>مشاهده و مدیریت نسخه‌های دیجیتال صادرشده</p>
+        </a>
+        <a href="/doctor/followups" class="cl-ws-placeholder" style="text-decoration:none; cursor:pointer;">
+            <span class="material-symbols-outlined">event_repeat</span>
+            <p>مدیریت یادآوری‌های پیگیری بیمار (بر اساس بیمه)</p>
+        </a>
         <div class="cl-ws-placeholder">
             <span class="material-symbols-outlined">edit_note</span>
-            <p>{{ t('doc_rev_tools_notes_soon') }}</p>
-        </div>
-        <div class="cl-ws-placeholder">
-            <span class="material-symbols-outlined">medication</span>
-            <p>{{ t('doc_rev_tools_prescription_soon') }}</p>
-        </div>
-        <div class="cl-ws-placeholder">
-            <span class="material-symbols-outlined">event_repeat</span>
-            <p>{{ t('doc_rev_tools_followup_soon') }}</p>
+            <p>یادداشت‌های پزشکی از صفحه‌ی هر گزارش قابل ثبت است</p>
         </div>
     </div>
 </div>

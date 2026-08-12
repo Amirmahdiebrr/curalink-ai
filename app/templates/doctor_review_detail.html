@@ -1,4 +1,3 @@
-<!-- app/templates/doctor_review_detail.html -->
 {% extends "base.html" %}
 
 {% block title %}{{ t('doc_rev_detail_title') }} | CuraLink AI{% endblock %}
@@ -23,6 +22,9 @@
                 {% endif %}
             </p>
             <p style="margin:0;">{{ t('doc_rev_detail_exam_type_label') }}: {{ exam_type_labels.get(record.exam_type, t('hist_generic_test')) }}</p>
+            {% if patient and patient.insurance_type %}
+            <p style="margin:8px 0 0;">نوع بیمه‌ی بیمار: <strong>{{ insurance_labels.get(patient.insurance_type, "بدون بیمه") }}</strong></p>
+            {% endif %}
         </div>
 
         {% if record.symptoms %}
@@ -67,6 +69,147 @@
 
         {% endif %}
 
+        <!-- ===== یادداشت‌های پزشکی ===== -->
+        <div class="result-card" id="doctor-notes">
+            <h2><span class="material-symbols-outlined" style="vertical-align:middle;">edit_note</span> یادداشت‌های پزشکی</h2>
+
+            <form method="post" action="/doctor/reviews/{{ record.id }}/notes" class="cl-auth-fields" style="margin-bottom:20px;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="cl-field">
+                    <label for="note_text">افزودن یادداشت جدید</label>
+                    <textarea id="note_text" name="note_text" rows="3" maxlength="3000" placeholder="یادداشت بالینی درباره‌ی این بیمار یا گزارش..." required></textarea>
+                </div>
+                <button type="submit" class="cl-auth-submit" style="width:auto; padding:0 24px;">ثبت یادداشت</button>
+            </form>
+
+            {% if notes|length == 0 %}
+            <p class="cl-profile-card-sub">هنوز یادداشتی برای این گزارش ثبت نشده است.</p>
+            {% else %}
+            <div class="cl-history-list">
+                {% for note in notes %}
+                <div class="cl-history-item" style="align-items:flex-start;">
+                    <div class="cl-history-item-main" style="flex-direction:column; align-items:flex-start; gap:4px;">
+                        <span class="cl-history-date">{{ note.created_at.strftime("%Y-%m-%d %H:%M") }}</span>
+                        <span style="white-space:pre-wrap; line-height:1.9;">{{ note.note_text }}</span>
+                    </div>
+                    <form method="post" action="/doctor/notes/{{ note.id }}/delete">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" name="record_id" value="{{ record.id }}">
+                        <button type="submit" class="btn btn-outline" style="height:34px; padding:0 12px; font-size:12px; color:var(--color-danger); border-color:var(--color-danger);">حذف</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ===== نسخه دیجیتال ===== -->
+        <div class="result-card" id="doctor-prescriptions">
+            <h2><span class="material-symbols-outlined" style="vertical-align:middle;">medication</span> نسخه‌ی دیجیتال</h2>
+
+            <form method="post" action="/doctor/reviews/{{ record.id }}/prescriptions" class="cl-auth-fields" id="rx-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <div class="cl-field-row">
+                    <div class="cl-field">
+                        <label for="patient_family_member_id">بیمار</label>
+                        <select id="patient_family_member_id" name="patient_family_member_id">
+                            <option value="self">{{ patient.display_name if patient else "خود بیمار" }}</option>
+                            {% for member in patient_family_members %}
+                            <option value="{{ member.id }}">{{ member.name }}{% if member.relation %} ({{ member.relation }}){% endif %}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="cl-field">
+                        <label for="patient_display_name">نام نمایشی روی نسخه (اختیاری)</label>
+                        <input type="text" id="patient_display_name" name="patient_display_name" placeholder="در صورت خالی بودن، از نام بیمار استفاده می‌شود">
+                    </div>
+                </div>
+
+                <div class="cl-field-row">
+                    <div class="cl-field">
+                        <label for="insurance_type">نوع بیمه</label>
+                        <select id="insurance_type" name="insurance_type">
+                            {% for it in insurance_types %}
+                            <option value="{{ it }}" {% if patient and patient.insurance_type == it %}selected{% endif %}>{{ insurance_labels.get(it, it) }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="cl-field">
+                        <label for="insurance_number">شماره بیمه (اختیاری)</label>
+                        <input type="text" id="insurance_number" name="insurance_number" value="{{ patient.insurance_number if patient else '' }}">
+                    </div>
+                </div>
+
+                <div class="cl-field">
+                    <label for="diagnosis_note">تشخیص / توضیح بالینی (اختیاری)</label>
+                    <textarea id="diagnosis_note" name="diagnosis_note" rows="2" maxlength="1000"></textarea>
+                </div>
+
+                <div id="rx-items-wrap">
+                    <div class="rx-item-row" style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr 2fr auto; gap:10px; margin-bottom:10px;">
+                        <input type="text" name="drug_name[]" placeholder="نام دارو" required class="cl-input">
+                        <input type="text" name="dosage[]" placeholder="دوز" class="cl-input">
+                        <input type="text" name="frequency[]" placeholder="تعداد دفعات" class="cl-input">
+                        <input type="text" name="duration[]" placeholder="مدت مصرف" class="cl-input">
+                        <input type="text" name="instructions[]" placeholder="توضیحات" class="cl-input">
+                        <button type="button" class="btn btn-outline rx-remove-row" style="height:50px;">حذف</button>
+                    </div>
+                </div>
+
+                <button type="button" id="rx-add-row" class="btn btn-outline" style="width:fit-content; margin-bottom:16px;">+ افزودن داروی دیگر</button>
+
+                <button type="submit" class="cl-auth-submit" style="width:auto; padding:0 24px;">ثبت نسخه و دریافت کد پیگیری</button>
+            </form>
+
+            {% if prescriptions|length > 0 %}
+            <h3 style="margin-top:28px; font-size:15px; color:var(--navy);">نسخه‌های ثبت‌شده برای این گزارش</h3>
+            <div class="cl-history-list">
+                {% for rx in prescriptions %}
+                <div class="cl-history-item">
+                    <div class="cl-history-item-main">
+                        <span class="cl-history-badge">{{ rx.code }}</span>
+                        <span class="cl-history-filename">{{ rx.items|length }} قلم دارو — {{ insurance_labels.get(rx.insurance_type, "بدون بیمه") }}</span>
+                    </div>
+                    <a href="/doctor/prescriptions/{{ rx.id }}/pdf" target="_blank" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px;">دانلود PDF</a>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- ===== یادآوری پیگیری بیمار ===== -->
+        <div class="result-card" id="doctor-followups">
+            <h2><span class="material-symbols-outlined" style="vertical-align:middle;">event_repeat</span> یادآوری پیگیری بیمار</h2>
+            <p class="cl-profile-card-sub">پیامک یادآوری بر اساس نوع بیمه‌ی بیمار، چند روز پیش از موعد پیگیری ارسال می‌شود (بیمه‌های دولتی زودتر یادآوری می‌شوند).</p>
+
+            <form method="post" action="/doctor/reviews/{{ record.id }}/followups" class="cl-auth-fields">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <div class="cl-field-row">
+                    <div class="cl-field">
+                        <label for="followup_date">تاریخ پیگیری</label>
+                        <input type="date" id="followup_date" name="followup_date" required>
+                    </div>
+                    <div class="cl-field">
+                        <label for="followup_insurance_type">نوع بیمه‌ی بیمار</label>
+                        <select id="followup_insurance_type" name="insurance_type">
+                            {% for it in insurance_types %}
+                            <option value="{{ it }}" {% if patient and patient.insurance_type == it %}selected{% endif %}>{{ insurance_labels.get(it, it) }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="cl-field">
+                    <label for="followup_note">یادداشت پیگیری (اختیاری)</label>
+                    <textarea id="followup_note" name="note" rows="2" maxlength="500" placeholder="مثلاً: بعد از این تاریخ نتیجه‌ی آزمایش کبد را دوباره بررسی کنید"></textarea>
+                </div>
+
+                <button type="submit" class="cl-auth-submit" style="width:auto; padding:0 24px;">ثبت یادآوری پیگیری</button>
+            </form>
+        </div>
+
         <div class="result-actions">
             <a href="/doctor/reviews" class="btn btn-outline">{{ t('doc_rev_detail_back_to_queue') }}</a>
         </div>
@@ -74,4 +217,34 @@
     </div>
 </section>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+    var wrap = document.getElementById('rx-items-wrap');
+    var addBtn = document.getElementById('rx-add-row');
+
+    function bindRemove(row){
+        var btn = row.querySelector('.rx-remove-row');
+        btn.addEventListener('click', function(){
+            if (wrap.querySelectorAll('.rx-item-row').length > 1) {
+                row.remove();
+            }
+        });
+    }
+
+    wrap.querySelectorAll('.rx-item-row').forEach(bindRemove);
+
+    if (addBtn) {
+        addBtn.addEventListener('click', function(){
+            var first = wrap.querySelector('.rx-item-row');
+            var clone = first.cloneNode(true);
+            clone.querySelectorAll('input').forEach(function(inp){ inp.value = ''; });
+            wrap.appendChild(clone);
+            bindRemove(clone);
+        });
+    }
+})();
+</script>
 {% endblock %}

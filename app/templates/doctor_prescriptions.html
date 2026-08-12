@@ -1,0 +1,83 @@
+{% extends "workspace_base.html" %}
+
+{% block title %}نسخه‌های صادرشده | CuraLink AI{% endblock %}
+
+{% block workspace_name %}فضای کاری پزشک{% endblock %}
+
+{% block workspace_nav %}
+<div class="cl-ws-nav-group-title">صف بررسی</div>
+<a href="/doctor/reviews" class="cl-ws-nav-link">
+    <span class="material-symbols-outlined">assignment</span> گزارش‌های در انتظار
+</a>
+<div class="cl-ws-nav-group-title">ابزارهای تکمیلی</div>
+<a href="/doctor/prescriptions" class="cl-ws-nav-link is-active">
+    <span class="material-symbols-outlined">medication</span> نسخه‌های دیجیتال
+</a>
+<a href="/doctor/followups" class="cl-ws-nav-link">
+    <span class="material-symbols-outlined">event_repeat</span> پیگیری بیماران
+</a>
+{% endblock %}
+
+{% block workspace_breadcrumb %}فضای کاری / نسخه‌های دیجیتال{% endblock %}
+{% block workspace_title %}نسخه‌های صادرشده{% endblock %}
+{% block workspace_subtitle %}تمام نسخه‌های دیجیتالی که برای بیماران صادر کرده‌اید{% endblock %}
+
+{% block workspace_content %}
+
+<div class="cl-ws-table-wrap">
+    <table class="cl-ws-table">
+        <thead>
+            <tr>
+                <th>کد پیگیری</th>
+                <th>بیمار</th>
+                <th>بیمه</th>
+                <th>تعداد اقلام</th>
+                <th>تاریخ</th>
+                <th>وضعیت</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for rx in prescriptions %}
+            <tr data-ws-row>
+                <td class="cl-value-mono">{{ rx.code }}</td>
+                <td>
+                    {{ rx.patient_family_member.name if rx.patient_family_member else (rx.patient_user.display_name if rx.patient_user else rx.patient_display_name) or "—" }}
+                </td>
+                <td><span class="cl-badge cl-badge-info">{{ insurance_labels.get(rx.insurance_type, "بدون بیمه") }}</span></td>
+                <td>{{ rx.items|length }}</td>
+                <td class="cl-value-mono">{{ rx.created_at.strftime("%Y-%m-%d") }}</td>
+                <td>
+                    {% if rx.status == 'active' %}<span class="cl-badge cl-badge-success">فعال</span>
+                    {% elif rx.status == 'fulfilled' %}<span class="cl-badge cl-badge-info">تحویل‌شده</span>
+                    {% else %}<span class="cl-badge cl-badge-neutral">لغو‌شده</span>{% endif %}
+                </td>
+                <td style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <a href="/doctor/prescriptions/{{ rx.id }}/pdf" target="_blank" class="btn btn-outline" style="height:32px; padding:0 12px; font-size:12px;">PDF</a>
+                    {% if rx.status == 'active' %}
+                    <form method="post" action="/doctor/prescriptions/{{ rx.id }}/status" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" name="status" value="fulfilled">
+                        <button type="submit" class="btn btn-outline" style="height:32px; padding:0 12px; font-size:12px;">تحویل شد</button>
+                    </form>
+                    <form method="post" action="/doctor/prescriptions/{{ rx.id }}/status" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" name="status" value="cancelled">
+                        <button type="submit" class="btn btn-outline" style="height:32px; padding:0 12px; font-size:12px; color:var(--color-danger); border-color:var(--color-danger);">لغو</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if prescriptions|length == 0 %}
+    <div class="cl-ws-table-empty">
+        <span class="material-symbols-outlined">medication</span>
+        <p>هنوز نسخه‌ای صادر نکرده‌اید. از صفحه‌ی بررسی هر گزارش می‌توانید نسخه بنویسید.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

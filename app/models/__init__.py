@@ -30,6 +30,22 @@ VERIFICATION_APPROVED = "approved"
 VERIFICATION_REJECTED = "rejected"
 
 
+# ==========================
+# بیمه (برای نسخه‌ها و یادآوری‌های پیگیری)
+# ==========================
+
+INSURANCE_TYPES = ["none", "tamin_ejtemaei", "salamat", "niroohaye_mosallah", "azad", "other"]
+
+INSURANCE_LABELS = {
+    "none": "بدون بیمه",
+    "tamin_ejtemaei": "تامین اجتماعی",
+    "salamat": "بیمه سلامت",
+    "niroohaye_mosallah": "نیروهای مسلح",
+    "azad": "آزاد / تکمیلی",
+    "other": "سایر",
+}
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -74,6 +90,10 @@ class User(Base):
     preferred_hospital = Column(String, nullable=True)
     preferred_lab = Column(String, nullable=True)
 
+    # ===== بیمه =====
+    insurance_type = Column(String, nullable=True)
+    insurance_number = Column(String, nullable=True)
+
     is_active = Column(Boolean, default=True, nullable=False)
     verification_status = Column(String, nullable=True)
     verification_note = Column(Text, nullable=True)
@@ -102,8 +122,6 @@ class User(Base):
     organization_profile = relationship("OrganizationProfile", back_populates="user", uselist=False)
 
     # آزمایشگاه/کلینیک/بیمارستانی که این کاربر را معرفی کرده (در صورت وجود).
-    # از طریق backref، روی خودِ آن آزمایشگاه، referred_users لیست تمام
-    # کاربرانی که با معرفی او ثبت‌نام کرده‌اند را برمی‌گرداند.
     referred_by_org = relationship(
         "User",
         remote_side=[id],
@@ -209,6 +227,8 @@ class AnalysisRecord(Base):
     user = relationship("User", back_populates="analyses", foreign_keys=[user_id])
     family_member = relationship("FamilyMember", back_populates="analyses")
     test_results = relationship("TestResult", back_populates="analysis", order_by="TestResult.test_name")
+    doctor_notes = relationship("DoctorNote", back_populates="analysis", order_by="DoctorNote.created_at.desc()")
+    prescriptions = relationship("Prescription", back_populates="analysis", order_by="Prescription.created_at.desc()")
 
 
 class TestResult(Base):
@@ -488,3 +508,96 @@ class ReviewRecord(Base):
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
     user = relationship("User")
+
+
+# ==========================
+# ابزارهای پزشک: یادداشت، نسخه، پیگیری بیمار (مبتنی بر بیمه)
+# ==========================
+
+PRESCRIPTION_STATUS_ACTIVE = "active"
+PRESCRIPTION_STATUS_FULFILLED = "fulfilled"
+PRESCRIPTION_STATUS_CANCELLED = "cancelled"
+
+
+class DoctorNote(Base):
+    __tablename__ = "doctor_notes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    analysis_id = Column(Integer, ForeignKey("analysis_records.id"), nullable=False, index=True)
+    doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    note_text = Column(Text, nullable=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    analysis = relationship("AnalysisRecord", back_populates="doctor_notes")
+    doctor = relationship("User", foreign_keys=[doctor_id])
+
+
+class Prescription(Base):
+    __tablename__ = "prescriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique=True, nullable=False, index=True)
+
+    analysis_id = Column(Integer, ForeignKey("analysis_records.id"), nullable=True, index=True)
+    doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    patient_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    patient_family_member_id = Column(Integer, ForeignKey("family_members.id"), nullable=True)
+    patient_display_name = Column(String, nullable=True)
+
+    insurance_type = Column(String, nullable=True)
+    insurance_number = Column(String, nullable=True)
+
+    diagnosis_note = Column(Text, nullable=True)
+    status = Column(String, nullable=False, default=PRESCRIPTION_STATUS_ACTIVE, index=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    analysis = relationship("AnalysisRecord", back_populates="prescriptions")
+    doctor = relationship("User", foreign_keys=[doctor_id])
+    patient_user = relationship("User", foreign_keys=[patient_user_id])
+    patient_family_member = relationship("FamilyMember")
+    items = relationship(
+        "PrescriptionItem",
+        back_populates="prescription",
+        order_by="PrescriptionItem.id",
+        cascade="all, delete-orphan",
+    )
+
+
+class PrescriptionItem(Base):
+    __tablename__ = "prescription_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    prescription_id = Column(Integer, ForeignKey("prescriptions.id"), nullable=False, index=True)
+
+    drug_name = Column(String, nullable=False)
+    dosage = Column(String, nullable=True)
+    frequency = Column(String, nullable=True)
+    duration = Column(String, nullable=True)
+    instructions = Column(String, nullable=True)
+
+    prescription = relationship("Prescription", back_populates="items")
+
+
+class PatientFollowup(Base):
+    __tablename__ = "patient_followups"
+
+    id = Column(Integer, primary_key=True, index=True)
+    doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    patient_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    analysis_id = Column(Integer, ForeignKey("analysis_records.id"), nullable=True, index=True)
+
+    note = Column(Text, nullable=True)
+    insurance_type = Column(String, nullable=True)
+
+    followup_date = Column(DateTime, nullable=False, index=True)
+    reminder_sent = Column(Boolean, default=False, nullable=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    doctor = relationship("User", foreign_keys=[doctor_id])
+    patient_user = relationship("User", foreign_keys=[patient_user_id])
+    analysis = relationship("AnalysisRecord")

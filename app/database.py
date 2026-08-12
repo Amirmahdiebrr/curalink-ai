@@ -84,6 +84,11 @@ REFERRAL_COLUMNS = [
     ("referred_by_org_id", "INTEGER"),
 ]
 
+INSURANCE_COLUMNS = [
+    ("insurance_type", "TEXT"),
+    ("insurance_number", "TEXT"),
+]
+
 
 def _run_light_migrations():
     inspector = inspect(engine)
@@ -117,11 +122,17 @@ def _run_light_migrations():
                 _add_column_if_missing(conn, "users", column, ddl_type)
             for column, ddl_type in REFERRAL_COLUMNS:
                 _add_column_if_missing(conn, "users", column, ddl_type)
+            for column, ddl_type in INSURANCE_COLUMNS:
+                _add_column_if_missing(conn, "users", column, ddl_type)
 
     if "family_members" in table_names:
         with engine.connect() as conn:
             for column, ddl_type in HEALTH_PROFILE_COLUMNS:
                 _add_column_if_missing(conn, "family_members", column, ddl_type)
+
+    if "prescriptions" in table_names:
+        with engine.connect() as conn:
+            _add_column_if_missing(conn, "prescriptions", "status", "TEXT")
 
     # این ستون‌ها به‌اشتباه روی جدول reviews ساخته شده بودند؛ در صورت وجود پاک می‌شوند.
     if "reviews" in table_names:

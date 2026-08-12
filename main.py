@@ -36,6 +36,7 @@ from app.routers.diet import router as diet_router
 from app.routers.visit_prep import router as visit_prep_router
 from app.routers.workout import router as workout_router
 from app.routers.doctor_review import router as doctor_review_router
+from app.routers.prescription_public import router as prescription_public_router
 from app.routers.reviews import router as reviews_router
 from app.routers.health_status import router as health_status_router
 from app.routers.language import router as language_router
@@ -94,6 +95,7 @@ app.include_router(diet_router)
 app.include_router(visit_prep_router)
 app.include_router(workout_router)
 app.include_router(doctor_review_router)
+app.include_router(prescription_public_router)
 app.include_router(admin_router)
 app.include_router(payment_router)
 app.include_router(reviews_router)
