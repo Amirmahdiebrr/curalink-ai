@@ -16,7 +16,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
 
     <script>
         (function () {
@@ -424,7 +424,7 @@
             uploadGenericError: {{ t('upload_generic_error') | tojson }}
         };
     </script>
-    <script src="/static/js/main.js"></script>
+    <script src="{{ asset_url('js/main.js') }}"></script>
     <script>
     (function(){
         const toggle = document.getElementById('cl-nav-toggle');

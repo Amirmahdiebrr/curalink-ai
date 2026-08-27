@@ -1,14 +1,9 @@
 """
 app/services/doctor_review_service.py
 
-جریان بررسی گزارش توسط پزشک: بیمار درخواست بررسی می‌دهد، پزشک از صف
-گزارش‌های در انتظار یکی را انتخاب و نظر خود را ثبت می‌کند.
-
-نکته مهم: در این نسخه (پروتوتایپ اولیه)، پرداخت واقعی برای این سرویس
-هنوز وصل نشده (چون درگاه پرداخت فعال نیست). درخواست بررسی فعلاً
-رایگان ثبت می‌شود. قبل از رفتن به production باید این جریان مثل
-diet_service/visit_prep_service به start_service_payment وصل شود
-(چک اشتراک رایگان بیمار + در غیر این صورت پرداخت pay-per-use).
+جریان بررسی گزارش توسط پزشک: بیمار درخواست بررسی می‌دهد (رایگان اگر
+اشتراک/دسترسی نامحدود دارد، وگرنه از طریق پرداخت pay-per-use)، پزشک
+از صف گزارش‌های در انتظار یکی را انتخاب و نظر خود را ثبت می‌کند.
 """
 
 from datetime import datetime
@@ -42,10 +37,7 @@ def _decrypt_for_view(record: AnalysisRecord) -> AnalysisRecord:
     return record
 
 
-def request_review(db: Session, record_id: int, user_id: int) -> AnalysisRecord:
-    """
-    بیمار درخواست بررسی توسط پزشک را برای یکی از گزارش‌های خودش ثبت می‌کند.
-    """
+def _get_record_for_patient(db: Session, record_id: int, user_id: int) -> AnalysisRecord:
     record = (
         db.query(AnalysisRecord)
         .filter(AnalysisRecord.id == record_id, AnalysisRecord.user_id == user_id)
@@ -61,9 +53,32 @@ def request_review(db: Session, record_id: int, user_id: int) -> AnalysisRecord:
     if record.review_status == DOCTOR_REVIEW_REVIEWED:
         raise DoctorReviewError("این گزارش قبلاً توسط پزشک بررسی شده است.")
 
+    return record
+
+
+def can_request_review(db: Session, record_id: int, user_id: int) -> bool:
+    """
+    فقط اعتبارسنجی می‌کند که آیا این گزارش الان قابل ارسال برای بررسی
+    است، بدون تغییر وضعیت — برای بررسی قبل از هدایت به درگاه پرداخت.
+    """
+    try:
+        _get_record_for_patient(db, record_id, user_id)
+        return True
+    except DoctorReviewError:
+        return False
+
+
+def mark_review_requested(db: Session, record_id: int, user_id: int, price_paid: int | None) -> AnalysisRecord:
+    """
+    وضعیت گزارش را به «در انتظار پزشک» تغییر می‌دهد. این تابع یا بعد
+    از تایید رایگان بودن (اشتراک/دسترسی نامحدود) صدا زده می‌شود، یا
+    بعد از پرداخت موفق pay-per-use (از callback درگاه پرداخت).
+    """
+    record = _get_record_for_patient(db, record_id, user_id)
+
     record.review_status = DOCTOR_REVIEW_AWAITING_DOCTOR
-    # TODO: قبل از production، اینجا باید بررسی اشتراک/پرداخت وصل شود.
-    record.review_payment_status = "pending_gateway_setup"
+    record.review_payment_status = "paid" if price_paid else "free_via_subscription"
+    record.review_price_paid = price_paid
 
     db.commit()
     db.refresh(record)

@@ -10,7 +10,7 @@ from app.models import (
     Payment, Plan, User,
     PAYMENT_PENDING, PAYMENT_PAID, PAYMENT_FAILED,
     PURPOSE_SUBSCRIPTION, PURPOSE_EXAM_ANALYSIS, PURPOSE_DIET_PLAN,
-    PURPOSE_VISIT_PREP, PURPOSE_WORKOUT_PLAN,
+    PURPOSE_VISIT_PREP, PURPOSE_WORKOUT_PLAN, PURPOSE_DOCTOR_REVIEW,
 )
 from app.services import zarinpal_service
 from app.services import pending_action_store
@@ -20,6 +20,9 @@ from app.config import APP_BASE_URL
 from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+GENERIC_GATEWAY_ERROR = "اتصال به درگاه پرداخت برقرار نشد. لطفاً چند لحظه دیگر دوباره تلاش کنید."
+GENERIC_VERIFY_ERROR = "تایید پرداخت ناموفق بود. در صورت کسر وجه، مبلغ ظرف ۷۲ ساعت به حساب شما بازمی‌گردد."
 
 
 class PaymentError(Exception):
@@ -59,7 +62,8 @@ async def start_payment(
     except ZarinpalError as e:
         payment.status = PAYMENT_FAILED
         db.commit()
-        raise PaymentError(str(e))
+        logger.error(f"[Payment] Gateway request failed for payment_id={payment.id}: {e}")
+        raise PaymentError(GENERIC_GATEWAY_ERROR)
 
     payment.zarinpal_authority = result["authority"]
     db.commit()
@@ -107,7 +111,8 @@ async def finalize_payment(db: Session, payment_id: int, authority: str) -> Paym
         raise PaymentError("پرداخت مورد نظر پیدا نشد.")
 
     if payment.zarinpal_authority != authority:
-        raise PaymentError("Authority ارسال‌شده با پرداخت مطابقت ندارد.")
+        logger.error(f"[Payment] Authority mismatch for payment_id={payment_id}")
+        raise PaymentError(GENERIC_VERIFY_ERROR)
 
     if payment.status == PAYMENT_PAID:
         return payment
@@ -120,12 +125,14 @@ async def finalize_payment(db: Session, payment_id: int, authority: str) -> Paym
     except ZarinpalError as e:
         payment.status = PAYMENT_FAILED
         db.commit()
-        raise PaymentError(str(e))
+        logger.error(f"[Payment] Gateway verify failed for payment_id={payment.id}: {e}")
+        raise PaymentError(GENERIC_VERIFY_ERROR)
 
     if not verify_result["success"]:
         payment.status = PAYMENT_FAILED
         db.commit()
-        raise PaymentError("پرداخت توسط درگاه تایید نشد.")
+        logger.error(f"[Payment] Gateway rejected verify for payment_id={payment.id}: code={verify_result.get('code')}")
+        raise PaymentError(GENERIC_VERIFY_ERROR)
 
     payment.status = PAYMENT_PAID
     payment.zarinpal_ref_id = verify_result["ref_id"]
@@ -162,26 +169,42 @@ async def _apply_payment_effect(db: Session, payment: Payment) -> None:
             logger.info(f"[Payment] Exam analysis job started: payment_id={payment.id}, job_id={job_id}")
 
         elif payment.purpose == PURPOSE_DIET_PLAN:
-            from app.routers.diet import generate_and_save_diet_plan
-            record = await generate_and_save_diet_plan(db, **action["data"])
-            pending_action_store.update(payment.id, result_type="diet_record", result_id=record.id)
-            logger.info(f"[Payment] Diet plan generated: payment_id={payment.id}, record_id={record.id}")
+            from app.routers.diet import start_diet_background_job
+            job_id = await start_diet_background_job(action["data"], payment.user_id)
+            pending_action_store.update(payment.id, result_type="generic_job", result_id=job_id)
+            logger.info(f"[Payment] Diet background job started: payment_id={payment.id}, job_id={job_id}")
 
         elif payment.purpose == PURPOSE_VISIT_PREP:
-            from app.routers.visit_prep import generate_and_save_visit_prep
-            record = await generate_and_save_visit_prep(db, **action["data"])
-            pending_action_store.update(payment.id, result_type="visit_prep_record", result_id=record.id)
-            logger.info(f"[Payment] Visit-prep summary generated: payment_id={payment.id}, record_id={record.id}")
+            from app.routers.visit_prep import start_visit_prep_background_job
+            job_id = await start_visit_prep_background_job(action["data"], payment.user_id)
+            pending_action_store.update(payment.id, result_type="generic_job", result_id=job_id)
+            logger.info(f"[Payment] Visit-prep background job started: payment_id={payment.id}, job_id={job_id}")
 
         elif payment.purpose == PURPOSE_WORKOUT_PLAN:
-            from app.routers.workout import generate_and_save_workout_plan
-            record = await generate_and_save_workout_plan(db, **action["data"])
-            pending_action_store.update(payment.id, result_type="workout_record", result_id=record.id)
-            logger.info(f"[Payment] Workout plan generated: payment_id={payment.id}, record_id={record.id}")
+            from app.routers.workout import start_workout_background_job
+            job_id = await start_workout_background_job(action["data"], payment.user_id)
+            pending_action_store.update(payment.id, result_type="generic_job", result_id=job_id)
+            logger.info(f"[Payment] Workout background job started: payment_id={payment.id}, job_id={job_id}")
+
+        elif payment.purpose == PURPOSE_DOCTOR_REVIEW:
+            from app.services.doctor_review_service import mark_review_requested, DoctorReviewError
+            data = action["data"]
+            try:
+                record = mark_review_requested(
+                    db,
+                    record_id=data["record_id"],
+                    user_id=data["user_id"],
+                    price_paid=data.get("price_paid"),
+                )
+                pending_action_store.update(payment.id, result_type="doctor_review", result_id=record.id)
+                logger.info(f"[Payment] Doctor review marked as requested: payment_id={payment.id}, record_id={record.id}")
+            except DoctorReviewError as e:
+                pending_action_store.update(payment.id, error="ثبت درخواست بررسی پزشک با خطا مواجه شد.")
+                logger.error(f"[Payment] Doctor review request failed after payment: {e}")
 
         else:
             logger.warning(f"[Payment] WARNING: unknown purpose '{payment.purpose}' for payment_id={payment.id}")
 
     except Exception as e:
         logger.error(f"[Payment] Failed to apply effect for payment_id={payment.id}: {e}")
-        pending_action_store.update(payment.id, error=str(e))
+        pending_action_store.update(payment.id, error="پردازش درخواست شما پس از پرداخت با خطا مواجه شد.")

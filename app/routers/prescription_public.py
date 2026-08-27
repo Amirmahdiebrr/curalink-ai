@@ -4,6 +4,10 @@ app/routers/prescription_public.py
 استعلام عمومی نسخه‌ی دیجیتال با کد پیگیری (برای داروخانه‌ها/بیماران)،
 بدون نیاز به ورود به حساب کاربری. هیچ اطلاعات حساس اضافی (مثل کد ملی
 یا شماره تلفن) نمایش داده نمی‌شود.
+
+چون این مسیر عمومی و بدون احراز هویت است، در برابر brute-force روی
+کد پیگیری (که فضای نسبتاً کوچکی دارد: RX- + ۸ کاراکتر hex) آسیب‌پذیر
+است؛ به همین دلیل با نرخ محدود (rate limit) محافظت می‌شود.
 """
 
 from fastapi import APIRouter, Request, Depends
@@ -14,6 +18,7 @@ from app.database import get_db
 from app.routers.auth import get_current_user
 from app.models import INSURANCE_LABELS
 from app.services.doctor_tools_service import get_prescription_by_code
+from app.core.limiter import limiter
 
 
 router = APIRouter()
@@ -22,6 +27,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/prescription/verify")
+@limiter.limit("10/minute")
 async def prescription_verify_page(request: Request, code: str = None, db: Session = Depends(get_db)):
 
     user = get_current_user(request, db)

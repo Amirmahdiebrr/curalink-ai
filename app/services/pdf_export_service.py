@@ -5,8 +5,13 @@ Renders printable, Persian RTL PDF versions of CuraLink reports
 (lab analysis, diet plan, visit-prep summary, prescription), with the
 company logo in the header and full company info in a footer that
 repeats on every page. Uses WeasyPrint.
+
+رندر WeasyPrint یک عملیات سنگین و کاملاً sync (CPU-bound) است؛ برای
+جلوگیری از بلاک شدن event loop سرور، اجرای واقعی HTML(...).write_pdf()
+همیشه داخل asyncio.to_thread انجام می‌شود.
 """
 
+import asyncio
 from pathlib import Path
 from datetime import datetime
 
@@ -29,7 +34,11 @@ class PDFExportError(Exception):
     pass
 
 
-def render_analysis_pdf(
+def _sync_render_pdf(html_string: str) -> bytes:
+    return HTML(string=html_string, base_url=str(APP_DIR)).write_pdf()
+
+
+async def render_analysis_pdf(
     *,
     patient_name: str,
     exam_type_label: str,
@@ -55,14 +64,14 @@ def render_analysis_pdf(
             organ_groups=organ_groups,
         )
 
-        return HTML(string=html_string, base_url=str(APP_DIR)).write_pdf()
+        return await asyncio.to_thread(_sync_render_pdf, html_string)
 
     except Exception as e:
         logger.error(f"[PDFExportService] Failed to render analysis PDF: {e}")
         raise PDFExportError(f"تولید فایل PDF با خطا مواجه شد: {e}")
 
 
-def render_generic_pdf(
+async def render_generic_pdf(
     *,
     document_title: str,
     section_heading: str,
@@ -91,14 +100,14 @@ def render_generic_pdf(
             disclaimer_text=disclaimer_text,
         )
 
-        return HTML(string=html_string, base_url=str(APP_DIR)).write_pdf()
+        return await asyncio.to_thread(_sync_render_pdf, html_string)
 
     except Exception as e:
         logger.error(f"[PDFExportService] Failed to render generic PDF: {e}")
         raise PDFExportError(f"تولید فایل PDF با خطا مواجه شد: {e}")
 
 
-def render_prescription_pdf(
+async def render_prescription_pdf(
     *,
     prescription,
     doctor_name: str,
@@ -123,7 +132,7 @@ def render_prescription_pdf(
             generated_at=datetime.utcnow(),
         )
 
-        return HTML(string=html_string, base_url=str(APP_DIR)).write_pdf()
+        return await asyncio.to_thread(_sync_render_pdf, html_string)
 
     except Exception as e:
         logger.error(f"[PDFExportService] Failed to render prescription PDF: {e}")

@@ -1,0 +1,13 @@
+{
+  "name": "curalink-ai-frontend-build",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Build pipeline for minifying/bundling CuraLink's CSS and JS assets.",
+  "scripts": {
+    "build": "node build.js",
+    "watch": "node build.js --watch"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2"
+  }
+}

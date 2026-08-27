@@ -4,8 +4,13 @@ app/services/ocr_service.py
 Text extraction (OCR) service. Extracts raw text from uploaded
 medical document files (PDF or image: PNG/JPG/HEIC/HEIF) so the
 extracted text can be passed to the AI for medical interpretation.
+
+تمام عملیات سنگین و sync (pytesseract, PyMuPDF/fitz, PyPDF2) داخل
+asyncio.to_thread اجرا می‌شوند تا event loop اصلی سرور در حین OCR
+برای همه‌ی کاربران دیگر بلاک نشود.
 """
 
+import asyncio
 import os
 import shutil
 from pathlib import Path
@@ -67,6 +72,8 @@ def _preprocess_for_ocr(image: Image.Image) -> Image.Image:
 
     اگر هر بخشی از پیش‌پردازش شکست بخورد، تصویر اصلی (بدون تغییر)
     برگردانده می‌شود تا OCR کاملاً متوقف نشود.
+
+    این تابع sync است و همیشه باید داخل asyncio.to_thread صدا زده شود.
     """
     try:
         processed = image.convert("L")  # grayscale
@@ -93,12 +100,94 @@ class OCRServiceError(Exception):
     pass
 
 
+def _sync_extract_pdf_text(filepath: Path) -> str:
+    """
+    مسیر سریع: تلاش برای استخراج متن قابل انتخاب از PDF (نه اسکن‌شده).
+    خروجی خالی یعنی PDF متن قابل استخراج ندارد (احتمالاً اسکن‌شده).
+    """
+    reader = PdfReader(str(filepath))
+    pages_text = []
+
+    for page in reader.pages[:MAX_PDF_PAGES]:
+        text = page.extract_text()
+        if text:
+            pages_text.append(text.strip())
+
+    return "\n\n".join(pages_text).strip()
+
+
+def _sync_ocr_scanned_pdf(filepath: Path) -> str:
+    """
+    مسیر کند: تبدیل صفحات PDF اسکن‌شده به تصویر و OCR تصویری روی هرکدام.
+    """
+    try:
+        doc = fitz.open(str(filepath))
+    except Exception as e:
+        raise OCRServiceError(f"باز کردن PDF برای OCR تصویری ناموفق بود: {e}")
+
+    pages_text = []
+
+    try:
+        page_count = min(len(doc), MAX_PDF_PAGES)
+
+        for page_index in range(page_count):
+            page = doc.load_page(page_index)
+            pix = page.get_pixmap(dpi=200)
+            image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            image = _preprocess_for_ocr(image)
+
+            page_text = pytesseract.image_to_string(image, lang="fas+eng", config="--psm 6")
+
+            if page_text and page_text.strip():
+                pages_text.append(page_text.strip())
+    except Exception as e:
+        raise OCRServiceError(f"OCR تصویری روی PDF ناموفق بود (Tesseract نصب/در دسترس است؟): {e}")
+    finally:
+        doc.close()
+
+    extracted = "\n\n".join(pages_text).strip()
+
+    if not extracted:
+        raise OCRServiceError("هیچ متنی از این PDF (حتی به‌صورت اسکن‌شده) استخراج نشد.")
+
+    return extracted
+
+
+def _sync_extract_image_text(filepath: Path) -> str:
+    try:
+        image = Image.open(filepath)
+        image = image.convert("RGB")
+    except Exception as e:
+        raise OCRServiceError(f"باز کردن فایل تصویر ناموفق بود: {e}")
+
+    image = _preprocess_for_ocr(image)
+
+    try:
+        text = pytesseract.image_to_string(image, lang="fas+eng", config="--psm 6")
+    except Exception as e:
+        raise OCRServiceError(f"OCR روی تصویر ناموفق بود (Tesseract نصب/در دسترس است؟): {e}")
+
+    cleaned = (text or "").strip()
+
+    if not cleaned:
+        raise OCRServiceError("هیچ متنی از این تصویر استخراج نشد.")
+
+    return cleaned
+
+
 class OCRService:
     """
     Extracts raw text from an uploaded medical document file,
     regardless of exam type. PDFs are first tried as text-based
     (fast path); if no text layer exists (scanned document), pages
     are rasterized and run through image OCR instead.
+
+    همه‌ی متدهای این کلاس async هستند اما هیچ عملیات سنگین/sync را
+    مستقیماً در event loop اجرا نمی‌کنند؛ همه از طریق
+    asyncio.to_thread به یک thread جداگانه سپرده می‌شوند تا وقتی
+    چند فایل با asyncio.gather موازی پردازش می‌شوند، واقعاً به‌صورت
+    موازی روی thread pool اجرا شوند و سرور برای بقیه‌ی کاربران بلاک
+    نشود.
     """
 
     async def extract(self, filepath: Path) -> str:
@@ -111,15 +200,7 @@ class OCRService:
 
     async def _extract_from_pdf(self, filepath: Path) -> str:
         try:
-            reader = PdfReader(str(filepath))
-            pages_text = []
-
-            for page in reader.pages[:MAX_PDF_PAGES]:
-                text = page.extract_text()
-                if text:
-                    pages_text.append(text.strip())
-
-            extracted = "\n\n".join(pages_text).strip()
+            extracted = await asyncio.to_thread(_sync_extract_pdf_text, filepath)
 
             if extracted:
                 return extracted
@@ -132,55 +213,7 @@ class OCRService:
         return await self._ocr_scanned_pdf(filepath)
 
     async def _ocr_scanned_pdf(self, filepath: Path) -> str:
-        try:
-            doc = fitz.open(str(filepath))
-        except Exception as e:
-            raise OCRServiceError(f"باز کردن PDF برای OCR تصویری ناموفق بود: {e}")
-
-        pages_text = []
-
-        try:
-            page_count = min(len(doc), MAX_PDF_PAGES)
-
-            for page_index in range(page_count):
-                page = doc.load_page(page_index)
-                pix = page.get_pixmap(dpi=200)
-                image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-                image = _preprocess_for_ocr(image)
-
-                page_text = pytesseract.image_to_string(image, lang="fas+eng", config="--psm 6")
-
-                if page_text and page_text.strip():
-                    pages_text.append(page_text.strip())
-        except Exception as e:
-            raise OCRServiceError(f"OCR تصویری روی PDF ناموفق بود (Tesseract نصب/در دسترس است؟): {e}")
-        finally:
-            doc.close()
-
-        extracted = "\n\n".join(pages_text).strip()
-
-        if not extracted:
-            raise OCRServiceError("هیچ متنی از این PDF (حتی به‌صورت اسکن‌شده) استخراج نشد.")
-
-        return extracted
+        return await asyncio.to_thread(_sync_ocr_scanned_pdf, filepath)
 
     async def _extract_from_image(self, filepath: Path) -> str:
-        try:
-            image = Image.open(filepath)
-            image = image.convert("RGB")
-        except Exception as e:
-            raise OCRServiceError(f"باز کردن فایل تصویر ناموفق بود: {e}")
-
-        image = _preprocess_for_ocr(image)
-
-        try:
-            text = pytesseract.image_to_string(image, lang="fas+eng", config="--psm 6")
-        except Exception as e:
-            raise OCRServiceError(f"OCR روی تصویر ناموفق بود (Tesseract نصب/در دسترس است؟): {e}")
-
-        cleaned = (text or "").strip()
-
-        if not cleaned:
-            raise OCRServiceError("هیچ متنی از این تصویر استخراج نشد.")
-
-        return cleaned
+        return await asyncio.to_thread(_sync_extract_image_text, filepath)

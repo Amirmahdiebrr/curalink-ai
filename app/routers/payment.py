@@ -13,7 +13,7 @@ from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.limiter import limiter
 from app.models import (
     Plan, PURPOSE_SUBSCRIPTION, PURPOSE_EXAM_ANALYSIS, PURPOSE_DIET_PLAN,
-    PURPOSE_VISIT_PREP, PURPOSE_WORKOUT_PLAN,
+    PURPOSE_VISIT_PREP, PURPOSE_WORKOUT_PLAN, PURPOSE_DOCTOR_REVIEW,
 )
 from app.services import pending_action_store
 from app.services.billing_service import get_active_subscription
@@ -22,6 +22,9 @@ from app.services.payment_service import (
     finalize_payment,
     PaymentError,
 )
+from app.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 router = APIRouter()
@@ -121,7 +124,7 @@ async def payment_callback(
         return templates.TemplateResponse(
             request,
             "error.html",
-            {"request": request, "message": f"تایید پرداخت ناموفق بود: {e}", "user": user},
+            {"request": request, "message": str(e), "user": user},
             status_code=400,
         )
 
@@ -153,14 +156,11 @@ async def payment_callback(
     if payment.purpose == PURPOSE_EXAM_ANALYSIS and result_type == "job":
         return RedirectResponse(url=f"/processing/{result_id}", status_code=303)
 
-    if payment.purpose == PURPOSE_DIET_PLAN and result_type == "diet_record":
-        return RedirectResponse(url=f"/diet/history/{result_id}", status_code=303)
+    if payment.purpose in (PURPOSE_DIET_PLAN, PURPOSE_VISIT_PREP, PURPOSE_WORKOUT_PLAN) and result_type == "generic_job":
+        return RedirectResponse(url=f"/generic-processing/{result_id}", status_code=303)
 
-    if payment.purpose == PURPOSE_VISIT_PREP and result_type == "visit_prep_record":
-        return RedirectResponse(url=f"/visit-prep/history/{result_id}", status_code=303)
-
-    if payment.purpose == PURPOSE_WORKOUT_PLAN and result_type == "workout_record":
-        return RedirectResponse(url=f"/workout/history/{result_id}", status_code=303)
+    if payment.purpose == PURPOSE_DOCTOR_REVIEW and result_type == "doctor_review":
+        return RedirectResponse(url=f"/history/{result_id}", status_code=303)
 
     return templates.TemplateResponse(
         request,

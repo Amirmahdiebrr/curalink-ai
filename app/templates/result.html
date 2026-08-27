@@ -4,7 +4,7 @@
 {% block title %}{{ t('result_title') }} | CuraLink AI{% endblock %}
 
 {% block head %}
-<link rel="stylesheet" href="/static/css/chat.css">
+<link rel="stylesheet" href="{{ asset_url('css/chat.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -654,5 +654,5 @@
 })();
 </script>
 
-<script src="/static/js/ai-doctor.js"></script>
+<script src="{{ asset_url('js/ai-doctor.js') }}"></script>
 {% endblock %}

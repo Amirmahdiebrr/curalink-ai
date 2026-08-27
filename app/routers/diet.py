@@ -2,6 +2,8 @@
 app/routers/diet.py
 """
 
+import asyncio
+
 import markdown
 import bleach
 
@@ -11,7 +13,7 @@ from fastapi.responses import RedirectResponse, JSONResponse, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import get_db, SessionLocal
 from app.routers.auth import get_current_user
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.crypto import decrypt_value
@@ -30,6 +32,7 @@ from app.services.report_service import ALLOWED_TAGS, ALLOWED_ATTRS
 from app.services.billing_service import check_diet_plan_access
 from app.services.payment_service import start_service_payment, PaymentError
 from app.services.pdf_export_service import render_generic_pdf, PDFExportError
+from app.services.generic_job_store import create_job, update_job
 from app.models import PURPOSE_DIET_PLAN
 from app.core.logging_config import get_logger
 
@@ -44,6 +47,8 @@ diet_service = DietService()
 chat_service = ChatService()
 
 MAX_CONTEXT_LENGTH = 800
+
+GENERIC_AI_ERROR = "اتصال به سرویس هوش مصنوعی برقرار نشد. لطفاً چند لحظه دیگر دوباره تلاش کنید."
 
 
 def _to_html(raw_text: str) -> str:
@@ -78,6 +83,33 @@ async def generate_and_save_diet_plan(
     )
 
     return record
+
+
+async def run_diet_job(job_id: str, kwargs: dict):
+    """
+    اجرای واقعی تولید برنامه غذایی در پس‌زمینه (بعد از پرداخت موفق یا
+    مستقیم اگر رایگان بود)، با یک session دیتابیس مستقل از request.
+    """
+    update_job(job_id, status="processing")
+
+    db = SessionLocal()
+    try:
+        record = await generate_and_save_diet_plan(db, **kwargs)
+        update_job(job_id, status="done", result_type="diet_record", result_id=record.id)
+    except DeepSeekError as e:
+        logger.error(f"[Diet] Background job failed: {e}")
+        update_job(job_id, status="error", error=GENERIC_AI_ERROR)
+    except Exception as e:
+        logger.error(f"[Diet] Unexpected background job error: {e}")
+        update_job(job_id, status="error", error="خطای غیرمنتظره در تولید برنامه غذایی.")
+    finally:
+        db.close()
+
+
+async def start_diet_background_job(kwargs: dict, user_id: int | None) -> str:
+    job_id = create_job("diet", user_id=user_id)
+    asyncio.create_task(run_diet_job(job_id, kwargs))
+    return job_id
 
 
 @router.get("/diet")
@@ -165,6 +197,13 @@ async def diet_generate(
 
     access = check_diet_plan_access(db, user.id)
 
+    job_kwargs = {
+        "user_id": user.id,
+        "family_member_id": resolved_family_member_id,
+        "health_profile_fields": health_profile_fields,
+        "context_value": context_value,
+    }
+
     if not access["free"]:
         try:
             payment_result = await start_service_payment(
@@ -173,12 +212,7 @@ async def diet_generate(
                 PURPOSE_DIET_PLAN,
                 access["price"],
                 "خرید برنامه غذایی هوشمند",
-                {
-                    "user_id": user.id,
-                    "family_member_id": resolved_family_member_id,
-                    "health_profile_fields": health_profile_fields,
-                    "context_value": context_value,
-                },
+                job_kwargs,
             )
         except PaymentError as e:
             return templates.TemplateResponse(
@@ -192,7 +226,7 @@ async def diet_generate(
                     "diet_plan_html": None,
                     "diet_plan_raw": None,
                     "diet_record_id": None,
-                    "error": f"اتصال به درگاه پرداخت برقرار نشد: {e}",
+                    "error": str(e),
                     "selected_family_member_id": resolved_family_member_id,
                     "context_value": context_value,
                 }
@@ -200,48 +234,9 @@ async def diet_generate(
 
         return RedirectResponse(url=payment_result["payment_url"], status_code=303)
 
-    try:
-        record = await generate_and_save_diet_plan(
-            db,
-            user_id=user.id,
-            family_member_id=resolved_family_member_id,
-            health_profile_fields=health_profile_fields,
-            context_value=context_value,
-        )
-    except DeepSeekError as e:
-        return templates.TemplateResponse(
-            request,
-            "diet.html",
-            {
-                "request": request,
-                "user": user,
-                "family_members": family_members,
-                "csrf_token": new_token,
-                "diet_plan_html": None,
-                "diet_plan_raw": None,
-                "diet_record_id": None,
-                "error": f"اتصال به سرویس هوش مصنوعی برقرار نشد: {e}",
-                "selected_family_member_id": resolved_family_member_id,
-                "context_value": context_value,
-            }
-        )
+    job_id = await start_diet_background_job(job_kwargs, user.id)
 
-    return templates.TemplateResponse(
-        request,
-        "diet.html",
-        {
-            "request": request,
-            "user": user,
-            "family_members": family_members,
-            "csrf_token": new_token,
-            "diet_plan_html": decrypt_value(record.plan_html),
-            "diet_plan_raw": decrypt_value(record.plan_text),
-            "diet_record_id": record.id,
-            "error": None,
-            "selected_family_member_id": resolved_family_member_id,
-            "context_value": context_value,
-        }
-    )
+    return RedirectResponse(url=f"/generic-processing/{job_id}", status_code=303)
 
 
 @router.get("/diet/history")
@@ -315,7 +310,7 @@ async def diet_pdf(request: Request, record_id: int, db: Session = Depends(get_d
     patient_name = record.family_member.name if record.family_member else user.display_name
 
     try:
-        pdf_bytes = render_generic_pdf(
+        pdf_bytes = await render_generic_pdf(
             document_title="برنامه غذایی شخصی‌سازی‌شده",
             section_heading="برنامه غذایی پیشنهادی",
             patient_name=patient_name,
@@ -326,7 +321,7 @@ async def diet_pdf(request: Request, record_id: int, db: Session = Depends(get_d
         )
     except PDFExportError as e:
         logger.error(f"[Diet] PDF export failed for record_id={record_id}: {e}")
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return JSONResponse({"error": "تولید فایل PDF با خطا مواجه شد. لطفاً دوباره تلاش کنید."}, status_code=500)
 
     return Response(
         content=pdf_bytes,
@@ -379,7 +374,7 @@ async def diet_chat(request: Request, payload: DietChatRequest, db: Session = De
         answer = await chat_service.ask(diet_plan_text, history_data, question)
     except DeepSeekError:
         return JSONResponse(
-            {"error": "اتصال به سرویس هوش مصنوعی برقرار نشد. لطفاً از فعال بودن اتصال (VPN) سرور مطمئن شوید و دوباره تلاش کنید."},
+            {"error": GENERIC_AI_ERROR},
             status_code=503
         )
     except Exception as e:

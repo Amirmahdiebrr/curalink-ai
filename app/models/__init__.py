@@ -107,6 +107,7 @@ class User(Base):
     verification_note = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login_at = Column(DateTime, nullable=True)
 
     analyses = relationship(
@@ -209,10 +210,11 @@ class AnalysisRecord(Base):
     __tablename__ = "analysis_records"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    family_member_id = Column(Integer, ForeignKey("family_members.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    family_member_id = Column(Integer, ForeignKey("family_members.id", ondelete="SET NULL"), nullable=True, index=True)
 
     exam_type = Column(String, nullable=True)
+    requested_exam_type = Column(String, nullable=True)
     filename = Column(String, nullable=True)
 
     ocr_text = Column(Text, nullable=True)
@@ -220,16 +222,21 @@ class AnalysisRecord(Base):
     analysis_html = Column(Text, nullable=True)
     symptoms = Column(Text, nullable=True)
 
-    reviewing_doctor_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    reviewing_doctor_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     doctor_opinion_text = Column(Text, nullable=True)
     doctor_opinion_status = Column(String, nullable=True)
     doctor_opinion_at = Column(DateTime, nullable=True)
 
-    review_status = Column(String, nullable=True)
+    review_status = Column(String, nullable=True, index=True)
     review_payment_status = Column(String, nullable=True)
     review_price_paid = Column(Integer, nullable=True)
 
+    price_paid = Column(Integer, nullable=True)
+    price_mismatch_flag = Column(Boolean, default=False, nullable=False, index=True)
+    price_mismatch_amount = Column(Integer, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="analyses", foreign_keys=[user_id])
     family_member = relationship("FamilyMember", back_populates="analyses")
@@ -242,9 +249,9 @@ class TestResult(Base):
     __tablename__ = "test_results"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    analysis_id = Column(Integer, ForeignKey("analysis_records.id"), nullable=False, index=True)
-    family_member_id = Column(Integer, ForeignKey("family_members.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    analysis_id = Column(Integer, ForeignKey("analysis_records.id", ondelete="CASCADE"), nullable=False, index=True)
+    family_member_id = Column(Integer, ForeignKey("family_members.id", ondelete="SET NULL"), nullable=True, index=True)
 
     test_name = Column(String, nullable=False, index=True)
     value_numeric = Column(Float, nullable=True)
@@ -254,7 +261,7 @@ class TestResult(Base):
     status = Column(String, nullable=True)
     recommended_followup_days = Column(Integer, nullable=True)
     organ_category = Column(String, nullable=True)
-    followup_reminder_sent = Column(Boolean, default=False, nullable=False)
+    followup_reminder_sent = Column(Boolean, default=False, nullable=False, index=True)
 
     test_date = Column(DateTime, default=datetime.utcnow, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -268,8 +275,8 @@ class DietPlanRecord(Base):
     __tablename__ = "diet_plan_records"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    family_member_id = Column(Integer, ForeignKey("family_members.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    family_member_id = Column(Integer, ForeignKey("family_members.id", ondelete="SET NULL"), nullable=True, index=True)
 
     context = Column(Text, nullable=True)
     plan_text = Column(Text, nullable=True)
@@ -285,8 +292,8 @@ class VisitPrepRecord(Base):
     __tablename__ = "visit_prep_records"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    family_member_id = Column(Integer, ForeignKey("family_members.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    family_member_id = Column(Integer, ForeignKey("family_members.id", ondelete="SET NULL"), nullable=True, index=True)
 
     visit_reason = Column(Text, nullable=True)
     summary_text = Column(Text, nullable=True)
@@ -302,8 +309,8 @@ class WorkoutPlanRecord(Base):
     __tablename__ = "workout_plan_records"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    family_member_id = Column(Integer, ForeignKey("family_members.id"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    family_member_id = Column(Integer, ForeignKey("family_members.id", ondelete="SET NULL"), nullable=True, index=True)
 
     goal = Column(String, nullable=True)
     fitness_level = Column(String, nullable=True)
@@ -413,6 +420,7 @@ class Subscription(Base):
     usage_count = Column(Integer, default=0, nullable=False)
 
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", backref="subscriptions")
     plan = relationship("Plan", back_populates="subscriptions")
@@ -434,6 +442,7 @@ class Payment(Base):
     zarinpal_ref_id = Column(String, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     paid_at = Column(DateTime, nullable=True)
 
     user = relationship("User", backref="payments")
@@ -481,6 +490,31 @@ class JobRecord(Base):
     stage = Column(String, nullable=False, default="pending")
 
     result_json = Column(Text, nullable=True)
+    error = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class GenericJobRecord(Base):
+    """
+    صف job های پس‌زمینه‌ی diet، workout و visit-prep — مشابه JobRecord
+    که برای تحلیل آزمایش استفاده می‌شود، اما جدا نگه داشته شده چون
+    این سه سرویس به AnalysisRecord ربطی ندارند و نتیجه‌شان رکورد
+    دیگری (DietPlanRecord/WorkoutPlanRecord/VisitPrepRecord) است.
+    """
+    __tablename__ = "generic_jobs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    job_id = Column(String, unique=True, nullable=False, index=True)
+
+    job_type = Column(String, nullable=False, index=True)  # 'diet' | 'workout' | 'visit_prep'
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+
+    status = Column(String, nullable=False, default="pending")  # pending|processing|done|error
+
+    result_type = Column(String, nullable=True)
+    result_id = Column(Integer, nullable=True)
     error = Column(Text, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
@@ -561,6 +595,7 @@ class Prescription(Base):
     status = Column(String, nullable=False, default=PRESCRIPTION_STATUS_ACTIVE, index=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     analysis = relationship("AnalysisRecord", back_populates="prescriptions")
     doctor = relationship("User", foreign_keys=[doctor_id])
@@ -601,7 +636,7 @@ class PatientFollowup(Base):
     insurance_type = Column(String, nullable=True)
 
     followup_date = Column(DateTime, nullable=False, index=True)
-    reminder_sent = Column(Boolean, default=False, nullable=False)
+    reminder_sent = Column(Boolean, default=False, nullable=False, index=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 

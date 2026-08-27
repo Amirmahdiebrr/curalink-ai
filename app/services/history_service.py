@@ -41,22 +41,28 @@ def save_analysis(
     structured_results: list | None = None,
     symptoms: str | None = None,
     family_member_id: int | None = None,
+    requested_exam_type: str | None = None,
+    price_paid: int | None = None,
 ) -> AnalysisRecord:
 
     record = AnalysisRecord(
         user_id=user_id,
         family_member_id=family_member_id,
         exam_type=exam_type,
+        requested_exam_type=requested_exam_type,
         filename=filename,
         ocr_text=encrypt_value(ocr_text),
         analysis_text=encrypt_value(analysis_text),
         analysis_html=encrypt_value(analysis_html),
         symptoms=encrypt_value(symptoms),
+        price_paid=price_paid,
     )
 
     db.add(record)
     db.commit()
     db.refresh(record)
+
+    _flag_price_mismatch_if_needed(db, record)
 
     if structured_results:
         for item in structured_results:
@@ -103,6 +109,35 @@ def save_analysis(
     return record
 
 
+def _flag_price_mismatch_if_needed(db: Session, record: AnalysisRecord) -> None:
+    """
+    اگر کاربر نوع آزمایش دیگری از نوع تشخیص‌داده‌شده‌ی واقعی انتخاب
+    کرده بود (مثلاً "سایر" ارزان‌تر به‌جای MRI گران‌تر)، و بابت نوع
+    ارزان‌تر پول پرداخت کرده، این رکورد را برای پیگیری توسط ادمین
+    علامت‌گذاری می‌کند. هزینه‌ی واقعی از AI قبلاً صرف شده، پس اینجا
+    فقط ثبت می‌شود، نه جلوگیری.
+    """
+    if not record.requested_exam_type or not record.exam_type:
+        return
+
+    if record.requested_exam_type == record.exam_type:
+        return
+
+    if record.price_paid is None:
+        return
+
+    try:
+        from app.services.billing_service import get_service_price
+        actual_price = get_service_price(db, record.exam_type)
+    except Exception:
+        return
+
+    if actual_price > record.price_paid:
+        record.price_mismatch_flag = True
+        record.price_mismatch_amount = actual_price - record.price_paid
+        db.commit()
+
+
 def get_user_history(db: Session, user_id: int):
     return (
         db.query(AnalysisRecord)
@@ -128,6 +163,20 @@ def get_record_for_admin(db: Session, record_id: int):
     """
     record = db.query(AnalysisRecord).filter(AnalysisRecord.id == record_id).first()
     return _decrypt_record(record)
+
+
+def get_price_mismatch_records(db: Session):
+    """
+    گزارش‌هایی که کاربر بابت نوع ارزان‌تری پول داده ولی نوع واقعی
+    (تشخیص‌داده‌شده توسط AI) گران‌تر بوده — برای پیگیری مابه‌التفاوت
+    توسط ادمین پلتفرم.
+    """
+    return (
+        db.query(AnalysisRecord)
+        .filter(AnalysisRecord.price_mismatch_flag.is_(True))
+        .order_by(AnalysisRecord.created_at.desc())
+        .all()
+    )
 
 
 def get_test_results_for_analysis(db: Session, analysis_id: int):

@@ -1,13 +1,32 @@
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: curalink-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: curalink
+      POSTGRES_PASSWORD: change_this_password
+      POSTGRES_DB: curalink
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
   curalink:
     build: .
     container_name: curalink-ai
     restart: unless-stopped
+    depends_on:
+      - db
     ports:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      DATABASE_URL: postgresql://curalink:change_this_password@db:5432/curalink
     volumes:
-      - ./data:/app/data
       - ./uploads:/app/uploads
       - ./avatars:/app/app/static/avatars
+
+volumes:
+  pgdata:

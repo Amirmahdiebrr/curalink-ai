@@ -2,6 +2,8 @@
 app/routers/visit_prep.py
 """
 
+import asyncio
+
 import markdown
 import bleach
 
@@ -10,7 +12,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse, JSONResponse, Response
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import get_db, SessionLocal
 from app.routers.auth import get_current_user
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.limiter import limiter
@@ -27,6 +29,7 @@ from app.services.report_service import ALLOWED_TAGS, ALLOWED_ATTRS
 from app.services.billing_service import check_visit_prep_access
 from app.services.payment_service import start_service_payment, PaymentError
 from app.services.pdf_export_service import render_generic_pdf, PDFExportError
+from app.services.generic_job_store import create_job, update_job
 from app.models import PURPOSE_VISIT_PREP
 from app.core.logging_config import get_logger
 
@@ -40,6 +43,8 @@ templates = Jinja2Templates(directory="app/templates")
 visit_prep_service = VisitPrepService()
 
 MAX_REASON_LENGTH = 800
+
+GENERIC_AI_ERROR = "اتصال به سرویس هوش مصنوعی برقرار نشد. لطفاً چند لحظه دیگر دوباره تلاش کنید."
 
 
 def _to_html(raw_text: str) -> str:
@@ -74,6 +79,29 @@ async def generate_and_save_visit_prep(
     )
 
     return record
+
+
+async def run_visit_prep_job(job_id: str, kwargs: dict):
+    update_job(job_id, status="processing")
+
+    db = SessionLocal()
+    try:
+        record = await generate_and_save_visit_prep(db, **kwargs)
+        update_job(job_id, status="done", result_type="visit_prep_record", result_id=record.id)
+    except DeepSeekError as e:
+        logger.error(f"[VisitPrep] Background job failed: {e}")
+        update_job(job_id, status="error", error=GENERIC_AI_ERROR)
+    except Exception as e:
+        logger.error(f"[VisitPrep] Unexpected background job error: {e}")
+        update_job(job_id, status="error", error="خطای غیرمنتظره در آماده‌سازی ویزیت.")
+    finally:
+        db.close()
+
+
+async def start_visit_prep_background_job(kwargs: dict, user_id: int | None) -> str:
+    job_id = create_job("visit_prep", user_id=user_id)
+    asyncio.create_task(run_visit_prep_job(job_id, kwargs))
+    return job_id
 
 
 @router.get("/visit-prep")
@@ -161,6 +189,13 @@ async def visit_prep_generate(
 
     access = check_visit_prep_access(db, user.id)
 
+    job_kwargs = {
+        "user_id": user.id,
+        "family_member_id": resolved_family_member_id,
+        "health_profile_fields": health_profile_fields,
+        "reason_value": reason_value,
+    }
+
     if not access["free"]:
         try:
             payment_result = await start_service_payment(
@@ -169,12 +204,7 @@ async def visit_prep_generate(
                 PURPOSE_VISIT_PREP,
                 access["price"],
                 "خرید آماده‌سازی ویزیت",
-                {
-                    "user_id": user.id,
-                    "family_member_id": resolved_family_member_id,
-                    "health_profile_fields": health_profile_fields,
-                    "reason_value": reason_value,
-                },
+                job_kwargs,
             )
         except PaymentError as e:
             return templates.TemplateResponse(
@@ -188,7 +218,7 @@ async def visit_prep_generate(
                     "summary_html": None,
                     "summary_raw": None,
                     "record_id": None,
-                    "error": f"اتصال به درگاه پرداخت برقرار نشد: {e}",
+                    "error": str(e),
                     "selected_family_member_id": resolved_family_member_id,
                     "reason_value": reason_value,
                 }
@@ -196,48 +226,9 @@ async def visit_prep_generate(
 
         return RedirectResponse(url=payment_result["payment_url"], status_code=303)
 
-    try:
-        record = await generate_and_save_visit_prep(
-            db,
-            user_id=user.id,
-            family_member_id=resolved_family_member_id,
-            health_profile_fields=health_profile_fields,
-            reason_value=reason_value,
-        )
-    except DeepSeekError as e:
-        return templates.TemplateResponse(
-            request,
-            "visit_prep.html",
-            {
-                "request": request,
-                "user": user,
-                "family_members": family_members,
-                "csrf_token": new_token,
-                "summary_html": None,
-                "summary_raw": None,
-                "record_id": None,
-                "error": f"اتصال به سرویس هوش مصنوعی برقرار نشد: {e}",
-                "selected_family_member_id": resolved_family_member_id,
-                "reason_value": reason_value,
-            }
-        )
+    job_id = await start_visit_prep_background_job(job_kwargs, user.id)
 
-    return templates.TemplateResponse(
-        request,
-        "visit_prep.html",
-        {
-            "request": request,
-            "user": user,
-            "family_members": family_members,
-            "csrf_token": new_token,
-            "summary_html": record.summary_html,
-            "summary_raw": record.summary_text,
-            "record_id": record.id,
-            "error": None,
-            "selected_family_member_id": resolved_family_member_id,
-            "reason_value": reason_value,
-        }
-    )
+    return RedirectResponse(url=f"/generic-processing/{job_id}", status_code=303)
 
 
 @router.get("/visit-prep/history")
@@ -311,7 +302,7 @@ async def visit_prep_pdf(request: Request, record_id: int, db: Session = Depends
     patient_name = record.family_member.name if record.family_member else user.display_name
 
     try:
-        pdf_bytes = render_generic_pdf(
+        pdf_bytes = await render_generic_pdf(
             document_title="خلاصه آماده‌سازی ویزیت پزشک",
             section_heading="خلاصه آماده‌شده",
             patient_name=patient_name,
@@ -322,7 +313,7 @@ async def visit_prep_pdf(request: Request, record_id: int, db: Session = Depends
         )
     except PDFExportError as e:
         logger.error(f"[VisitPrep] PDF export failed for record_id={record_id}: {e}")
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return JSONResponse({"error": "تولید فایل PDF با خطا مواجه شد. لطفاً دوباره تلاش کنید."}, status_code=500)
 
     return Response(
         content=pdf_bytes,

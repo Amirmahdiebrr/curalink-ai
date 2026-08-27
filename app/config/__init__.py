@@ -10,6 +10,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 ENV_FILE = BASE_DIR / ".env"
 load_dotenv(ENV_FILE)
 
+# ==========================
+# اعتبارسنجی زودهنگام متغیرهای محیطی با pydantic-settings.
+# اگر مقداری نامعتبر باشد (مثلاً SMTP_PORT خارج از بازه، یا
+# EMAIL_PROVIDER با مقدار ناشناخته)، همین‌جا با پیام خطای واضح
+# برنامه متوقف می‌شود، نه وسط پردازش یک درخواست واقعی.
+# ==========================
+
+from app.config.settings import load_validated_settings
+
+_validated = load_validated_settings()
+
 AI_PROVIDER = os.getenv(
     "AI_PROVIDER",
     "nvidia"
@@ -20,9 +31,6 @@ AI_MODEL = os.getenv(
     "deepseek-ai/deepseek-v4-pro"
 )
 
-# مدل جایگزین (سریع‌تر/سبک‌تر) که در صورت timeout یا شلوغی (503) مدل
-# اصلی، به‌صورت خودکار برای همان درخواست امتحان می‌شود تا کاربر با
-# شکست کامل تحلیل مواجه نشود.
 AI_FALLBACK_MODEL = os.getenv(
     "AI_FALLBACK_MODEL",
     "deepseek-ai/deepseek-v4-flash"
@@ -56,6 +64,34 @@ else:
 APP_BASE_URL = os.getenv("APP_BASE_URL", "http://localhost:8000")
 
 IS_PRODUCTION = APP_BASE_URL.startswith("https://")
+
+# ==========================
+# دیتابیس
+#
+# اگر DATABASE_URL در .env تنظیم شده باشد (مثلاً یک آدرس PostgreSQL
+# مثل postgresql://user:pass@host:5432/dbname)، همان استفاده می‌شود.
+# در غیر این صورت (پیش‌فرض محیط توسعه)، از همان فایل SQLite قبلی
+# استفاده می‌شود تا هیچ‌کس مجبور به نصب PostgreSQL برای توسعه‌ی محلی
+# نباشد.
+# ==========================
+
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+
+if not DATABASE_URL:
+    _data_dir = BASE_DIR / "data"
+    _data_dir.mkdir(exist_ok=True)
+    DATABASE_URL = f"sqlite:///{_data_dir}/lab_analyzer.db"
+    print("ℹ️  DATABASE_URL تنظیم نشده — از SQLite محلی استفاده می‌شود (فقط مناسب توسعه).")
+else:
+    print(f"✅ DATABASE_URL از .env خوانده شد: {DATABASE_URL.split('@')[-1] if '@' in DATABASE_URL else DATABASE_URL}")
+
+if IS_PRODUCTION and DATABASE_URL.startswith("sqlite"):
+    print(
+        "⚠️  هشدار: در APP_BASE_URL با https (یعنی حالت production) هستید "
+        "ولی هنوز از SQLite استفاده می‌کنید. برای مقیاس‌پذیری و جلوگیری از "
+        "قفل‌شدن دیتابیس زیر بار همزمان چند worker، مهاجرت به PostgreSQL "
+        "توصیه می‌شود (متغیر DATABASE_URL را در .env تنظیم کنید)."
+    )
 
 # ==========================
 # SESSION_SECRET_KEY و ENCRYPTION_KEY

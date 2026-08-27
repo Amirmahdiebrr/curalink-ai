@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.routers.auth import get_current_user
 from app.models import ROLE_PLATFORM_ADMIN
+from app.core.feature_flags import FEATURE_EDUCATION_ENABLED, FEATURE_ANALYTICS_ENABLED
 
 
 router = APIRouter()
@@ -24,6 +25,14 @@ async def education_page(request: Request, db: Session = Depends(get_db)):
 
     if not user:
         return RedirectResponse(url="/login", status_code=303)
+
+    if not FEATURE_EDUCATION_ENABLED and user.role != ROLE_PLATFORM_ADMIN:
+        return templates.TemplateResponse(
+            request,
+            "error.html",
+            {"request": request, "message": "این بخش هنوز در دسترس نیست.", "user": user},
+            status_code=404,
+        )
 
     return templates.TemplateResponse(
         request,
@@ -40,6 +49,14 @@ async def education_course_page(course_id: int, request: Request, db: Session = 
     if not user:
         return RedirectResponse(url="/login", status_code=303)
 
+    if not FEATURE_EDUCATION_ENABLED and user.role != ROLE_PLATFORM_ADMIN:
+        return templates.TemplateResponse(
+            request,
+            "error.html",
+            {"request": request, "message": "این بخش هنوز در دسترس نیست.", "user": user},
+            status_code=404,
+        )
+
     return templates.TemplateResponse(
         request,
         "education_course.html",
@@ -54,6 +71,14 @@ async def analytics_page(request: Request, db: Session = Depends(get_db)):
 
     if not user or user.role != ROLE_PLATFORM_ADMIN:
         return RedirectResponse(url="/login", status_code=303)
+
+    if not FEATURE_ANALYTICS_ENABLED:
+        return templates.TemplateResponse(
+            request,
+            "error.html",
+            {"request": request, "message": "این بخش هنوز در دسترس نیست.", "user": user},
+            status_code=404,
+        )
 
     return templates.TemplateResponse(
         request,

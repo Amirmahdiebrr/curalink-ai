@@ -2,24 +2,39 @@
 app/database.py
 """
 
-from pathlib import Path
-
-from sqlalchemy import create_engine, text, inspect
+from sqlalchemy import create_engine, text, inspect, event
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
+from app.config import DATABASE_URL
 from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
 
-DATA_DIR = Path("data")
-DATA_DIR.mkdir(exist_ok=True)
+_IS_SQLITE = DATABASE_URL.startswith("sqlite")
 
-DATABASE_URL = f"sqlite:///{DATA_DIR}/lab_analyzer.db"
+_connect_args = {"check_same_thread": False} if _IS_SQLITE else {}
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False}
+    connect_args=_connect_args,
+    pool_pre_ping=not _IS_SQLITE,  # اتصال‌های مرده به PostgreSQL را قبل از استفاده تشخیص می‌دهد
 )
+
+
+if _IS_SQLITE:
+    @event.listens_for(Engine, "connect")
+    def _enable_sqlite_foreign_keys(dbapi_connection, connection_record):
+        """
+        در SQLite، اعمال محدودیت‌های foreign key به‌صورت پیش‌فرض خاموش
+        است و باید روی هر اتصال جداگانه فعال شود. PostgreSQL این
+        محدودیت‌ها را همیشه به‌صورت پیش‌فرض اعمال می‌کند، پس این
+        event فقط برای SQLite ثبت می‌شود.
+        """
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -32,6 +47,19 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+# ==========================
+# NOTE — Migration strategy
+#
+# از این پس، هر تغییر جدید در ساختار دیتابیس (ستون/جدول جدید، تغییر
+# نوع، حذف ستون) باید با یک فایل Alembic migration در alembic/versions
+# نوشته شود (دستور: alembic revision --autogenerate -m "توضیح").
+# توابع _add_column_if_missing زیر فقط برای سازگاری با دیتابیس‌های
+# SQLite قدیمی که پیش از معرفی Alembic ساخته شده‌اند نگه داشته
+# شده‌اند و روی PostgreSQL اجرا نمی‌شوند (چون دیتابیس‌های PostgreSQL
+# از ابتدا با Alembic ساخته می‌شوند).
+# ==========================
 
 
 def _add_column_if_missing(conn, table: str, column: str, ddl_type: str):
@@ -97,6 +125,11 @@ UNLIMITED_ACCESS_COLUMNS = [
 
 
 def _run_light_migrations():
+    if not _IS_SQLITE:
+        # دیتابیس‌های PostgreSQL همیشه از طریق Alembic ساخته و
+        # migrate می‌شوند؛ این مسیر سازگاری فقط برای SQLite قدیمی است.
+        return
+
     inspector = inspect(engine)
     table_names = inspector.get_table_names()
 

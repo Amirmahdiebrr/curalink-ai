@@ -63,6 +63,19 @@ class ReportService:
             except Exception as e:
                 logger.warning(f"[ReportService] Failed to remove temp file {path}: {e}")
 
+    async def _save_single_file(self, content: bytes, original_filename: str):
+        """
+        FileService.save_bytes شامل بررسی امضای بایت‌ها و نوشتن روی
+        دیسک است (sync)؛ برای این‌که با asyncio.gather واقعاً موازی
+        اجرا شود، در thread pool اجرا می‌شود.
+        """
+        try:
+            filepath = await asyncio.to_thread(self.file_service.save_bytes, original_filename, content)
+            return filepath, None
+        except Exception as e:
+            logger.error(f"[ReportService] File validation/save failed for {original_filename}: {e}")
+            return None, original_filename
+
     async def _ocr_single_file(self, filepath: Path, filename: str, index: int):
         try:
             text = await self.ocr_service.extract(filepath)
@@ -163,18 +176,29 @@ class ReportService:
 
         self._notify(on_stage, "saving")
 
+        save_tasks = [
+            self._save_single_file(content, original_filename)
+            for content, original_filename in files
+        ]
+        save_results = await asyncio.gather(*save_tasks)
+
         saved_paths = []
         original_names = []
 
-        for content, original_filename in files:
-            try:
-                filepath = self.file_service.save_bytes(original_filename, content)
-            except Exception as e:
-                logger.error(f"[ReportService] File validation/save failed for {original_filename}: {e}")
-                continue
+        for filepath, _failed_name in save_results:
+            if filepath is not None:
+                saved_paths.append(filepath)
+                original_names.append(filepath.name if hasattr(filepath, "name") else str(filepath))
 
-            saved_paths.append(filepath)
-            original_names.append(original_filename)
+        # original_names باید نام اصلی فایل کاربر باشد نه نام یکتای دیسک؛
+        # چون save_bytes نام یکتا تولید می‌کند، نام اصلی را جدا نگه می‌داریم.
+        saved_paths = []
+        original_names = []
+
+        for (filepath, failed_name), (_content, original_filename) in zip(save_results, files):
+            if filepath is not None:
+                saved_paths.append(filepath)
+                original_names.append(original_filename)
 
         if not saved_paths:
             raise Exception("هیچ‌کدام از فایل‌های ارسالی معتبر نبودند یا ذخیره نشدند.")

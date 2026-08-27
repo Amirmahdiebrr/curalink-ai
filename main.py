@@ -24,6 +24,7 @@ from app.config import SESSION_SECRET_KEY, IS_PRODUCTION
 from app.database import init_db, SessionLocal
 from app.core.limiter import limiter
 from app.core.language import LanguageMiddleware
+from app.core.security_headers import SecurityHeadersMiddleware
 
 from app.routers.home import router as home_router
 from app.routers.analyze import router as analyze_router
@@ -44,8 +45,10 @@ from app.routers.org_referrals import router as org_referrals_router
 from app.routers.admin import router as admin_router
 from app.routers.payment import router as payment_router
 from app.routers.education import router as education_router
+from app.routers.generic_jobs import router as generic_jobs_router
 
 from app.services.job_store import purge_old_jobs
+from app.services.generic_job_store import purge_old_jobs as purge_old_generic_jobs
 from app.services import pending_action_store
 from app.services.reminder_service import ReminderService
 
@@ -61,6 +64,8 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.add_middleware(
     SessionMiddleware,
@@ -103,6 +108,7 @@ app.include_router(health_status_router)
 app.include_router(language_router)
 app.include_router(org_referrals_router)
 app.include_router(education_router)
+app.include_router(generic_jobs_router)
 
 
 # ==========================
@@ -116,6 +122,10 @@ async def _job_cleanup_loop():
             purge_old_jobs()
         except Exception as e:
             logger.error(f"[JobStore] Cleanup loop error: {e}")
+        try:
+            purge_old_generic_jobs()
+        except Exception as e:
+            logger.error(f"[GenericJobStore] Cleanup loop error: {e}")
         try:
             pending_action_store.purge_old()
         except Exception as e:

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}در حال آماده‌سازی... | CuraLink AI{% endblock %}
+
+{% block content %}
+
+<section class="processing-section cl-section-content">
+    <div class="container">
+
+        <div class="processing-card cl-reveal is-visible" id="generic-processing-card" data-job-id="{{ job_id }}">
+
+            <div class="cl-processing-orb">
+                <div class="loader"></div>
+                <span class="material-symbols-outlined cl-processing-orb-icon">auto_awesome</span>
+            </div>
+
+            <h1 class="processing-title">{{ title }}</h1>
+            <p class="processing-sub">این فرآیند معمولاً کمتر از یک دقیقه طول می‌کشد</p>
+
+            <p class="processing-note">
+                در صورت شلوغ بودن سرویس هوش مصنوعی، ممکن است این مرحله کمی بیشتر طول بکشد. لطفاً این صفحه را نبندید.
+            </p>
+
+            <div class="processing-error" id="generic-processing-error" style="display:none;">
+                <p id="generic-processing-error-text"></p>
+                <a href="/" class="btn btn-solid">تلاش مجدد</a>
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const card = document.getElementById("generic-processing-card");
+    const jobId = card.getAttribute("data-job-id");
+
+    function showError(message) {
+        document.querySelector(".loader").style.display = "none";
+        document.getElementById("generic-processing-error").style.display = "block";
+        document.getElementById("generic-processing-error-text").textContent = message;
+    }
+
+    async function poll() {
+        try {
+            const res = await fetch(`/job-status/${jobId}`);
+
+            if (res.status === 404) {
+                showError("این درخواست پیدا نشد. لطفاً دوباره تلاش کنید.");
+                return;
+            }
+
+            const data = await res.json();
+
+            if (data.status === "done") {
+                window.location.href = data.redirect_url;
+                return;
+            }
+
+            if (data.status === "error") {
+                showError(data.error || "خطایی در پردازش رخ داد.");
+                return;
+            }
+
+            setTimeout(poll, 1500);
+
+        } catch (e) {
+            setTimeout(poll, 2000);
+        }
+    }
+
+    poll();
+})();
+</script>
+{% endblock %}

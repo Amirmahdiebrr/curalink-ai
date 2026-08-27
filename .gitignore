@@ -25,3 +25,12 @@ resp*.json
 # OS
 Thumbs.db
 .DS_Store
+
+# Backup files (one-off migration artifacts should never be committed)
+*.bak
+*.bak2
+*.orig
+
+# Frontend build
+node_modules/
+app/static/dist/

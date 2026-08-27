@@ -5,6 +5,10 @@ app/routers/doctor_review.py
 تکمیلی: یادداشت‌های پزشکی، نسخه‌ی دیجیتال (با کد پیگیری) و یادآوری
 پیگیری بیمار (زمان‌بندی بر اساس نوع بیمه).
 
+درخواست بررسی توسط پزشک اگر رایگان نباشد (بدون اشتراک فعال/دسترسی
+نامحدود)، از طریق درگاه پرداخت pay-per-use انجام می‌شود، دقیقاً مشابه
+تحلیل آزمایش/برنامه غذایی/برنامه ورزشی.
+
 کاربران platform_admin هم به این صف دسترسی دارند (برای تست کامل
 جریان بررسی پزشک بدون نیاز به اکانت پزشک جداگانه).
 """
@@ -20,16 +24,19 @@ from app.database import get_db
 from app.routers.auth import get_current_user
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.limiter import limiter
-from app.models import ROLE_DOCTOR, ROLE_PLATFORM_ADMIN, INSURANCE_TYPES, INSURANCE_LABELS
+from app.models import ROLE_DOCTOR, ROLE_PLATFORM_ADMIN, INSURANCE_TYPES, INSURANCE_LABELS, PURPOSE_DOCTOR_REVIEW
 from app.core.exam_types import EXAM_TYPE_LABELS
 from app.services.doctor_review_service import (
-    request_review,
+    can_request_review,
+    mark_review_requested,
     get_awaiting_reviews,
     get_my_reviewed_records,
     get_record_for_doctor,
     submit_review,
     DoctorReviewError,
 )
+from app.services.billing_service import check_doctor_review_access
+from app.services.payment_service import start_service_payment, PaymentError
 from app.services.family_service import get_family_member_for_user, get_family_members
 from app.services.doctor_tools_service import (
     add_doctor_note,
@@ -92,12 +99,32 @@ async def request_review_submit(
     if not is_valid_csrf(request, csrf_token):
         return RedirectResponse(url=f"/history/{record_id}", status_code=303)
 
-    try:
-        request_review(db, record_id, user.id)
-    except DoctorReviewError as e:
-        logger.error(f"[DoctorReview] request_review failed: {e}")
+    if not can_request_review(db, record_id, user.id):
+        return RedirectResponse(url=f"/history/{record_id}", status_code=303)
 
-    return RedirectResponse(url=f"/history/{record_id}", status_code=303)
+    access = check_doctor_review_access(db, user.id)
+
+    if access["free"]:
+        try:
+            mark_review_requested(db, record_id, user.id, price_paid=None)
+        except DoctorReviewError as e:
+            logger.error(f"[DoctorReview] mark_review_requested failed: {e}")
+        return RedirectResponse(url=f"/history/{record_id}", status_code=303)
+
+    try:
+        payment_result = await start_service_payment(
+            db,
+            user,
+            PURPOSE_DOCTOR_REVIEW,
+            access["price"],
+            "بررسی گزارش توسط پزشک",
+            {"record_id": record_id, "user_id": user.id, "price_paid": access["price"]},
+        )
+    except PaymentError as e:
+        logger.error(f"[DoctorReview] Payment start failed: {e}")
+        return RedirectResponse(url=f"/history/{record_id}", status_code=303)
+
+    return RedirectResponse(url=payment_result["payment_url"], status_code=303)
 
 
 # ==========================
@@ -398,7 +425,7 @@ async def doctor_prescription_pdf(prescription_id: int, request: Request, db: Se
     doctor_council_no = doctor.doctor_profile.medical_council_no if doctor.doctor_profile else None
 
     try:
-        pdf_bytes = render_prescription_pdf(
+        pdf_bytes = await render_prescription_pdf(
             prescription=prescription,
             doctor_name=doctor.display_name,
             doctor_specialty=doctor_specialty,

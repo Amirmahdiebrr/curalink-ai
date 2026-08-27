@@ -344,3 +344,15 @@ def increment_organization_usage(db: Session, org_user_id: int) -> None:
 
 def patient_review_is_free(db: Session, patient_user_id: int) -> bool:
     return has_unlimited_access(db, patient_user_id) or patient_has_active_subscription(db, patient_user_id) is not None
+
+
+def check_doctor_review_access(db: Session, patient_user_id: int) -> dict:
+    """
+    بررسی می‌کند که آیا درخواست بررسی توسط پزشک برای این بیمار رایگان
+    است (اشتراک فعال/دسترسی نامحدود) یا نیاز به پرداخت pay-per-use دارد.
+    """
+    if patient_review_is_free(db, patient_user_id):
+        return {"free": True, "requires_payment": False, "price": None, "reason": "covered_by_subscription"}
+
+    pricing = get_doctor_review_pricing(db)
+    return {"free": False, "requires_payment": True, "price": pricing["price"], "reason": "no_active_subscription"}

@@ -13,6 +13,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.core.language import t, get_lang, lang_dir
 from app.core.jdate import jdate, jdatetime
+from app.core.asset_helpers import asset_url
 
 _original_init = Jinja2Templates.__init__
 
@@ -24,6 +25,7 @@ def _patched_init(self, *args, **kwargs):
     self.env.globals["lang_dir"] = lang_dir
     self.env.globals["jdate"] = jdate
     self.env.globals["jdatetime"] = jdatetime
+    self.env.globals["asset_url"] = asset_url
 
 
 Jinja2Templates.__init__ = _patched_init

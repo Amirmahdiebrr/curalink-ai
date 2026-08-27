@@ -56,6 +56,7 @@ async def run_job(
     health_profile_fields: dict | None,
     user_id: int | None,
     family_member_id: int | None,
+    price_paid: int | None = None,
 ):
 
     def on_stage(stage: str):
@@ -87,6 +88,8 @@ async def run_job(
                     structured_results=result.get("structured_results", []),
                     symptoms=symptoms,
                     family_member_id=family_member_id,
+                    requested_exam_type=exam_type,
+                    price_paid=price_paid,
                 )
                 logger.info(f"[Analyze] Saved analysis to history for user_id={user_id}, family_member_id={family_member_id}")
             except Exception as e:
@@ -99,7 +102,7 @@ async def run_job(
         logger.error("BACKGROUND JOB ERROR")
         logger.error("=" * 50)
         logger.error(traceback.format_exc())
-        update_job(job_id, status="error", stage="error", error=str(e))
+        update_job(job_id, status="error", stage="error", error="پردازش این آزمایش با خطا مواجه شد. لطفاً دوباره تلاش کنید.")
 
 
 async def start_background_job(payload: dict) -> str:
@@ -115,6 +118,7 @@ async def start_background_job(payload: dict) -> str:
         payload.get("health_profile_fields"),
         payload.get("user_id"),
         payload.get("family_member_id"),
+        payload.get("price_paid"),
     ))
 
     return job_id
@@ -209,7 +213,8 @@ async def analyze(
     try:
         access = check_exam_access(db, user_id, pricing_exam_type)
     except BillingError as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+        logger.error(f"[Analyze] Billing error: {e}")
+        return JSONResponse({"error": "خطا در بررسی دسترسی. لطفاً دوباره تلاش کنید."}, status_code=500)
 
     payload = {
         "file_data": encoded_file_data,
@@ -218,6 +223,7 @@ async def analyze(
         "health_profile_fields": health_profile_fields,
         "user_id": user_id,
         "family_member_id": resolved_family_member_id,
+        "price_paid": access["price"] if not access["free"] else 0,
     }
 
     if access["free"]:
@@ -238,7 +244,7 @@ async def analyze(
             payload,
         )
     except PaymentError as e:
-        return JSONResponse({"error": f"اتصال به درگاه پرداخت برقرار نشد: {e}"}, status_code=400)
+        return JSONResponse({"error": str(e)}, status_code=400)
 
     return JSONResponse({"payment_required": True, "payment_url": payment_result["payment_url"]})
 
@@ -360,7 +366,7 @@ async def result_pdf(request: Request, job_id: str, db: Session = Depends(get_db
     organ_groups = group_results_by_organ(result.get("structured_results", []))
 
     try:
-        pdf_bytes = render_analysis_pdf(
+        pdf_bytes = await render_analysis_pdf(
             patient_name=user.display_name if user else "کاربر",
             exam_type_label=EXAM_TYPE_LABELS.get(result.get("exam_type"), result.get("exam_type") or "آزمایش"),
             report_date=datetime.utcnow(),
@@ -370,7 +376,7 @@ async def result_pdf(request: Request, job_id: str, db: Session = Depends(get_db
         )
     except PDFExportError as e:
         logger.error(f"[Analyze] PDF export failed for job_id={job_id}: {e}")
-        return JSONResponse({"error": str(e)}, status_code=500)
+        return JSONResponse({"error": "تولید فایل PDF با خطا مواجه شد. لطفاً دوباره تلاش کنید."}, status_code=500)
 
     return Response(
         content=pdf_bytes,

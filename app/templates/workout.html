@@ -3,7 +3,7 @@
 {% block title %}{{ t('workout_page_title') }}{% endblock %}
 
 {% block head %}
-<link rel="stylesheet" href="/static/css/chat.css">
+<link rel="stylesheet" href="{{ asset_url('css/chat.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -212,5 +212,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/ai-doctor.js"></script>
+<script src="{{ asset_url('js/ai-doctor.js') }}"></script>
 {% endblock %}
