@@ -58,6 +58,43 @@ TABLE_ORDER = [
     "patient_followups",
 ]
 
+# ==========================
+# مقادیر پیش‌فرض برای ستون‌هایی که در دیتابیس قدیمی SQLite ممکن است
+# NULL باشند (چون آن ستون بعداً به مدل اضافه شده)، ولی در PostgreSQL
+# محدودیت NOT NULL دارند. کلید بیرونی = نام جدول، کلید داخلی = نام
+# ستون، مقدار = چیزی که باید جایگزین NULL شود.
+# ==========================
+NOT_NULL_DEFAULTS = {
+    "analysis_records": {
+        "price_mismatch_flag": False,
+    },
+    "users": {
+        "unlimited_access": False,
+        "phone_verified": False,
+        "email_verified": False,
+        "is_active": True,
+    },
+    "test_results": {
+        "followup_reminder_sent": False,
+    },
+    "patient_followups": {
+        "reminder_sent": False,
+    },
+}
+
+
+def _fix_row(table_name: str, row_dict: dict) -> dict:
+    defaults = NOT_NULL_DEFAULTS.get(table_name)
+
+    if not defaults:
+        return row_dict
+
+    for column, default_value in defaults.items():
+        if row_dict.get(column) is None:
+            row_dict[column] = default_value
+
+    return row_dict
+
 
 def migrate_table(table_name: str, sqlite_meta: MetaData, postgres_meta: MetaData):
     if table_name not in sqlite_meta.tables:
@@ -78,8 +115,10 @@ def migrate_table(table_name: str, sqlite_meta: MetaData, postgres_meta: MetaDat
             print(f"ℹ️  جدول '{table_name}': هیچ رکوردی برای انتقال نیست.")
             return
 
-        pconn.execute(insert(postgres_table), [dict(row) for row in rows])
-        print(f"✅ جدول '{table_name}': {len(rows)} رکورد منتقل شد.")
+        fixed_rows = [_fix_row(table_name, dict(row)) for row in rows]
+
+        pconn.execute(insert(postgres_table), fixed_rows)
+        print(f"✅ جدول '{table_name}': {len(fixed_rows)} رکورد منتقل شد.")
 
 
 def main():
