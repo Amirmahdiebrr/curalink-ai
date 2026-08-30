@@ -14,6 +14,7 @@ from fastapi.templating import Jinja2Templates
 from app.core.language import t, get_lang, lang_dir
 from app.core.jdate import jdate, jdatetime
 from app.core.asset_helpers import asset_url
+from app.core.csp import get_nonce
 
 _original_init = Jinja2Templates.__init__
 
@@ -26,6 +27,7 @@ def _patched_init(self, *args, **kwargs):
     self.env.globals["jdate"] = jdate
     self.env.globals["jdatetime"] = jdatetime
     self.env.globals["asset_url"] = asset_url
+    self.env.globals["csp_nonce"] = get_nonce
 
 
 Jinja2Templates.__init__ = _patched_init

@@ -327,7 +327,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function(){
     document.querySelectorAll('[data-switch]').forEach(function(sw){
         sw.setAttribute('role', 'switch');

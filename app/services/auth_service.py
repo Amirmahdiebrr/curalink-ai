@@ -1,8 +1,8 @@
 """
 app/services/auth_service.py
 
-سرویس مستقل احراز هویت: ثبت‌نام بیمار/پزشک/سازمان، ورود، OTP موبایل،
-تایید ایمیل، بازیابی رمز عبور.
+سرویس مستقل احراز هویت: ثبت‌نام بیمار/پزشک/سازمان، ورود بر اساس کد
+ملی، OTP موبایل، تایید ایمیل (اختیاری)، بازیابی رمز عبور.
 """
 
 from datetime import datetime
@@ -20,6 +20,7 @@ from app.core.security import (
     otp_expiry, email_token_expiry, reset_token_expiry,
     MAX_VERIFY_ATTEMPTS,
 )
+from app.core.crypto import encrypt_value, hash_national_id, normalize_national_id
 
 
 class AuthError(Exception):
@@ -28,6 +29,8 @@ class AuthError(Exception):
 
 def get_user_by_email(db: Session, email: str) -> User | None:
     email = (email or "").strip().lower()
+    if not email:
+        return None
     return db.query(User).filter(User.email == email).first()
 
 
@@ -38,6 +41,16 @@ def get_user_by_phone(db: Session, phone: str) -> User | None:
 
 def get_user_by_id(db: Session, user_id: int) -> User | None:
     return db.query(User).filter(User.id == user_id).first()
+
+
+def get_user_by_national_id(db: Session, national_id: str) -> User | None:
+    normalized = normalize_national_id(national_id)
+
+    if not normalized:
+        return None
+
+    national_id_hash = hash_national_id(normalized)
+    return db.query(User).filter(User.national_id_hash == national_id_hash).first()
 
 
 def _create_verification_code(db: Session, user_id: int, purpose: str, raw_code: str, expires_at) -> None:
@@ -83,16 +96,17 @@ def _consume_valid_code(db: Session, user_id: int, purpose: str, submitted_code:
     return True
 
 
-def register_patient(db: Session, email: str, phone: str, password: str, display_name: str) -> User:
-    return _register_common(db, email=email, phone=phone, password=password, display_name=display_name, role=ROLE_PATIENT)
+def register_patient(db: Session, national_id: str, phone: str, password: str, display_name: str, email: str | None = None) -> User:
+    return _register_common(db, national_id=national_id, email=email, phone=phone, password=password, display_name=display_name, role=ROLE_PATIENT)
 
 
 def register_doctor(
-    db: Session, email: str, phone: str, password: str, display_name: str,
+    db: Session, national_id: str, phone: str, password: str, display_name: str,
     specialty: str | None, medical_council_no: str | None,
     license_document_path: str | None, clinic_name: str | None = None,
+    email: str | None = None,
 ) -> User:
-    user = _register_common(db, email=email, phone=phone, password=password, display_name=display_name, role=ROLE_DOCTOR)
+    user = _register_common(db, national_id=national_id, email=email, phone=phone, password=password, display_name=display_name, role=ROLE_DOCTOR)
 
     user.verification_status = VERIFICATION_PENDING
     user.is_active = False
@@ -112,15 +126,15 @@ def register_doctor(
 
 
 def register_org(
-    db: Session, email: str, phone: str, password: str, display_name: str,
-    org_name: str, org_type: str | None = None,
+    db: Session, national_id: str, phone: str, password: str, display_name: str,
+    org_name: str, org_type: str | None = None, email: str | None = None,
 ) -> User:
     """
     ثبت‌نام مدیر سازمان (کلینیک/آزمایشگاه/بیمارستان). برخلاف پزشک،
     نیازی به تایید ادمین ندارد و بلافاصله فعال است، چون اشتراک سازمانی
     خودش هزینه‌ی بالایی دارد و از طریق درگاه پرداخت احراز می‌شود.
     """
-    user = _register_common(db, email=email, phone=phone, password=password, display_name=display_name, role=ROLE_ORG_ADMIN)
+    user = _register_common(db, national_id=national_id, email=email, phone=phone, password=password, display_name=display_name, role=ROLE_ORG_ADMIN)
 
     profile = OrganizationProfile(
         user_id=user.id,
@@ -134,14 +148,16 @@ def register_org(
     return user
 
 
-def _register_common(db: Session, email: str, phone: str, password: str, display_name: str, role: str) -> User:
+def _register_common(db: Session, national_id: str, email: str | None, phone: str, password: str, display_name: str, role: str) -> User:
 
-    email = (email or "").strip().lower()
+    email = (email or "").strip().lower() or None
     phone = (phone or "").strip()
     display_name = (display_name or "").strip()
 
-    if not email or "@" not in email:
-        raise AuthError("ایمیل معتبر وارد کنید.")
+    normalized_national_id = normalize_national_id(national_id)
+
+    if not normalized_national_id:
+        raise AuthError("کد ملی معتبر (۱۰ رقم) وارد کنید.")
 
     if not phone:
         raise AuthError("شماره موبایل الزامی است.")
@@ -153,11 +169,20 @@ def _register_common(db: Session, email: str, phone: str, password: str, display
     if password_error:
         raise AuthError(password_error)
 
-    if get_user_by_email(db, email):
+    # ایمیل اختیاری است؛ فقط اگر وارد شده، باید فرمت معتبری داشته باشد.
+    if email and "@" not in email:
+        raise AuthError("ایمیل وارد‌شده معتبر نیست.")
+
+    if email and get_user_by_email(db, email):
         raise AuthError("این ایمیل قبلاً ثبت شده است.")
 
     if get_user_by_phone(db, phone):
         raise AuthError("این شماره موبایل قبلاً ثبت شده است.")
+
+    national_id_hash = hash_national_id(normalized_national_id)
+
+    if db.query(User).filter(User.national_id_hash == national_id_hash).first():
+        raise AuthError("این کد ملی قبلاً ثبت شده است.")
 
     user = User(
         role=role,
@@ -165,6 +190,8 @@ def _register_common(db: Session, email: str, phone: str, password: str, display
         password_hash=hash_password(password),
         phone=phone,
         display_name=display_name,
+        national_id=encrypt_value(normalized_national_id),
+        national_id_hash=national_id_hash,
         is_active=True,
         email_verified=False,
         phone_verified=False,
@@ -177,12 +204,12 @@ def _register_common(db: Session, email: str, phone: str, password: str, display
     return user
 
 
-def authenticate(db: Session, email: str, password: str) -> User:
+def authenticate(db: Session, national_id: str, password: str) -> User:
 
-    user = get_user_by_email(db, email)
+    user = get_user_by_national_id(db, national_id)
 
     if not user or not verify_password(password, user.password_hash):
-        raise AuthError("ایمیل یا رمز عبور اشتباه است.")
+        raise AuthError("کد ملی یا رمز عبور اشتباه است.")
 
     if not user.is_active:
         if user.verification_status == VERIFICATION_PENDING:
@@ -196,6 +223,38 @@ def authenticate(db: Session, email: str, password: str) -> User:
     db.refresh(user)
 
     return user
+
+
+def set_national_id(db: Session, user: User, national_id: str | None) -> None:
+    """
+    تغییر/ثبت کد ملی از صفحه‌ی پروفایل. چون کد ملی برای ورود استفاده
+    می‌شود، یکتا بودنش (از طریق national_id_hash) دوباره بررسی می‌شود.
+    """
+    if not national_id or not national_id.strip():
+        user.national_id = None
+        user.national_id_hash = None
+        db.commit()
+        return
+
+    normalized = normalize_national_id(national_id)
+
+    if not normalized:
+        raise AuthError("کد ملی وارد‌شده معتبر نیست.")
+
+    national_id_hash = hash_national_id(normalized)
+
+    existing = (
+        db.query(User)
+        .filter(User.national_id_hash == national_id_hash, User.id != user.id)
+        .first()
+    )
+
+    if existing:
+        raise AuthError("این کد ملی قبلاً توسط حساب دیگری ثبت شده است.")
+
+    user.national_id = encrypt_value(normalized)
+    user.national_id_hash = national_id_hash
+    db.commit()
 
 
 def start_phone_verification(db: Session, user: User) -> str:
@@ -302,14 +361,23 @@ def reject_doctor(db: Session, doctor_id: int, admin_id: int, note: str | None =
     db.refresh(doctor)
 
     return doctor
+
+
 def change_email(db: Session, user: User, new_email: str, current_password: str) -> None:
     new_email = (new_email or "").strip().lower()
 
-    if not new_email or "@" not in new_email:
-        raise AuthError("ایمیل معتبر وارد کنید.")
-
     if not verify_password(current_password, user.password_hash):
         raise AuthError("رمز عبور فعلی اشتباه است.")
+
+    if not new_email:
+        # حذف ایمیل مجاز است چون ایمیل اختیاری است.
+        user.email = None
+        user.email_verified = False
+        db.commit()
+        return
+
+    if "@" not in new_email:
+        raise AuthError("ایمیل معتبر وارد کنید.")
 
     if get_user_by_email(db, new_email) and new_email != user.email:
         raise AuthError("این ایمیل قبلاً توسط حساب دیگری ثبت شده است.")

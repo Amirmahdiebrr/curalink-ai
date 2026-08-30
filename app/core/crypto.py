@@ -11,9 +11,12 @@ data saved before this was introduced), the raw value is returned as-is
 so existing data isn't lost; it will be re-encrypted on the next save.
 """
 
+import hmac
+import hashlib
+
 from cryptography.fernet import Fernet, InvalidToken
 
-from app.config import ENCRYPTION_KEY
+from app.config import ENCRYPTION_KEY, SESSION_SECRET_KEY
 from app.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -44,3 +47,42 @@ def decrypt_value(value: str | None) -> str | None:
         # همان‌طور که هست نمایش می‌دهیم تا داده گم نشود.
         logger.warning("[Crypto] Failed to decrypt value, returning as legacy plaintext.")
         return value
+
+
+_HASH_KEY = (SESSION_SECRET_KEY or "").encode("utf-8")
+
+
+def hash_national_id(national_id: str | None) -> str | None:
+    """
+    یک هش یک‌طرفه و قطعی (HMAC-SHA256) از کد ملی تولید می‌کند که برای
+    جستجو/ورود استفاده می‌شود (چون خودِ national_id با Fernet رمزنگاری
+    می‌شود و رمزنگاری Fernet هر بار خروجی متفاوتی تولید می‌کند، پس
+    قابل جستجوی مستقیم در دیتابیس نیست). این تابع فقط یک عدد ثابت
+    برمی‌گرداند، نه چیزی که بشود از آن کد ملی اصلی را بازیابی کرد.
+    """
+    if not national_id:
+        return None
+
+    normalized = national_id.strip()
+
+    if not normalized:
+        return None
+
+    return hmac.new(_HASH_KEY, normalized.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def normalize_national_id(national_id: str | None) -> str | None:
+    """
+    کد ملی وارد‌شده را تمیز می‌کند (فقط ارقام، بدون فاصله/خط‌تیره).
+    اعتبارسنجی دقیق (الگوریتم چک‌دیجیت) عمداً انجام نمی‌شود تا فرآیند
+    ثبت‌نام ساده و روان بماند؛ فقط طول و رقمی‌بودن بررسی می‌شود.
+    """
+    if not national_id:
+        return None
+
+    digits = "".join(ch for ch in national_id.strip() if ch.isdigit())
+
+    if len(digits) != 10:
+        return None
+
+    return digits

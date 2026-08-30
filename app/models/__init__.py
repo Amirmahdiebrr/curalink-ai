@@ -53,7 +53,10 @@ class User(Base):
 
     role = Column(String, nullable=False, default=ROLE_PATIENT, index=True)
 
-    email = Column(String, unique=True, index=True, nullable=False)
+    # ایمیل دیگر اجباری نیست — ورود و ثبت‌نام بر اساس کد ملی انجام
+    # می‌شود و ایمیل صرفاً یک راه ارتباطی اختیاری (برای بازیابی رمز
+    # عبور در صورت وجود) است.
+    email = Column(String, unique=True, index=True, nullable=True)
     password_hash = Column(String, nullable=False)
 
     phone = Column(String, unique=True, index=True, nullable=False)
@@ -64,7 +67,14 @@ class User(Base):
 
     age = Column(Integer, nullable=True)
     gender = Column(String, nullable=True)
+
+    # مقدار واقعی کد ملی رمزنگاری‌شده اینجا ذخیره می‌شود (فقط برای
+    # نمایش به خودِ کاربر). چون رمزنگاری Fernet هر بار خروجی متفاوتی
+    # می‌دهد، این ستون قابل جستجوی مستقیم برای ورود نیست؛ به همین
+    # دلیل ستون national_id_hash زیر برای جستجو/ورود استفاده می‌شود.
     national_id = Column(String, nullable=True)
+    national_id_hash = Column(String, unique=True, index=True, nullable=True)
+
     address = Column(String, nullable=True)
     avatar_path = Column(String, nullable=True)
 
@@ -117,7 +127,13 @@ class User(Base):
         foreign_keys="AnalysisRecord.user_id",
     )
     test_results = relationship("TestResult", back_populates="user", order_by="TestResult.test_date.desc()")
-    family_members = relationship("FamilyMember", back_populates="user", order_by="FamilyMember.created_at")
+    family_members = relationship(
+        "FamilyMember",
+        back_populates="user",
+        order_by="FamilyMember.created_at",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
     diet_plans = relationship("DietPlanRecord", back_populates="user", order_by="DietPlanRecord.created_at.desc()")
     visit_preps = relationship("VisitPrepRecord", back_populates="user", order_by="VisitPrepRecord.created_at.desc()")
     workout_plans = relationship("WorkoutPlanRecord", back_populates="user", order_by="WorkoutPlanRecord.created_at.desc()")
@@ -127,8 +143,16 @@ class User(Base):
         back_populates="user",
         uselist=False,
         foreign_keys="DoctorProfile.user_id",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
-    organization_profile = relationship("OrganizationProfile", back_populates="user", uselist=False)
+    organization_profile = relationship(
+        "OrganizationProfile",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
     # آزمایشگاه/کلینیک/بیمارستانی که این کاربر را معرفی کرده (در صورت وجود).
     referred_by_org = relationship(
@@ -143,7 +167,7 @@ class DoctorProfile(Base):
     __tablename__ = "doctor_profiles"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
 
     specialty = Column(String, nullable=True)
     medical_council_no = Column(String, nullable=True)
@@ -162,7 +186,7 @@ class OrganizationProfile(Base):
     __tablename__ = "organization_profiles"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
 
     org_name = Column(String, nullable=False)
     org_type = Column(String, nullable=True)
@@ -179,7 +203,7 @@ class FamilyMember(Base):
     __tablename__ = "family_members"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
 
     name = Column(String, nullable=False)
     relation = Column(String, nullable=True)

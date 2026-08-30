@@ -34,7 +34,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function () {
     const card = document.getElementById("generic-processing-card");
     const jobId = card.getAttribute("data-job-id");

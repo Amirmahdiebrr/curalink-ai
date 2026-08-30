@@ -94,7 +94,7 @@ FA_TRANSLATIONS = {
     "login_brand_heading": "تحلیل هوشمند آزمایشات پزشکی",
     "login_brand_desc": "با حساب کاربری کیورالینک خود وارد شوید و از تحلیل سریع و دقیق آزمایشات‌تان با هوش مصنوعی بهره‌مند شوید.",
     "login_heading": "ورود به کیورالینک",
-    "login_desc": "با ایمیل و رمز عبور خود وارد شوید",
+    "login_desc": "با کد ملی و رمز عبور خود وارد شوید",
     "field_email": "ایمیل",
     "field_password": "رمز عبور",
     "field_password_placeholder": "رمز عبور خود را وارد کنید",
@@ -1078,4 +1078,9 @@ FA_TRANSLATIONS = {
     "field_manager_phone": "شماره موبایل مدیر",
     "field_manager_phone_placeholder": "مثلاً: 09121234567",
     "register_org_submit": "ثبت‌نام سازمان",
-}
+    # ===== National ID login/register fields =====
+    "field_national_id": "کد ملی",
+    "field_national_id_placeholder": "مثلاً: 0123456789",
+    "field_national_id_hint": "برای ورود به حساب کاربری از همین کد ملی استفاده می‌کنید.",
+    "field_optional_label": "اختیاری",
+    "field_email_optional_hint": "ایمیل کاملاً اختیاری است و فقط برای بازیابی رمز عبور استفاده می‌شود.",}

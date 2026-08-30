@@ -306,7 +306,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function(){
 
     /* ===== i18n strings & locale (injected server-side) ===== */

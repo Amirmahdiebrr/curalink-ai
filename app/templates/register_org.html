@@ -52,8 +52,13 @@
                 </div>
 
                 <div class="cl-field">
-                    <label for="email">{{ t('field_email') }}</label>
-                    <input type="email" id="email" name="email" placeholder="{{ t('field_org_email_placeholder') }}" required>
+                    <label for="national_id">{{ t('field_national_id') }}</label>
+                    <input type="text" id="national_id" name="national_id" inputmode="numeric" maxlength="10" placeholder="{{ t('field_national_id_placeholder') }}" required>
+                </div>
+
+                <div class="cl-field">
+                    <label for="email">{{ t('field_email') }} <span class="cl-text-caption">({{ t('field_optional_label') }})</span></label>
+                    <input type="email" id="email" name="email" placeholder="{{ t('field_org_email_placeholder') }}">
                 </div>
 
                 <div class="cl-field">

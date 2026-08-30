@@ -93,7 +93,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.querySelectorAll('.cl-category-chips .cl-chip').forEach(function(c){
     c.addEventListener('click', function(){
         document.querySelectorAll('.cl-category-chips .cl-chip').forEach(function(o){ o.classList.remove('is-active'); });

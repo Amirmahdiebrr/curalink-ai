@@ -20,6 +20,7 @@ from app.services.auth_service import (
     AuthError,
     get_user_by_id,
     get_user_by_email,
+    set_national_id,
     start_phone_verification,
     confirm_phone_otp,
     start_email_verification,
@@ -37,7 +38,7 @@ from app.services.file_service import signature_matches_extension
 from app.services.avatar_service import save_avatar, AvatarError
 from app.services.referral_service import get_all_labs
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
-from app.core.crypto import encrypt_value, decrypt_value
+from app.core.crypto import decrypt_value
 from app.core.limiter import limiter
 from app.core.health_profile import BLOOD_TYPE_OPTIONS
 from app.config import DOCTOR_DOCS_MAX_SIZE_MB, DOCTOR_DOCS_ALLOWED_EXTENSIONS
@@ -212,7 +213,8 @@ async def register_patient_submit(
     request: Request,
     background_tasks: BackgroundTasks,
     display_name: str = Form(...),
-    email: str = Form(...),
+    national_id: str = Form(...),
+    email: str = Form(None),
     phone: str = Form(...),
     password: str = Form(...),
     password_confirm: str = Form(...),
@@ -254,6 +256,7 @@ async def register_patient_submit(
     try:
         user = register_patient(
             db,
+            national_id=national_id,
             email=email,
             phone=phone,
             password=password,
@@ -294,11 +297,12 @@ async def register_patient_submit(
     user.activity_level = activity_level or None
     db.commit()
 
-    try:
-        verify_token = start_email_verification(db, user)
-        background_tasks.add_task(email_service.send_email_verification, user.email, user.id, verify_token)
-    except Exception as e:
-        logger.error(f"[Auth] Failed to queue verification email: {e}")
+    if user.email:
+        try:
+            verify_token = start_email_verification(db, user)
+            background_tasks.add_task(email_service.send_email_verification, user.email, user.id, verify_token)
+        except Exception as e:
+            logger.error(f"[Auth] Failed to queue verification email: {e}")
 
     _start_authenticated_session(request, user.id)
 
@@ -316,11 +320,13 @@ async def register_doctor_page(request: Request):
 
 
 @router.post("/register/doctor")
+@limiter.limit("5/hour")
 async def register_doctor_submit(
     request: Request,
     background_tasks: BackgroundTasks,
     display_name: str = Form(...),
-    email: str = Form(...),
+    national_id: str = Form(...),
+    email: str = Form(None),
     phone: str = Form(...),
     password: str = Form(...),
     password_confirm: str = Form(...),
@@ -372,6 +378,7 @@ async def register_doctor_submit(
     try:
         user = register_doctor(
             db,
+            national_id=national_id,
             email=email,
             phone=phone,
             password=password,
@@ -390,11 +397,12 @@ async def register_doctor_submit(
             {"request": request, "error": str(e), "csrf_token": new_token, "user": None}
         )
 
-    try:
-        verify_token = start_email_verification(db, user)
-        background_tasks.add_task(email_service.send_email_verification, user.email, user.id, verify_token)
-    except Exception as e:
-        logger.error(f"[Auth] Failed to queue verification email (doctor): {e}")
+    if user.email:
+        try:
+            verify_token = start_email_verification(db, user)
+            background_tasks.add_task(email_service.send_email_verification, user.email, user.id, verify_token)
+        except Exception as e:
+            logger.error(f"[Auth] Failed to queue verification email (doctor): {e}")
 
     return templates.TemplateResponse(
         request,
@@ -419,7 +427,8 @@ async def register_org_submit(
     request: Request,
     background_tasks: BackgroundTasks,
     display_name: str = Form(...),
-    email: str = Form(...),
+    national_id: str = Form(...),
+    email: str = Form(None),
     phone: str = Form(...),
     password: str = Form(...),
     password_confirm: str = Form(...),
@@ -455,6 +464,7 @@ async def register_org_submit(
     try:
         user = register_org(
             db,
+            national_id=national_id,
             email=email,
             phone=phone,
             password=password,
@@ -469,11 +479,12 @@ async def register_org_submit(
             {"request": request, "error": str(e), "csrf_token": new_token, "user": None}
         )
 
-    try:
-        verify_token = start_email_verification(db, user)
-        background_tasks.add_task(email_service.send_email_verification, user.email, user.id, verify_token)
-    except Exception as e:
-        logger.error(f"[Auth] Failed to queue verification email (org): {e}")
+    if user.email:
+        try:
+            verify_token = start_email_verification(db, user)
+            background_tasks.add_task(email_service.send_email_verification, user.email, user.id, verify_token)
+        except Exception as e:
+            logger.error(f"[Auth] Failed to queue verification email (org): {e}")
 
     _start_authenticated_session(request, user.id)
 
@@ -494,7 +505,7 @@ async def login_page(request: Request):
 @limiter.limit("10/minute")
 async def login_submit(
     request: Request,
-    email: str = Form(...),
+    national_id: str = Form(...),
     password: str = Form(...),
     csrf_token: str = Form(...),
     db: Session = Depends(get_db),
@@ -511,7 +522,7 @@ async def login_submit(
         )
 
     try:
-        user = authenticate(db, email=email, password=password)
+        user = authenticate(db, national_id=national_id, password=password)
     except AuthError as e:
         return templates.TemplateResponse(
             request,
@@ -577,7 +588,7 @@ async def resend_email_verification(
     if not user:
         return RedirectResponse(url="/login", status_code=303)
 
-    if not user.email_verified:
+    if user.email and not user.email_verified:
         verify_token = start_email_verification(db, user)
         background_tasks.add_task(email_service.send_email_verification, user.email, user.id, verify_token)
 
@@ -850,7 +861,16 @@ async def profile_update(
         user.age = None
 
     user.gender = gender or None
-    user.national_id = encrypt_value(national_id.strip()) if national_id and national_id.strip() else None
+
+    try:
+        set_national_id(db, user, national_id)
+    except AuthError as e:
+        return templates.TemplateResponse(
+            request,
+            "profile.html",
+            _profile_context(request, user, new_token, error=str(e)),
+        )
+
     user.address = address or None
 
     height_value = _parse_int(height_cm)
@@ -945,7 +965,7 @@ async def profile_avatar_upload(
 async def profile_change_email(
     request: Request,
     background_tasks: BackgroundTasks,
-    new_email: str = Form(...),
+    new_email: str = Form(None),
     current_password: str = Form(...),
     csrf_token: str = Form(...),
     db: Session = Depends(get_db),
@@ -964,9 +984,10 @@ async def profile_change_email(
         )
 
     try:
-        change_email(db, user, new_email, current_password)
-        verify_token = start_email_verification(db, user)
-        background_tasks.add_task(email_service.send_email_verification, user.email, user.id, verify_token)
+        change_email(db, user, new_email or "", current_password)
+        if user.email:
+            verify_token = start_email_verification(db, user)
+            background_tasks.add_task(email_service.send_email_verification, user.email, user.id, verify_token)
     except AuthError as e:
         return templates.TemplateResponse(
             request, "profile.html",
@@ -1049,7 +1070,8 @@ async def profile_delete_account(
 
     _delete_avatar_file(avatar_path)
 
-    background_tasks.add_task(email_service.send_account_deleted_notice, email, False)
+    if email:
+        background_tasks.add_task(email_service.send_account_deleted_notice, email, False)
 
     request.session.clear()
 

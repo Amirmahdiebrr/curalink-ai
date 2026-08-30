@@ -94,7 +94,7 @@ EN_TRANSLATIONS = {
     "login_brand_heading": "Smart Medical Test Analysis",
     "login_brand_desc": "Sign in to your CuraLink account and get fast, accurate AI-powered analysis of your medical tests.",
     "login_heading": "Sign in to CuraLink",
-    "login_desc": "Sign in with your email and password",
+    "login_desc": "Sign in with your national ID and password",
     "field_email": "Email",
     "field_password": "Password",
     "field_password_placeholder": "Enter your password",
@@ -1077,4 +1077,9 @@ EN_TRANSLATIONS = {
     "field_manager_phone": "Manager's mobile number",
     "field_manager_phone_placeholder": "e.g. 09121234567",
     "register_org_submit": "Sign Up Organization",
-}
+    # ===== National ID login/register fields =====
+    "field_national_id": "National ID",
+    "field_national_id_placeholder": "e.g. 0123456789",
+    "field_national_id_hint": "You'll use this national ID to sign in to your account.",
+    "field_optional_label": "Optional",
+    "field_email_optional_hint": "Email is completely optional and only used for password recovery.",}

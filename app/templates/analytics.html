@@ -79,7 +79,7 @@
 
 {% block scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script>
+<script nonce="{{ csp_nonce() }}">
 document.querySelectorAll('.cl-reveal').forEach(function(el){ el.classList.add('is-visible'); });
 
 /* Placeholder charts — no backend analytics endpoint exists yet. */

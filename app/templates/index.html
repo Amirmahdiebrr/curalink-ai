@@ -220,7 +220,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
+<script nonce="{{ csp_nonce() }}">
 (function(){
     document.querySelectorAll('.cl-reveal').forEach(function(el){ el.classList.add('is-visible'); });
 
