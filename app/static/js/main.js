@@ -76,6 +76,21 @@ document.addEventListener("DOMContentLoaded", function () {
                     formData.append("exam_type", examType.value);
                 }
 
+                const familyMember = document.getElementById("family_member_id");
+                if (familyMember) {
+                    formData.append("family_member_id", familyMember.value);
+                }
+
+                const seriesMode = document.getElementById("series_mode");
+                if (seriesMode) {
+                    formData.append("series_mode", seriesMode.value);
+                }
+
+                const seriesChoice = document.getElementById("series_choice_id");
+                if (seriesChoice && seriesMode && seriesMode.value === "continue" && seriesChoice.value) {
+                    formData.append("series_choice_id", seriesChoice.value);
+                }
+
                 const symptoms = document.getElementById("symptoms");
                 if (symptoms) {
                     formData.append("symptoms", symptoms.value);

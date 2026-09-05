@@ -4,6 +4,7 @@ app/routers/analyze.py
 
 import asyncio
 import base64
+import uuid
 import traceback
 from datetime import datetime
 
@@ -15,7 +16,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db, SessionLocal
 from app.services.report_service import ReportService
 from app.services.job_store import create_job, update_job, get_job
-from app.services.history_service import save_analysis
+from app.services.history_service import save_analysis, get_series_records, build_series_context_text
 from app.services.family_service import get_family_member_for_user
 from app.services.organ_display_service import group_results_by_organ
 from app.services.pdf_export_service import render_analysis_pdf, PDFExportError
@@ -57,6 +58,8 @@ async def run_job(
     user_id: int | None,
     family_member_id: int | None,
     price_paid: int | None = None,
+    series_id: str | None = None,
+    series_context: str | None = None,
 ):
 
     def on_stage(stage: str):
@@ -70,6 +73,7 @@ async def run_job(
             exam_type=exam_type,
             symptoms=symptoms,
             health_profile_fields=health_profile_fields,
+            series_context=series_context,
             on_stage=on_stage,
         )
         update_job(job_id, status="done", stage="done", result=result)
@@ -90,8 +94,9 @@ async def run_job(
                     family_member_id=family_member_id,
                     requested_exam_type=exam_type,
                     price_paid=price_paid,
+                    series_id=series_id,
                 )
-                logger.info(f"[Analyze] Saved analysis to history for user_id={user_id}, family_member_id={family_member_id}")
+                logger.info(f"[Analyze] Saved analysis to history for user_id={user_id}, family_member_id={family_member_id}, series_id={series_id}")
             except Exception as e:
                 logger.error(f"[Analyze] Failed to save history: {e}")
             finally:
@@ -119,6 +124,8 @@ async def start_background_job(payload: dict) -> str:
         payload.get("user_id"),
         payload.get("family_member_id"),
         payload.get("price_paid"),
+        payload.get("series_id"),
+        payload.get("series_context"),
     ))
 
     return job_id
@@ -138,6 +145,8 @@ async def analyze(
     exam_type: str = Form(None),
     symptoms: str = Form(None),
     family_member_id: str = Form(None),
+    series_mode: str = Form("none"),
+    series_choice_id: str = Form(None),
     csrf_token: str = Form(None),
     db: Session = Depends(get_db),
 ):
@@ -185,11 +194,34 @@ async def analyze(
 
     health_profile_fields = person_health_fields(person)
 
+    # ==========================
+    # روند/سری آزمایش‌های پیگیری
+    # ==========================
+    resolved_series_id = None
+    series_context_text = None
+
+    if series_mode == "new":
+        resolved_series_id = uuid.uuid4().hex
+        logger.info(f"[Analyze] Starting new series_id={resolved_series_id} for user_id={user_id}")
+
+    elif series_mode == "continue" and series_choice_id:
+        existing_series_records = get_series_records(db, user_id, series_choice_id, resolved_family_member_id)
+
+        if existing_series_records:
+            resolved_series_id = series_choice_id
+            series_context_text = build_series_context_text(db, user_id, resolved_series_id, resolved_family_member_id)
+        else:
+            logger.warning(
+                f"[Analyze] series_choice_id={series_choice_id} not found or not owned by "
+                f"user_id={user_id}/family_member_id={resolved_family_member_id}; treating as independent test."
+            )
+
     logger.info(f"[Analyze] exam_type received: {exam_type}")
     logger.info(f"[Analyze] file count received: {len(files)}")
     logger.info(f"[Analyze] symptoms provided: {bool(symptoms and symptoms.strip())}")
     logger.info(f"[Analyze] user_id: {user_id}")
     logger.info(f"[Analyze] family_member_id resolved: {resolved_family_member_id}")
+    logger.info(f"[Analyze] series_mode: {series_mode}, resolved_series_id: {resolved_series_id}")
 
     file_data = []
     total_size_mb = 0.0
@@ -224,6 +256,8 @@ async def analyze(
         "user_id": user_id,
         "family_member_id": resolved_family_member_id,
         "price_paid": access["price"] if not access["free"] else 0,
+        "series_id": resolved_series_id,
+        "series_context": series_context_text,
     }
 
     if access["free"]:

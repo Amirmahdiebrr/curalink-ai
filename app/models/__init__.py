@@ -14,10 +14,6 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 
-# ==========================
-# نقش‌های کاربری
-# ==========================
-
 ROLE_PATIENT = "patient"
 ROLE_DOCTOR = "doctor"
 ROLE_ORG_ADMIN = "org_admin"
@@ -28,11 +24,6 @@ VALID_ROLES = [ROLE_PATIENT, ROLE_DOCTOR, ROLE_ORG_ADMIN, ROLE_PLATFORM_ADMIN]
 VERIFICATION_PENDING = "pending_review"
 VERIFICATION_APPROVED = "approved"
 VERIFICATION_REJECTED = "rejected"
-
-
-# ==========================
-# بیمه (برای نسخه‌ها و یادآوری‌های پیگیری)
-# ==========================
 
 INSURANCE_TYPES = ["none", "tamin_ejtemaei", "salamat", "niroohaye_mosallah", "azad", "other"]
 
@@ -50,40 +41,22 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-
     role = Column(String, nullable=False, default=ROLE_PATIENT, index=True)
-
-    # ایمیل دیگر اجباری نیست — ورود و ثبت‌نام بر اساس کد ملی انجام
-    # می‌شود و ایمیل صرفاً یک راه ارتباطی اختیاری (برای بازیابی رمز
-    # عبور در صورت وجود) است.
     email = Column(String, unique=True, index=True, nullable=True)
     password_hash = Column(String, nullable=False)
-
     phone = Column(String, unique=True, index=True, nullable=False)
     phone_verified = Column(Boolean, default=False, nullable=False)
     email_verified = Column(Boolean, default=False, nullable=False)
-
     display_name = Column(String, nullable=False)
-
     age = Column(Integer, nullable=True)
     gender = Column(String, nullable=True)
-
-    # مقدار واقعی کد ملی رمزنگاری‌شده اینجا ذخیره می‌شود (فقط برای
-    # نمایش به خودِ کاربر). چون رمزنگاری Fernet هر بار خروجی متفاوتی
-    # می‌دهد، این ستون قابل جستجوی مستقیم برای ورود نیست؛ به همین
-    # دلیل ستون national_id_hash زیر برای جستجو/ورود استفاده می‌شود.
     national_id = Column(String, nullable=True)
     national_id_hash = Column(String, unique=True, index=True, nullable=True)
-
     address = Column(String, nullable=True)
     avatar_path = Column(String, nullable=True)
-
-    # ===== استان/شهر محل اقامت و آزمایشگاه/مرکز معرف =====
     province = Column(String, nullable=True)
     city = Column(String, nullable=True)
     referred_by_org_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
-
-    # ===== پروفایل سلامت اولیه =====
     height_cm = Column(Integer, nullable=True)
     weight_kg = Column(Float, nullable=True)
     blood_type = Column(String, nullable=True)
@@ -93,74 +66,32 @@ class User(Base):
     surgeries_history = Column(Text, nullable=True)
     smoking_status = Column(String, nullable=True)
     activity_level = Column(String, nullable=True)
-
-    # ===== مخاطب اضطراری و مراکز درمانی ترجیحی =====
     emergency_contact_name = Column(String, nullable=True)
     emergency_contact_phone = Column(String, nullable=True)
     preferred_hospital = Column(String, nullable=True)
     preferred_lab = Column(String, nullable=True)
-
-    # ===== بیمه =====
     insurance_type = Column(String, nullable=True)
     insurance_number = Column(String, nullable=True)
-
-    # ===== دسترسی نامحدود و رایگان (اعطاشده توسط ادمین پلتفرم) =====
-    # وقتی True باشد، این کاربر مثل platform_admin به همه‌ی سرویس‌های
-    # پولی (تحلیل آزمایش، برنامه غذایی/ورزشی، آماده‌سازی ویزیت و...)
-    # به‌صورت رایگان و بدون محدودیت دسترسی دارد.
     unlimited_access = Column(Boolean, default=False, nullable=False)
     unlimited_access_granted_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     unlimited_access_granted_at = Column(DateTime, nullable=True)
-
     is_active = Column(Boolean, default=True, nullable=False)
     verification_status = Column(String, nullable=True)
     verification_note = Column(Text, nullable=True)
-
+    profile_notice_seen = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login_at = Column(DateTime, nullable=True)
 
-    analyses = relationship(
-        "AnalysisRecord",
-        back_populates="user",
-        order_by="AnalysisRecord.created_at.desc()",
-        foreign_keys="AnalysisRecord.user_id",
-    )
-    test_results = relationship("TestResult", back_populates="user", order_by="TestResult.test_date.desc()")
-    family_members = relationship(
-        "FamilyMember",
-        back_populates="user",
-        order_by="FamilyMember.created_at",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
-    diet_plans = relationship("DietPlanRecord", back_populates="user", order_by="DietPlanRecord.created_at.desc()")
-    visit_preps = relationship("VisitPrepRecord", back_populates="user", order_by="VisitPrepRecord.created_at.desc()")
-    workout_plans = relationship("WorkoutPlanRecord", back_populates="user", order_by="WorkoutPlanRecord.created_at.desc()")
-
-    doctor_profile = relationship(
-        "DoctorProfile",
-        back_populates="user",
-        uselist=False,
-        foreign_keys="DoctorProfile.user_id",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
-    organization_profile = relationship(
-        "OrganizationProfile",
-        back_populates="user",
-        uselist=False,
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
-
-    # آزمایشگاه/کلینیک/بیمارستانی که این کاربر را معرفی کرده (در صورت وجود).
-    referred_by_org = relationship(
-        "User",
-        remote_side=[id],
-        foreign_keys=[referred_by_org_id],
-        backref="referred_users",
-    )
+    analyses = relationship("AnalysisRecord", back_populates="user", order_by="AnalysisRecord.created_at.desc()", foreign_keys="AnalysisRecord.user_id", cascade="all, delete-orphan", passive_deletes=True)
+    test_results = relationship("TestResult", back_populates="user", order_by="TestResult.test_date.desc()", cascade="all, delete-orphan", passive_deletes=True)
+    family_members = relationship("FamilyMember", back_populates="user", order_by="FamilyMember.created_at", cascade="all, delete-orphan", passive_deletes=True)
+    diet_plans = relationship("DietPlanRecord", back_populates="user", order_by="DietPlanRecord.created_at.desc()", cascade="all, delete-orphan", passive_deletes=True)
+    visit_preps = relationship("VisitPrepRecord", back_populates="user", order_by="VisitPrepRecord.created_at.desc()", cascade="all, delete-orphan", passive_deletes=True)
+    workout_plans = relationship("WorkoutPlanRecord", back_populates="user", order_by="WorkoutPlanRecord.created_at.desc()", cascade="all, delete-orphan", passive_deletes=True)
+    doctor_profile = relationship("DoctorProfile", back_populates="user", uselist=False, foreign_keys="DoctorProfile.user_id", cascade="all, delete-orphan", passive_deletes=True)
+    organization_profile = relationship("OrganizationProfile", back_populates="user", uselist=False, cascade="all, delete-orphan", passive_deletes=True)
+    referred_by_org = relationship("User", remote_side=[id], foreign_keys=[referred_by_org_id], backref="referred_users")
 
 
 class DoctorProfile(Base):
@@ -168,13 +99,11 @@ class DoctorProfile(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
-
     specialty = Column(String, nullable=True)
     medical_council_no = Column(String, nullable=True)
     license_document_path = Column(String, nullable=True)
     clinic_name = Column(String, nullable=True)
     bio = Column(Text, nullable=True)
-
     created_at = Column(DateTime, default=datetime.utcnow)
     reviewed_at = Column(DateTime, nullable=True)
     reviewed_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -187,12 +116,10 @@ class OrganizationProfile(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
-
     org_name = Column(String, nullable=False)
     org_type = Column(String, nullable=True)
     license_document_path = Column(String, nullable=True)
     api_key_hash = Column(String, nullable=True)
-
     created_at = Column(DateTime, default=datetime.utcnow)
     reviewed_at = Column(DateTime, nullable=True)
 
@@ -204,12 +131,10 @@ class FamilyMember(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-
     name = Column(String, nullable=False)
     relation = Column(String, nullable=True)
     age = Column(Integer, nullable=True)
     gender = Column(String, nullable=True)
-
     height_cm = Column(Integer, nullable=True)
     weight_kg = Column(Float, nullable=True)
     blood_type = Column(String, nullable=True)
@@ -219,7 +144,6 @@ class FamilyMember(Base):
     surgeries_history = Column(Text, nullable=True)
     smoking_status = Column(String, nullable=True)
     activity_level = Column(String, nullable=True)
-
     created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="family_members")
@@ -236,37 +160,32 @@ class AnalysisRecord(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     family_member_id = Column(Integer, ForeignKey("family_members.id", ondelete="SET NULL"), nullable=True, index=True)
-
     exam_type = Column(String, nullable=True)
     requested_exam_type = Column(String, nullable=True)
     filename = Column(String, nullable=True)
-
     ocr_text = Column(Text, nullable=True)
     analysis_text = Column(Text, nullable=True)
     analysis_html = Column(Text, nullable=True)
     symptoms = Column(Text, nullable=True)
-
+    series_id = Column(String, nullable=True, index=True)
     reviewing_doctor_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     doctor_opinion_text = Column(Text, nullable=True)
     doctor_opinion_status = Column(String, nullable=True)
     doctor_opinion_at = Column(DateTime, nullable=True)
-
     review_status = Column(String, nullable=True, index=True)
     review_payment_status = Column(String, nullable=True)
     review_price_paid = Column(Integer, nullable=True)
-
     price_paid = Column(Integer, nullable=True)
     price_mismatch_flag = Column(Boolean, default=False, nullable=False, index=True)
     price_mismatch_amount = Column(Integer, nullable=True)
-
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="analyses", foreign_keys=[user_id])
     family_member = relationship("FamilyMember", back_populates="analyses")
-    test_results = relationship("TestResult", back_populates="analysis", order_by="TestResult.test_name")
-    doctor_notes = relationship("DoctorNote", back_populates="analysis", order_by="DoctorNote.created_at.desc()")
-    prescriptions = relationship("Prescription", back_populates="analysis", order_by="Prescription.created_at.desc()")
+    test_results = relationship("TestResult", back_populates="analysis", order_by="TestResult.test_name", cascade="all, delete-orphan", passive_deletes=True)
+    doctor_notes = relationship("DoctorNote", back_populates="analysis", order_by="DoctorNote.created_at.desc()", cascade="all, delete-orphan", passive_deletes=True)
+    prescriptions = relationship("Prescription", back_populates="analysis", order_by="Prescription.created_at.desc()", cascade="all, delete-orphan", passive_deletes=True)
 
 
 class TestResult(Base):
@@ -276,7 +195,6 @@ class TestResult(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     analysis_id = Column(Integer, ForeignKey("analysis_records.id", ondelete="CASCADE"), nullable=False, index=True)
     family_member_id = Column(Integer, ForeignKey("family_members.id", ondelete="SET NULL"), nullable=True, index=True)
-
     test_name = Column(String, nullable=False, index=True)
     value_numeric = Column(Float, nullable=True)
     value_text = Column(String, nullable=True)
@@ -286,7 +204,6 @@ class TestResult(Base):
     recommended_followup_days = Column(Integer, nullable=True)
     organ_category = Column(String, nullable=True)
     followup_reminder_sent = Column(Boolean, default=False, nullable=False, index=True)
-
     test_date = Column(DateTime, default=datetime.utcnow, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -301,11 +218,9 @@ class DietPlanRecord(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     family_member_id = Column(Integer, ForeignKey("family_members.id", ondelete="SET NULL"), nullable=True, index=True)
-
     context = Column(Text, nullable=True)
     plan_text = Column(Text, nullable=True)
     plan_html = Column(Text, nullable=True)
-
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
     user = relationship("User", back_populates="diet_plans")
@@ -318,11 +233,9 @@ class VisitPrepRecord(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     family_member_id = Column(Integer, ForeignKey("family_members.id", ondelete="SET NULL"), nullable=True, index=True)
-
     visit_reason = Column(Text, nullable=True)
     summary_text = Column(Text, nullable=True)
     summary_html = Column(Text, nullable=True)
-
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
     user = relationship("User", back_populates="visit_preps")
@@ -335,16 +248,13 @@ class WorkoutPlanRecord(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     family_member_id = Column(Integer, ForeignKey("family_members.id", ondelete="SET NULL"), nullable=True, index=True)
-
     goal = Column(String, nullable=True)
     fitness_level = Column(String, nullable=True)
     days_per_week = Column(Integer, nullable=True)
     equipment = Column(String, nullable=True)
     injuries = Column(Text, nullable=True)
-
     plan_text = Column(Text, nullable=True)
     plan_html = Column(Text, nullable=True)
-
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
     user = relationship("User", back_populates="workout_plans")
@@ -356,20 +266,13 @@ class VerificationCode(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-
     purpose = Column(String, nullable=False, index=True)
     code_hash = Column(String, nullable=False)
-
     expires_at = Column(DateTime, nullable=False)
     used_at = Column(DateTime, nullable=True)
     attempts = Column(Integer, default=0, nullable=False)
-
     created_at = Column(DateTime, default=datetime.utcnow)
 
-
-# ==========================
-# Billing / Plans / Subscriptions
-# ==========================
 
 BILLING_PERIOD_WEEKLY = "weekly"
 BILLING_PERIOD_MONTHLY = "monthly"
@@ -403,9 +306,7 @@ class ServicePricing(Base):
     id = Column(Integer, primary_key=True, index=True)
     service_key = Column(String, unique=True, nullable=False, index=True)
     price = Column(Integer, nullable=False)
-
     doctor_share = Column(Integer, nullable=True)
-
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
@@ -416,14 +317,10 @@ class Plan(Base):
     code = Column(String, unique=True, nullable=False, index=True)
     role = Column(String, nullable=False, index=True)
     name_fa = Column(String, nullable=False)
-
     price = Column(Integer, nullable=False)
     billing_period_days = Column(Integer, nullable=False)
-
     usage_limit = Column(Integer, nullable=True)
-
     is_active = Column(Boolean, default=True, nullable=False)
-
     created_at = Column(DateTime, default=datetime.utcnow)
 
     subscriptions = relationship("Subscription", back_populates="plan")
@@ -435,14 +332,10 @@ class Subscription(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     plan_id = Column(Integer, ForeignKey("plans.id"), nullable=False, index=True)
-
     status = Column(String, nullable=False, default=SUBSCRIPTION_ACTIVE, index=True)
-
     started_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime, nullable=False)
-
     usage_count = Column(Integer, default=0, nullable=False)
-
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -455,16 +348,12 @@ class Payment(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-
     purpose = Column(String, nullable=False, index=True)
     reference_id = Column(Integer, nullable=True)
-
     amount = Column(Integer, nullable=False)
     status = Column(String, nullable=False, default=PAYMENT_PENDING, index=True)
-
     zarinpal_authority = Column(String, nullable=True, index=True)
     zarinpal_ref_id = Column(String, nullable=True)
-
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     paid_at = Column(DateTime, nullable=True)
@@ -478,10 +367,8 @@ class DoctorPayout(Base):
     id = Column(Integer, primary_key=True, index=True)
     doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     analysis_id = Column(Integer, ForeignKey("analysis_records.id"), nullable=False, index=True)
-
     amount = Column(Integer, nullable=False)
     status = Column(String, nullable=False, default=DOCTOR_PAYOUT_PENDING, index=True)
-
     created_at = Column(DateTime, default=datetime.utcnow)
     paid_at = Column(DateTime, nullable=True)
 
@@ -494,7 +381,6 @@ class OrganizationMember(Base):
     id = Column(Integer, primary_key=True, index=True)
     organization_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     member_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
-
     created_at = Column(DateTime, default=datetime.utcnow)
 
     organization = relationship("User", foreign_keys=[organization_user_id])
@@ -506,41 +392,27 @@ class JobRecord(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     job_id = Column(String, unique=True, nullable=False, index=True)
-
     exam_type = Column(String, nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
-
     status = Column(String, nullable=False, default="pending")
     stage = Column(String, nullable=False, default="pending")
-
     result_json = Column(Text, nullable=True)
     error = Column(Text, nullable=True)
-
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class GenericJobRecord(Base):
-    """
-    صف job های پس‌زمینه‌ی diet، workout و visit-prep — مشابه JobRecord
-    که برای تحلیل آزمایش استفاده می‌شود، اما جدا نگه داشته شده چون
-    این سه سرویس به AnalysisRecord ربطی ندارند و نتیجه‌شان رکورد
-    دیگری (DietPlanRecord/WorkoutPlanRecord/VisitPrepRecord) است.
-    """
     __tablename__ = "generic_jobs"
 
     id = Column(Integer, primary_key=True, index=True)
     job_id = Column(String, unique=True, nullable=False, index=True)
-
-    job_type = Column(String, nullable=False, index=True)  # 'diet' | 'workout' | 'visit_prep'
+    job_type = Column(String, nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
-
-    status = Column(String, nullable=False, default="pending")  # pending|processing|done|error
-
+    status = Column(String, nullable=False, default="pending")
     result_type = Column(String, nullable=True)
     result_id = Column(Integer, nullable=True)
     error = Column(Text, nullable=True)
-
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -550,12 +422,10 @@ class PendingActionRecord(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     payment_id = Column(Integer, ForeignKey("payments.id"), unique=True, nullable=False, index=True)
-
     data_json = Column(Text, nullable=False)
     result_type = Column(String, nullable=True)
     result_id = Column(Integer, nullable=True)
     error = Column(Text, nullable=True)
-
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 
@@ -564,20 +434,13 @@ class ReviewRecord(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-
     rating = Column(Integer, nullable=False)
     comment = Column(Text, nullable=False)
-
     is_approved = Column(Boolean, default=True, nullable=False)
-
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
     user = relationship("User")
 
-
-# ==========================
-# ابزارهای پزشک: یادداشت، نسخه، پیگیری بیمار (مبتنی بر بیمه)
-# ==========================
 
 PRESCRIPTION_STATUS_ACTIVE = "active"
 PRESCRIPTION_STATUS_FULFILLED = "fulfilled"
@@ -588,11 +451,9 @@ class DoctorNote(Base):
     __tablename__ = "doctor_notes"
 
     id = Column(Integer, primary_key=True, index=True)
-    analysis_id = Column(Integer, ForeignKey("analysis_records.id"), nullable=False, index=True)
+    analysis_id = Column(Integer, ForeignKey("analysis_records.id", ondelete="CASCADE"), nullable=False, index=True)
     doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-
     note_text = Column(Text, nullable=False)
-
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
     analysis = relationship("AnalysisRecord", back_populates="doctor_notes")
@@ -604,20 +465,15 @@ class Prescription(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     code = Column(String, unique=True, nullable=False, index=True)
-
-    analysis_id = Column(Integer, ForeignKey("analysis_records.id"), nullable=True, index=True)
+    analysis_id = Column(Integer, ForeignKey("analysis_records.id", ondelete="CASCADE"), nullable=True, index=True)
     doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-
     patient_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     patient_family_member_id = Column(Integer, ForeignKey("family_members.id"), nullable=True)
     patient_display_name = Column(String, nullable=True)
-
     insurance_type = Column(String, nullable=True)
     insurance_number = Column(String, nullable=True)
-
     diagnosis_note = Column(Text, nullable=True)
     status = Column(String, nullable=False, default=PRESCRIPTION_STATUS_ACTIVE, index=True)
-
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -625,20 +481,14 @@ class Prescription(Base):
     doctor = relationship("User", foreign_keys=[doctor_id])
     patient_user = relationship("User", foreign_keys=[patient_user_id])
     patient_family_member = relationship("FamilyMember")
-    items = relationship(
-        "PrescriptionItem",
-        back_populates="prescription",
-        order_by="PrescriptionItem.id",
-        cascade="all, delete-orphan",
-    )
+    items = relationship("PrescriptionItem", back_populates="prescription", order_by="PrescriptionItem.id", cascade="all, delete-orphan", passive_deletes=True)
 
 
 class PrescriptionItem(Base):
     __tablename__ = "prescription_items"
 
     id = Column(Integer, primary_key=True, index=True)
-    prescription_id = Column(Integer, ForeignKey("prescriptions.id"), nullable=False, index=True)
-
+    prescription_id = Column(Integer, ForeignKey("prescriptions.id", ondelete="CASCADE"), nullable=False, index=True)
     drug_name = Column(String, nullable=False)
     dosage = Column(String, nullable=True)
     frequency = Column(String, nullable=True)
@@ -654,14 +504,11 @@ class PatientFollowup(Base):
     id = Column(Integer, primary_key=True, index=True)
     doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     patient_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
-    analysis_id = Column(Integer, ForeignKey("analysis_records.id"), nullable=True, index=True)
-
+    analysis_id = Column(Integer, ForeignKey("analysis_records.id", ondelete="SET NULL"), nullable=True, index=True)
     note = Column(Text, nullable=True)
     insurance_type = Column(String, nullable=True)
-
     followup_date = Column(DateTime, nullable=False, index=True)
     reminder_sent = Column(Boolean, default=False, nullable=False, index=True)
-
     created_at = Column(DateTime, default=datetime.utcnow)
 
     doctor = relationship("User", foreign_keys=[doctor_id])

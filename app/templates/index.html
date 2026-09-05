@@ -70,6 +70,22 @@
 
                 <div id="exam-type-guide" class="cl-alert cl-alert-info" style="display:none; margin:-6px 0 4px;"></div>
 
+                <label class="field-label" for="series_mode">این آزمایش بخشی از یک روند/سری پیگیری چندمرحله‌ای است؟</label>
+                <select name="series_mode" id="series_mode">
+                    <option value="none" selected>مستقل است (این آزمایش به آزمایش دیگری متصل نیست)</option>
+                    <option value="new">شروع یک روند/سری جدید (مثلاً پیگیری روزانه بعد از ترخیص)</option>
+                    <option value="continue">ادامه‌ی یک روند/سری قبلی</option>
+                </select>
+                <p class="cl-field-hint">اگر این آزمایش ادامه‌ی یک روند پیگیری قبلی است (مثلاً آزمایش‌های روزانه‌ی بعد از جراحی یا ترخیص از بیمارستان)، با انتخاب «ادامه‌ی یک روند» یا «شروع یک روند جدید»، هوش مصنوعی نتایج قبلی همین روند را هم در تحلیل جدید در نظر می‌گیرد.</p>
+
+                <div id="series-continue-wrap" style="display:none;">
+                    <label class="field-label" for="series_choice_id">انتخاب روند/سری</label>
+                    <select name="series_choice_id" id="series_choice_id">
+                        <option value="" selected>در حال بارگذاری...</option>
+                    </select>
+                    <p class="cl-field-hint">اگر هنوز روندی برای این فرد ثبت نکرده‌اید، این لیست خالی خواهد بود؛ در این صورت گزینه‌ی «شروع یک روند/سری جدید» را انتخاب کنید.</p>
+                </div>
+
                 <label class="upload-area" id="dropzone" for="file">
                     <input type="file" name="files" id="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif" multiple required>
                     <span class="upload-icon"><span class="material-symbols-outlined">upload_file</span></span>
@@ -241,6 +257,64 @@
                 guideBox.style.display = 'flex';
             } else {
                 guideBox.style.display = 'none';
+            }
+        });
+    }
+
+    /* ===== Series (روند/سری آزمایش) UI ===== */
+    var seriesModeSelect = document.getElementById('series_mode');
+    var seriesContinueWrap = document.getElementById('series-continue-wrap');
+    var seriesChoiceSelect = document.getElementById('series_choice_id');
+    var familyMemberSelect = document.getElementById('family_member_id');
+
+    function loadSeriesOptions() {
+        if (!seriesChoiceSelect) return;
+
+        seriesChoiceSelect.innerHTML = '<option value="" selected>در حال بارگذاری...</option>';
+
+        var fmValue = familyMemberSelect ? familyMemberSelect.value : 'self';
+
+        fetch('/series/options?family_member_id=' + encodeURIComponent(fmValue))
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                var options = (data && data.options) || [];
+
+                if (!options.length) {
+                    seriesChoiceSelect.innerHTML = '<option value="">هیچ روند قبلی‌ای برای این فرد پیدا نشد</option>';
+                    return;
+                }
+
+                seriesChoiceSelect.innerHTML = '';
+                options.forEach(function (opt) {
+                    var el = document.createElement('option');
+                    el.value = opt.series_id;
+                    el.textContent = opt.label;
+                    seriesChoiceSelect.appendChild(el);
+                });
+            })
+            .catch(function () {
+                seriesChoiceSelect.innerHTML = '<option value="">خطا در بارگذاری لیست روندها</option>';
+            });
+    }
+
+    function updateSeriesUI() {
+        if (!seriesModeSelect || !seriesContinueWrap) return;
+
+        if (seriesModeSelect.value === 'continue') {
+            seriesContinueWrap.style.display = 'block';
+            loadSeriesOptions();
+        } else {
+            seriesContinueWrap.style.display = 'none';
+        }
+    }
+
+    if (seriesModeSelect) {
+        seriesModeSelect.addEventListener('change', updateSeriesUI);
+    }
+    if (familyMemberSelect) {
+        familyMemberSelect.addEventListener('change', function () {
+            if (seriesModeSelect && seriesModeSelect.value === 'continue') {
+                loadSeriesOptions();
             }
         });
     }

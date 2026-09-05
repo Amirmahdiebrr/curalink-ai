@@ -25,6 +25,7 @@ logger = get_logger(__name__)
 MAX_PROMPT_TEXT_LENGTH = 14000
 
 NO_SYMPTOMS_TEXT = "کاربر علائم یا سابقه‌ی پزشکی خاصی وارد نکرده است."
+NO_SERIES_TEXT = "کاربر این آزمایش را مستقل ثبت کرده و آن را به هیچ روند یا سری آزمایش قبلی متصل نکرده است."
 
 ALLOWED_TAGS = [
     "p", "br", "hr",
@@ -115,6 +116,17 @@ class ReportService:
 
         return cleaned[:1000]
 
+    def _prepare_series_context(self, series_context: str | None) -> str:
+        if not series_context:
+            return NO_SERIES_TEXT
+
+        cleaned = series_context.strip()
+
+        if not cleaned:
+            return NO_SERIES_TEXT
+
+        return cleaned[:6000]
+
     async def _detect_exam_type(self, limited_text: str) -> str | None:
         try:
             prompt = CLASSIFY_PROMPT_TEMPLATE.format(limited_text)
@@ -134,21 +146,65 @@ class ReportService:
     def _extract_structured_results(self, raw_analysis: str):
         match = re.search(r"```json\s*(\[.*?\])\s*```", raw_analysis, re.DOTALL)
 
-        if not match:
+        if match:
+            json_block = match.group(1)
+            narrative_text = raw_analysis[:match.start()].strip()
+
+            try:
+                structured_results = json.loads(json_block)
+                if not isinstance(structured_results, list):
+                    structured_results = []
+            except (json.JSONDecodeError, ValueError) as e:
+                logger.warning(f"[ReportService] Failed to parse structured JSON block: {e}")
+                structured_results = []
+
+            return narrative_text, structured_results
+
+        # بلوک JSON کامل (با ``` بسته‌شده) پیدا نشد — احتمالاً پاسخ
+        # مدل وسط بلوک JSON قطع شده (finish_reason == "length"، مثلاً
+        # برای آزمایش‌هایی با تعداد پارامتر خیلی بالا). به‌جای از
+        # دست دادن کامل مقادیر عددی، تلاش می‌کنیم بلوک JSON نیمه‌کاره
+        # را با بستن آخرین آیتم کامل، قابل‌خواندن کنیم.
+        partial_match = re.search(r"```json\s*(\[.*)", raw_analysis, re.DOTALL)
+
+        if not partial_match:
             return raw_analysis.strip(), []
 
-        json_block = match.group(1)
-        narrative_text = raw_analysis[:match.start()].strip()
+        narrative_text = raw_analysis[:partial_match.start()].strip()
+        partial_json = partial_match.group(1)
 
-        try:
-            structured_results = json.loads(json_block)
-            if not isinstance(structured_results, list):
-                structured_results = []
-        except (json.JSONDecodeError, ValueError) as e:
-            logger.warning(f"[ReportService] Failed to parse structured JSON block: {e}")
-            structured_results = []
+        structured_results = self._recover_partial_json_array(partial_json)
+
+        if structured_results:
+            logger.warning(
+                f"[ReportService] JSON block was truncated by the model; "
+                f"recovered {len(structured_results)} item(s) from the partial response."
+            )
 
         return narrative_text, structured_results
+
+    def _recover_partial_json_array(self, partial_json: str) -> list:
+        """
+        وقتی آرایه‌ی JSON قبل از بسته شدن قطع شده (مثلاً به‌خاطر
+        رسیدن به سقف max_tokens)، آخرین آیتم ناقص را حذف و آرایه را
+        با ']' می‌بندد تا حداقل آیتم‌های کامل‌شده‌ی قبلی قابل استفاده
+        باشند.
+        """
+        last_complete_item_end = partial_json.rfind("}")
+
+        if last_complete_item_end == -1:
+            return []
+
+        candidate = partial_json[:last_complete_item_end + 1] + "\n]"
+
+        try:
+            structured_results = json.loads(candidate)
+            if isinstance(structured_results, list):
+                return structured_results
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+        return []
 
     def _to_html(self, narrative_text: str) -> str:
         raw_html = markdown.markdown(narrative_text, extensions=["extra", "nl2br", "sane_lists"])
@@ -160,6 +216,7 @@ class ReportService:
         exam_type: str = None,
         symptoms: str | None = None,
         health_profile_fields: dict | None = None,
+        series_context: str | None = None,
         on_stage=None,
     ):
         total_start = time.perf_counter()
@@ -169,6 +226,7 @@ class ReportService:
         logger.info(f"FILE COUNT: {len(files)}")
         logger.info(f"EXAM TYPE: {exam_type}")
         logger.info(f"HAS SYMPTOMS: {bool(symptoms and symptoms.strip())}")
+        logger.info(f"HAS SERIES CONTEXT: {bool(series_context and series_context.strip())}")
         logger.info("=" * 50)
 
         requested_exam_type = exam_type if exam_type in VALID_EXAM_TYPES else None
@@ -254,6 +312,7 @@ class ReportService:
 
         symptoms_display = self._prepare_symptoms(symptoms)
         patient_profile = build_health_profile_text(health_profile_fields)
+        series_context_display = self._prepare_series_context(series_context)
 
         prompt_template = get_prompt_template(final_exam_type)
 
@@ -261,6 +320,7 @@ class ReportService:
             text=limited_text,
             symptoms=symptoms_display,
             patient_profile=patient_profile,
+            series_context=series_context_display,
         )
 
         raw_analysis = await self.ai.analyze(prompt)

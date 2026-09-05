@@ -197,9 +197,6 @@
 </div>
 {% endif %}
 
-                <!-- ===== Mobile-only header actions (desktop cl-header-actions
-                     is hidden under 960px, so this duplicate lives inside the
-                     hamburger menu instead) ===== -->
                 <div class="cl-header-actions-mobile" aria-hidden="false">
                     <button type="button" class="cl-icon-btn" id="cl-search-toggle-mobile" aria-label="{{ t('search_aria') }}" title="{{ t('search_aria') }}">
                         <span class="material-symbols-outlined">search</span>
@@ -342,7 +339,6 @@
         </div>
     </footer>
 
-    <!-- ===== Search drawer (client-side site navigator) ===== -->
     <div class="cl-drawer-overlay" id="cl-search-overlay">
         <aside class="cl-drawer cl-drawer-left" id="cl-search-drawer" style="width:min(420px, 92vw);">
             <button type="button" class="cl-icon-btn" id="cl-search-close" style="margin-bottom:16px;">
@@ -414,6 +410,43 @@
     </script>
     {% endif %}
 
+    {% if user and not user.profile_notice_seen %}
+    <div class="cl-modal-overlay is-open" id="cl-profile-notice-overlay" aria-hidden="false">
+        <div class="cl-modal" role="dialog" aria-modal="true" aria-labelledby="cl-profile-notice-title">
+            <span class="cl-nba-icon" style="margin-bottom:16px;"><span class="material-symbols-outlined">psychology_alt</span></span>
+            <h3 id="cl-profile-notice-title" class="cl-modal-title">{{ t('profile_notice_title') }}</h3>
+            <div class="cl-modal-section">
+                <p style="margin:0; line-height:2; color:var(--color-text-primary);">
+                    {{ t('profile_notice_body') }}
+                </p>
+            </div>
+            <ul style="margin:0 0 20px; padding-inline-start:20px; color:var(--color-text-secondary); font-size:13.5px; line-height:2;">
+                <li>{{ t('profile_notice_point_age_gender') }}</li>
+                <li>{{ t('profile_notice_point_height_weight') }}</li>
+                <li>{{ t('profile_notice_point_history') }}</li>
+            </ul>
+            <div class="cl-modal-footer" style="justify-content:space-between;">
+                <a href="/profile" class="cl-btn cl-btn-outline cl-btn-sm">{{ t('profile_notice_cta_go') }}</a>
+                <button type="button" class="cl-btn cl-btn-primary cl-btn-sm" id="cl-profile-notice-dismiss">{{ t('profile_notice_dismiss') }}</button>
+            </div>
+        </div>
+    </div>
+    <script nonce="{{ csp_nonce() }}">
+    (function(){
+        var overlay = document.getElementById('cl-profile-notice-overlay');
+        var dismissBtn = document.getElementById('cl-profile-notice-dismiss');
+
+        if (!overlay || !dismissBtn) return;
+
+        dismissBtn.addEventListener('click', function(){
+            overlay.classList.remove('is-open');
+            overlay.setAttribute('aria-hidden', 'true');
+            fetch('/profile/dismiss-notice', { method: 'POST' }).catch(function(){});
+        });
+    })();
+    </script>
+    {% endif %}
+
     <script nonce="{{ csp_nonce() }}">
         window.CL_I18N = {
             uploadDropzoneDefault: {{ t('upload_dropzone_text') | tojson }},
@@ -476,7 +509,6 @@
     })();
     </script>
 
-    <!-- ===== Search drawer logic ===== -->
     <script nonce="{{ csp_nonce() }}">
     (function(){
         var SITE_LINKS = [

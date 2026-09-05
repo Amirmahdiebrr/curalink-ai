@@ -43,6 +43,7 @@ def save_analysis(
     family_member_id: int | None = None,
     requested_exam_type: str | None = None,
     price_paid: int | None = None,
+    series_id: str | None = None,
 ) -> AnalysisRecord:
 
     record = AnalysisRecord(
@@ -56,6 +57,7 @@ def save_analysis(
         analysis_html=encrypt_value(analysis_html),
         symptoms=encrypt_value(symptoms),
         price_paid=price_paid,
+        series_id=series_id,
     )
 
     db.add(record)
@@ -163,6 +165,30 @@ def get_record_for_admin(db: Session, record_id: int):
     """
     record = db.query(AnalysisRecord).filter(AnalysisRecord.id == record_id).first()
     return _decrypt_record(record)
+
+
+def delete_analysis_for_user(db: Session, record_id: int, user_id: int) -> bool:
+    """
+    یک رکورد آزمایش را (فقط اگر متعلق به همین کاربر باشد) به‌طور
+    کامل حذف می‌کند. به‌خاطر cascade="all, delete-orphan" روی رابطه‌ی
+    AnalysisRecord.test_results، تمام TestResult های وابسته هم
+    خودکار حذف می‌شوند — یعنی داده‌ی این آزمایش از تاریخچه، روند
+    (trends)، سری‌های پیگیری و صفحه‌ی وضعیت سلامت هم به‌طور کامل و
+    همزمان ناپدید می‌شود، نه فقط از لیست تاریخچه.
+    """
+    record = (
+        db.query(AnalysisRecord)
+        .filter(AnalysisRecord.id == record_id, AnalysisRecord.user_id == user_id)
+        .first()
+    )
+
+    if not record:
+        return False
+
+    db.delete(record)
+    db.commit()
+
+    return True
 
 
 def get_price_mismatch_records(db: Session):
@@ -321,3 +347,99 @@ def get_due_reminders_for_all_users(db: Session):
             due_rows.append(row)
 
     return due_rows
+
+
+# ==========================
+# تحلیل سریالی / روند پیگیری چندمرحله‌ای
+# ==========================
+
+def _series_family_filter(family_member_id: int | None):
+    if family_member_id is None:
+        return AnalysisRecord.family_member_id.is_(None)
+    return AnalysisRecord.family_member_id == family_member_id
+
+
+def get_series_records(db: Session, user_id: int, series_id: str, family_member_id: int | None):
+    return (
+        db.query(AnalysisRecord)
+        .filter(
+            AnalysisRecord.user_id == user_id,
+            AnalysisRecord.series_id == series_id,
+            _series_family_filter(family_member_id),
+        )
+        .order_by(AnalysisRecord.created_at.asc())
+        .all()
+    )
+
+
+def get_user_series_options(db: Session, user_id: int, family_member_id: int | None):
+    """
+    فهرست سری‌های موجود این کاربر (یا این عضو خانواده) را برمی‌گرداند،
+    یکی به‌ازای هر series_id، مرتب‌شده بر اساس جدیدترین آخرین آزمایش —
+    برای پر کردن لیست «ادامه‌ی یک سری موجود» در فرم آپلود.
+    """
+    records = (
+        db.query(AnalysisRecord)
+        .filter(
+            AnalysisRecord.user_id == user_id,
+            AnalysisRecord.series_id.isnot(None),
+            _series_family_filter(family_member_id),
+        )
+        .order_by(AnalysisRecord.created_at.desc())
+        .all()
+    )
+
+    grouped: dict[str, list] = {}
+
+    for record in records:
+        grouped.setdefault(record.series_id, []).append(record)
+
+    options = []
+
+    for series_id, items in grouped.items():
+        items_sorted = sorted(items, key=lambda r: r.created_at)
+        first_item = items_sorted[0]
+        last_item = items_sorted[-1]
+
+        options.append({
+            "series_id": series_id,
+            "exam_type": first_item.exam_type,
+            "count": len(items_sorted),
+            "first_date": first_item.created_at,
+            "last_date": last_item.created_at,
+        })
+
+    options.sort(key=lambda o: o["last_date"], reverse=True)
+
+    return options
+
+
+def build_series_context_text(db: Session, user_id: int, series_id: str, family_member_id: int | None) -> str:
+    """
+    خلاصه‌ی متنیِ تمام آزمایش‌های قبلی همین سری را می‌سازد (تاریخ +
+    نام/مقدار/وضعیت هر پارامتر عددی) تا به‌عنوان زمینه‌ی «روند» به
+    پرامپت تحلیل آزمایش جدید اضافه شود.
+    """
+    records = get_series_records(db, user_id, series_id, family_member_id)
+
+    if not records:
+        return ""
+
+    status_labels = {"high": "بالا", "low": "پایین", "normal": "طبیعی"}
+    lines = []
+
+    for record in records:
+        results = get_test_results_for_analysis(db, record.id)
+        date_str = record.created_at.strftime("%Y-%m-%d")
+
+        if results:
+            items_text = "، ".join(
+                f"{r.test_name}: {r.value_text}{(' ' + r.unit) if r.unit else ''} ({status_labels.get(r.status, r.status or 'نامشخص')})"
+                for r in results
+            )
+        else:
+            items_text = "بدون مقدار عددی ساختاریافته (گزارش توصیفی)"
+
+        lines.append(f"- تاریخ {date_str}: {items_text}")
+
+    return "\n".join(lines)

@@ -7,7 +7,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Request, Depends, Form, UploadFile, File, BackgroundTasks
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -57,10 +57,6 @@ sms_service = SMSService()
 DOCTOR_DOCS_DIR = Path("uploads/doctor_docs")
 DOCTOR_DOCS_DIR.mkdir(parents=True, exist_ok=True)
 
-# مسیر فیزیکی پوشه‌ی آواتارها روی دیسک، برای حذف فایل قدیمی هنگام
-# آپلود عکس جدید. avatar_path در دیتابیس به‌صورت مسیر وب ذخیره
-# می‌شود (مثلاً "/static/avatars/xxxx.png")؛ همین‌جا آن را به مسیر
-# واقعی فایل روی دیسک ترجمه می‌کنیم.
 AVATAR_DIR = Path("app/static/avatars").resolve()
 
 
@@ -72,21 +68,11 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
 
 
 def _start_authenticated_session(request: Request, user_id: int) -> None:
-    """
-    قبل از ورود کاربر به سیستم، کل سشن قبلی را پاک می‌کند تا از حمله‌ی
-    Session Fixation جلوگیری شود (اگر مهاجم قبل از لاگین یک کوکی سشن
-    برای قربانی تنظیم کرده باشد، آن سشن بعد از لاگین دیگر معتبر نخواهد
-    بود چون کاملاً از نو ساخته می‌شود).
-    """
     request.session.clear()
     request.session["user_id"] = user_id
 
 
 def _delete_avatar_file(avatar_path: str | None) -> None:
-    """
-    فایل آواتار قبلی را از روی دیسک حذف می‌کند تا با هر آپلود جدید،
-    فایل‌های یتیم روی سرور انباشته نشوند.
-    """
     if not avatar_path or not avatar_path.startswith("/static/avatars/"):
         return
 
@@ -120,11 +106,6 @@ def _parse_float(value):
 
 
 def _resolve_referral_org_id(db: Session, raw_value: str | None) -> int | None:
-    """
-    مقدار فیلد «آزمایشگاه/مرکز معرف» فرم ثبت‌نام را اعتبارسنجی می‌کند؛
-    فقط اگر واقعاً به یک کاربر با نقش org_admin فعال اشاره کند، همان
-    شناسه برگردانده می‌شود، وگرنه None (یعنی بدون معرف).
-    """
     if not raw_value or not raw_value.strip().isdigit():
         return None
 
@@ -1076,3 +1057,24 @@ async def profile_delete_account(
     request.session.clear()
 
     return RedirectResponse(url="/", status_code=303)
+
+
+@router.post("/profile/dismiss-notice")
+async def profile_dismiss_notice(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """
+    وقتی کاربر روی «متوجه شدم» در پیام یادآوری تکمیل پروفایل کلیک
+    می‌کند، این فلگ را ثبت می‌کند تا آن پیام دیگر هیچ‌وقت برای همین
+    کاربر نمایش داده نشود.
+    """
+    user = get_current_user(request, db)
+
+    if not user:
+        return JSONResponse({"ok": False}, status_code=401)
+
+    user.profile_notice_seen = True
+    db.commit()
+
+    return JSONResponse({"ok": True})

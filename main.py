@@ -46,6 +46,7 @@ from app.routers.admin import router as admin_router
 from app.routers.payment import router as payment_router
 from app.routers.education import router as education_router
 from app.routers.generic_jobs import router as generic_jobs_router
+from app.routers.series import router as series_router
 
 from app.services.job_store import purge_old_jobs
 from app.services.generic_job_store import purge_old_jobs as purge_old_generic_jobs
@@ -109,6 +110,7 @@ app.include_router(language_router)
 app.include_router(org_referrals_router)
 app.include_router(education_router)
 app.include_router(generic_jobs_router)
+app.include_router(series_router)
 
 
 # ==========================

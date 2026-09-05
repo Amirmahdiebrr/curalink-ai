@@ -389,6 +389,8 @@ FA_TRANSLATIONS = {
     "hist_no_filename": "بدون نام فایل",
     "hist_modal_close": "بستن",
     "hist_generic_test": "آزمایش",
+    "hist_delete_btn": "حذف",
+    "hist_delete_confirm": "این آزمایش برای همیشه حذف می‌شود و در هیچ‌جا (روند، سری، وضعیت سلامت) نمایش داده نخواهد شد. مطمئن هستید؟",
 
     # ===== History page (client-side JS strings) =====
     "hist_js_status_high": "بالا",
@@ -1083,4 +1085,14 @@ FA_TRANSLATIONS = {
     "field_national_id_placeholder": "مثلاً: 0123456789",
     "field_national_id_hint": "برای ورود به حساب کاربری از همین کد ملی استفاده می‌کنید.",
     "field_optional_label": "اختیاری",
-    "field_email_optional_hint": "ایمیل کاملاً اختیاری است و فقط برای بازیابی رمز عبور استفاده می‌شود.",}
+    "field_email_optional_hint": "ایمیل کاملاً اختیاری است و فقط برای بازیابی رمز عبور استفاده می‌شود.",
+
+    # ===== Profile completion notice (first login/register) =====
+    "profile_notice_title": "قبل از هر چیز، پروفایلت رو کامل کن",
+    "profile_notice_body": "برای اینکه هوش مصنوعی بتواند دقیق‌ترین تحلیل ممکن را از آزمایش‌ها و گزارش‌های پزشکی‌ات ارائه بدهد، پیشنهاد می‌کنیم قبل از ثبت اولین درخواست، اطلاعات پروفایلت را کامل کنی. این اطلاعات مستقیماً روی کیفیت تفسیر نتایج تأثیر می‌گذارد.",
+    "profile_notice_point_age_gender": "سن و جنسیت — چون بازه‌های طبیعی بسیاری از آزمایش‌ها بسته به این دو فرق می‌کند",
+    "profile_notice_point_height_weight": "قد و وزن — برای محاسبه‌ی شاخص‌هایی مثل BMI در برنامه‌ی غذایی و ورزشی",
+    "profile_notice_point_history": "بیماری‌های زمینه‌ای، حساسیت‌ها و داروهای مصرفی — برای تحلیل ایمن‌تر و دقیق‌تر",
+    "profile_notice_cta_go": "تکمیل پروفایل",
+    "profile_notice_dismiss": "متوجه شدم",
+}

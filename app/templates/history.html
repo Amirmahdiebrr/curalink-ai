@@ -162,7 +162,7 @@
             </div>
         </div>
 
-        <!-- ===== AI Health Story (rule-based narrative built client-side from real data) ===== -->
+        <!-- ===== AI Health Story ===== -->
         <div class="cl-dash-section cl-reveal" id="cl-story-section" style="display:none;">
             <h2 class="cl-block-title"><span class="material-symbols-outlined cl-icon-md">auto_stories</span> {{ t('hist_story_title') }}</h2>
             <div class="cl-story-list" id="cl-story-list"></div>
@@ -275,6 +275,14 @@
                                 {{ t('hist_view_report') }}
                                 <span class="material-symbols-outlined cl-icon-sm">arrow_back</span>
                             </a>
+
+                            <form method="post" action="/history/{{ record.id }}/delete" onsubmit="return confirm('{{ t('hist_delete_confirm') }}');" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="cl-btn cl-btn-outline cl-btn-sm" style="color:var(--color-danger); border-color:var(--color-danger);">
+                                    <span class="material-symbols-outlined cl-icon-sm">delete</span>
+                                    {{ t('hist_delete_btn') }}
+                                </button>
+                            </form>
                         </div>
 
                     </div>
@@ -309,7 +317,6 @@
 <script nonce="{{ csp_nonce() }}">
 (function(){
 
-    /* ===== i18n strings & locale (injected server-side) ===== */
     var LOCALE = "{{ 'fa-IR' if current_lang() == 'fa' else 'en-US' }}";
 
     var I18N = {
@@ -364,7 +371,6 @@
         });
     }
 
-    /* ===== shared reveal (same pattern as other pages) ===== */
     var revealEls = document.querySelectorAll('.cl-reveal');
     if ('IntersectionObserver' in window && revealEls.length) {
         var revealObs = new IntersectionObserver(function(entries){
@@ -375,7 +381,6 @@
         revealEls.forEach(function(el){ el.classList.add('is-visible'); });
     }
 
-    /* ===== score ring + counters ===== */
     function animateCount(el){
         var target = parseInt(el.getAttribute('data-count-to'), 10) || 0;
         var start = null, duration = 1100;
@@ -419,7 +424,6 @@
         } else animateRing();
     }
 
-    /* ===== Collect real test-result data points from the hidden DOM block ===== */
     var rawPoints = Array.prototype.map.call(document.querySelectorAll('.cl-history-testpoint'), function(el){
         return {
             recordId: el.getAttribute('data-record-id'),
@@ -432,7 +436,7 @@
         };
     });
 
-    if (!rawPoints.length) return; // nothing structured to build trends/insights/compare from
+    if (!rawPoints.length) return;
 
     var STATUS_LABELS = { high: I18N.statusHigh, low: I18N.statusLow, normal: I18N.statusNormal };
 
@@ -483,7 +487,6 @@
         return 'stable';
     }
 
-    /* ===== Trend Detection section ===== */
     var trendSection = document.getElementById('cl-trends-hist-section');
     var trendGrid = document.getElementById('cl-trend-hist-grid');
 
@@ -525,7 +528,6 @@
 
     if (markerNames.length) trendSection.style.display = '';
 
-    /* ===== Key Insights ===== */
     var insightsSection = document.getElementById('cl-insights-hist-section');
     var insightsGrid = document.getElementById('cl-insights-hist-grid');
 
@@ -580,7 +582,6 @@
         insightsSection.style.display = '';
     }
 
-    /* ===== AI Health Story (rule-based narrative from real trend data) ===== */
     var storySection = document.getElementById('cl-story-section');
     var storyList = document.getElementById('cl-story-list');
 
@@ -612,7 +613,6 @@
         storySection.style.display = '';
     }
 
-    /* ===== Health Score Evolution chart ===== */
     var evoCanvas = document.getElementById('cl-score-evolution-chart');
     if (evoCanvas) {
         var scoreLine = [
@@ -669,7 +669,6 @@
         document.body.appendChild(script);
     }
 
-    /* ===== Compare Reports ===== */
     var compareSection = document.getElementById('cl-compare-section');
     var compareA = document.getElementById('cl-compare-a');
     var compareB = document.getElementById('cl-compare-b');
@@ -737,7 +736,6 @@
         compareSection.style.display = '';
     }
 
-    /* ===== Marker detail modal (reuses existing /trends/data/{name} API) ===== */
     var modalOverlay = document.getElementById('cl-marker-modal-overlay');
     var modalTitle = document.getElementById('cl-marker-modal-title');
     var modalBody = document.getElementById('cl-marker-modal-body');
@@ -786,7 +784,6 @@
     modalOverlay.addEventListener('click', function(e){ if (e.target === modalOverlay) closeModal(); });
     document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeModal(); });
 
-    /* ===== Timeline filters (client-side only) ===== */
     var timelineNodes = document.querySelectorAll('.cl-hist-node');
     var searchInput = document.getElementById('cl-hist-search');
     var examChips = document.querySelectorAll('#cl-hist-exam-chips .cl-chip');

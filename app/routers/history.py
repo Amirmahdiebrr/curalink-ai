@@ -2,24 +2,25 @@
 app/routers/history.py
 
 Displays a logged-in user's past analyses: a list view (/history),
-a detail view (/history/{record_id}), and a PDF export
-(/history/{record_id}/pdf) that reuses the same underlying data as
-result.html.
+a detail view (/history/{record_id}), a PDF export
+(/history/{record_id}/pdf), and deletion (/history/{record_id}/delete)
+that reuses the same underlying data as result.html.
 """
 
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request, Depends, Form
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import RedirectResponse, JSONResponse, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.routers.auth import get_current_user
-from app.core.csrf import get_or_create_csrf_token
+from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
 from app.core.exam_types import EXAM_TYPE_LABELS
 from app.services.history_service import (
     get_user_history,
     get_record_for_user,
     get_test_results_for_analysis,
+    delete_analysis_for_user,
 )
 from app.services.organ_display_service import group_results_by_organ
 from app.services.pdf_export_service import render_analysis_pdf, PDFExportError
@@ -42,6 +43,7 @@ async def history_page(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse(url="/login", status_code=303)
 
     records = get_user_history(db, user.id)
+    csrf_token = get_or_create_csrf_token(request)
 
     return templates.TemplateResponse(
         request,
@@ -51,6 +53,7 @@ async def history_page(request: Request, db: Session = Depends(get_db)):
             "user": user,
             "records": records,
             "exam_type_labels": EXAM_TYPE_LABELS,
+            "csrf_token": csrf_token,
         }
     )
 
@@ -127,7 +130,12 @@ async def history_pdf(request: Request, record_id: int, db: Session = Depends(ge
     patient_name = record.family_member.name if record.family_member else user.display_name
 
     try:
-        pdf_bytes = render_analysis_pdf(
+        # نکته‌ی مهم: render_analysis_pdf یک تابع async است (چون رندر
+        # WeasyPrint را داخل asyncio.to_thread اجرا می‌کند تا event loop
+        # اصلی سرور بلاک نشود). قبلاً اینجا await فراموش شده بود و به‌جای
+        # بایت‌های واقعی PDF، یک شیء coroutine برگردانده می‌شد که باعث
+        # می‌شد دانلود PDF کار نکند.
+        pdf_bytes = await render_analysis_pdf(
             patient_name=patient_name,
             exam_type_label=EXAM_TYPE_LABELS.get(record.exam_type, record.exam_type or "آزمایش"),
             report_date=record.created_at,
@@ -144,3 +152,34 @@ async def history_pdf(request: Request, record_id: int, db: Session = Depends(ge
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="curalink-report-{record_id}.pdf"'}
     )
+
+
+@router.post("/history/{record_id}/delete")
+async def history_delete(
+    record_id: int,
+    request: Request,
+    csrf_token: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    """
+    یک رکورد آزمایش را برای همیشه حذف می‌کند (فقط اگر متعلق به همین
+    کاربر باشد). با حذف AnalysisRecord، تمام TestResult های وابسته
+    هم خودکار حذف می‌شوند (cascade)، پس این آزمایش از تاریخچه، روند
+    (trends)، سری‌های پیگیری و صفحه‌ی وضعیت سلامت هم به‌طور همزمان
+    ناپدید می‌شود.
+    """
+
+    user = get_current_user(request, db)
+
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not is_valid_csrf(request, csrf_token):
+        return RedirectResponse(url="/history", status_code=303)
+
+    deleted = delete_analysis_for_user(db, record_id, user.id)
+
+    if not deleted:
+        logger.warning(f"[History] Delete attempt failed or unauthorized: record_id={record_id}, user_id={user.id}")
+
+    return RedirectResponse(url="/history", status_code=303)

@@ -389,6 +389,8 @@ EN_TRANSLATIONS = {
     "hist_no_filename": "Untitled file",
     "hist_modal_close": "Close",
     "hist_generic_test": "Test",
+    "hist_delete_btn": "Delete",
+    "hist_delete_confirm": "This test will be permanently deleted and will no longer appear anywhere (trends, series, health status). Are you sure?",
 
     # ===== History page (client-side JS strings) =====
     "hist_js_status_high": "High",
@@ -1082,4 +1084,14 @@ EN_TRANSLATIONS = {
     "field_national_id_placeholder": "e.g. 0123456789",
     "field_national_id_hint": "You'll use this national ID to sign in to your account.",
     "field_optional_label": "Optional",
-    "field_email_optional_hint": "Email is completely optional and only used for password recovery.",}
+    "field_email_optional_hint": "Email is completely optional and only used for password recovery.",
+
+    # ===== Profile completion notice (first login/register) =====
+    "profile_notice_title": "Before anything else, complete your profile",
+    "profile_notice_body": "For the AI to give you the most accurate analysis of your tests and medical reports, we recommend completing your profile before submitting your first request. This information directly affects the quality of the interpretation.",
+    "profile_notice_point_age_gender": "Age and gender — since normal ranges for many tests depend on these",
+    "profile_notice_point_height_weight": "Height and weight — for calculating metrics like BMI in diet and workout plans",
+    "profile_notice_point_history": "Chronic conditions, allergies, and current medications — for a safer, more accurate analysis",
+    "profile_notice_cta_go": "Complete profile",
+    "profile_notice_dismiss": "Got it",
+}

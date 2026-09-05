@@ -179,8 +179,10 @@ class OCRService:
     """
     Extracts raw text from an uploaded medical document file,
     regardless of exam type. PDFs are first tried as text-based
-    (fast path); if no text layer exists (scanned document), pages
-    are rasterized and run through image OCR instead.
+    (fast path); if no *meaningful* text layer exists (scanned
+    document, or a scan-app watermark like "CamScanner" with no
+    real content), pages are rasterized and run through image OCR
+    instead.
 
     همه‌ی متدهای این کلاس async هستند اما هیچ عملیات سنگین/sync را
     مستقیماً در event loop اجرا نمی‌کنند؛ همه از طریق
@@ -189,6 +191,29 @@ class OCRService:
     موازی روی thread pool اجرا شوند و سرور برای بقیه‌ی کاربران بلاک
     نشود.
     """
+
+    # حداقل طول متنی که برای معتبر دانستن لایه‌ی متنی PDF لازم است.
+    # PDFهای اسکن‌شده با ابزارهایی مثل CamScanner معمولاً فقط یک
+    # واترمارک کوتاه (مثل خود کلمه‌ی "CamScanner") را به‌عنوان لایه‌ی
+    # متنی دارند که نباید به‌جای محتوای واقعی برگه‌ی آزمایش در نظر
+    # گرفته شود، وگرنه OCR تصویری واقعی اصلاً اجرا نمی‌شود.
+    _MIN_MEANINGFUL_TEXT_LENGTH = 40
+    _WATERMARK_ONLY_PATTERNS = ("camscanner",)
+
+    def _is_meaningful_text(self, text: str) -> bool:
+        cleaned = text.strip()
+
+        if len(cleaned) < self._MIN_MEANINGFUL_TEXT_LENGTH:
+            return False
+
+        lowered = cleaned.lower()
+
+        for pattern in self._WATERMARK_ONLY_PATTERNS:
+            without_watermark = lowered.replace(pattern, "").strip()
+            if len(without_watermark) < self._MIN_MEANINGFUL_TEXT_LENGTH:
+                return False
+
+        return True
 
     async def extract(self, filepath: Path) -> str:
         extension = filepath.suffix.lower()
@@ -202,14 +227,20 @@ class OCRService:
         try:
             extracted = await asyncio.to_thread(_sync_extract_pdf_text, filepath)
 
-            if extracted:
+            if extracted and self._is_meaningful_text(extracted):
                 return extracted
+
+            if extracted:
+                logger.info(
+                    f"[OCRService] PyPDF2 extracted only trivial/watermark text "
+                    f"(len={len(extracted)}) for {filepath}, falling back to image OCR."
+                )
 
         except Exception as e:
             logger.warning(f"[OCRService] PyPDF2 text extraction failed for {filepath}: {e}")
 
-        # اگر PDF متن قابل استخراج نداشت (یعنی اسکن‌شده است)، صفحات را
-        # به تصویر تبدیل و روی هرکدام OCR تصویری اجرا می‌کنیم.
+        # اگر PDF متن قابل استخراج معناداری نداشت (یعنی اسکن‌شده است)،
+        # صفحات را به تصویر تبدیل و روی هرکدام OCR تصویری اجرا می‌کنیم.
         return await self._ocr_scanned_pdf(filepath)
 
     async def _ocr_scanned_pdf(self, filepath: Path) -> str:
