@@ -55,15 +55,26 @@ def get_db():
 # از این پس، هر تغییر جدید در ساختار دیتابیس (ستون/جدول جدید، تغییر
 # نوع، حذف ستون) باید با یک فایل Alembic migration در alembic/versions
 # نوشته شود (دستور: alembic revision --autogenerate -m "توضیح").
-# توابع _add_column_if_missing زیر فقط برای سازگاری با دیتابیس‌های
-# SQLite قدیمی که پیش از معرفی Alembic ساخته شده‌اند نگه داشته
-# شده‌اند و روی PostgreSQL اجرا نمی‌شوند (چون دیتابیس‌های PostgreSQL
-# از ابتدا با Alembic ساخته می‌شوند).
+# توابع زیر (_add_column_if_missing و _run_light_migrations) روی هر
+# دو دیتابیس (SQLite و PostgreSQL) اجرا می‌شوند تا اگر یک دیتابیس
+# (مثلاً یک volume تازه‌ی PostgreSQL در داکر) بدون عبور از Alembic
+# ساخته شده باشد، ستون‌های جدیدی که به مدل‌ها اضافه شده‌اند خودکار
+# ساخته شوند و برنامه با خطای "column does not exist" کرش نکند.
 # ==========================
+
+
+def _bool_default_literal(value: bool) -> str:
+    if _IS_SQLITE:
+        return "1" if value else "0"
+    return "true" if value else "false"
 
 
 def _add_column_if_missing(conn, table: str, column: str, ddl_type: str):
     inspector = inspect(engine)
+
+    if table not in inspector.get_table_names():
+        return
+
     existing_columns = {col["name"] for col in inspector.get_columns(table)}
 
     if column not in existing_columns:
@@ -75,6 +86,10 @@ def _add_column_if_missing(conn, table: str, column: str, ddl_type: str):
 
 def _drop_column_if_exists(conn, table: str, column: str):
     inspector = inspect(engine)
+
+    if table not in inspector.get_table_names():
+        return
+
     existing_columns = {col["name"] for col in inspector.get_columns(table)}
 
     if column in existing_columns:
@@ -117,21 +132,18 @@ INSURANCE_COLUMNS = [
     ("insurance_number", "TEXT"),
 ]
 
-UNLIMITED_ACCESS_COLUMNS = [
-    ("unlimited_access", "BOOLEAN DEFAULT 0"),
-    ("unlimited_access_granted_by", "INTEGER"),
-    ("unlimited_access_granted_at", "DATETIME"),
-]
-
 
 def _run_light_migrations():
-    if not _IS_SQLITE:
-        # دیتابیس‌های PostgreSQL همیشه از طریق Alembic ساخته و
-        # migrate می‌شوند؛ این مسیر سازگاری فقط برای SQLite قدیمی است.
-        return
-
     inspector = inspect(engine)
     table_names = inspector.get_table_names()
+
+    datetime_type = "DATETIME" if _IS_SQLITE else "TIMESTAMP"
+
+    unlimited_access_columns = [
+        ("unlimited_access", f"BOOLEAN DEFAULT {_bool_default_literal(False)}"),
+        ("unlimited_access_granted_by", "INTEGER"),
+        ("unlimited_access_granted_at", datetime_type),
+    ]
 
     if "local_users" in table_names:
         with engine.connect() as conn:
@@ -144,13 +156,19 @@ def _run_light_migrations():
             _add_column_if_missing(conn, "analysis_records", "review_status", "TEXT")
             _add_column_if_missing(conn, "analysis_records", "review_payment_status", "TEXT")
             _add_column_if_missing(conn, "analysis_records", "review_price_paid", "INTEGER")
+            _add_column_if_missing(conn, "analysis_records", "requested_exam_type", "TEXT")
+            _add_column_if_missing(conn, "analysis_records", "price_paid", "INTEGER")
+            _add_column_if_missing(conn, "analysis_records", "price_mismatch_flag", f"BOOLEAN DEFAULT {_bool_default_literal(False)}")
+            _add_column_if_missing(conn, "analysis_records", "price_mismatch_amount", "INTEGER")
+            _add_column_if_missing(conn, "analysis_records", "series_id", "TEXT")
+            _add_column_if_missing(conn, "analysis_records", "updated_at", datetime_type)
 
     if "test_results" in table_names:
         with engine.connect() as conn:
             _add_column_if_missing(conn, "test_results", "family_member_id", "INTEGER")
             _add_column_if_missing(conn, "test_results", "recommended_followup_days", "INTEGER")
             _add_column_if_missing(conn, "test_results", "organ_category", "TEXT")
-            _add_column_if_missing(conn, "test_results", "followup_reminder_sent", "BOOLEAN DEFAULT 0")
+            _add_column_if_missing(conn, "test_results", "followup_reminder_sent", f"BOOLEAN DEFAULT {_bool_default_literal(False)}")
 
     if "users" in table_names:
         with engine.connect() as conn:
@@ -163,8 +181,10 @@ def _run_light_migrations():
                 _add_column_if_missing(conn, "users", column, ddl_type)
             for column, ddl_type in INSURANCE_COLUMNS:
                 _add_column_if_missing(conn, "users", column, ddl_type)
-            for column, ddl_type in UNLIMITED_ACCESS_COLUMNS:
+            for column, ddl_type in unlimited_access_columns:
                 _add_column_if_missing(conn, "users", column, ddl_type)
+            _add_column_if_missing(conn, "users", "updated_at", datetime_type)
+            _add_column_if_missing(conn, "users", "profile_notice_seen", f"BOOLEAN DEFAULT {_bool_default_literal(False)}")
 
     if "family_members" in table_names:
         with engine.connect() as conn:
@@ -174,6 +194,19 @@ def _run_light_migrations():
     if "prescriptions" in table_names:
         with engine.connect() as conn:
             _add_column_if_missing(conn, "prescriptions", "status", "TEXT")
+            _add_column_if_missing(conn, "prescriptions", "updated_at", datetime_type)
+
+    if "payments" in table_names:
+        with engine.connect() as conn:
+            _add_column_if_missing(conn, "payments", "updated_at", datetime_type)
+
+    if "subscriptions" in table_names:
+        with engine.connect() as conn:
+            _add_column_if_missing(conn, "subscriptions", "updated_at", datetime_type)
+
+    if "patient_followups" in table_names:
+        with engine.connect() as conn:
+            _add_column_if_missing(conn, "patient_followups", "reminder_sent", f"BOOLEAN DEFAULT {_bool_default_literal(False)}")
 
     # این ستون‌ها به‌اشتباه روی جدول reviews ساخته شده بودند؛ در صورت وجود پاک می‌شوند.
     if "reviews" in table_names:

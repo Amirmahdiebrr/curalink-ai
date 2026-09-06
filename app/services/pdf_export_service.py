@@ -7,8 +7,14 @@ company logo in the header and full company info in a footer that
 repeats on every page. Uses WeasyPrint.
 
 رندر WeasyPrint یک عملیات سنگین و کاملاً sync (CPU-bound) است؛ برای
-جلوگیری از بلاک شدن event loop سرور، اجرای واقعی HTML(...).write_pdf()
+جلوگیری از بلاک شدن event loop اصلی سرور، اجرای واقعی HTML(...).write_pdf()
 همیشه داخل asyncio.to_thread انجام می‌شود.
+
+نکته‌ی مهم: اگر تمپلیت HTML به منبع خارجی (مثلاً فونت گوگل) اشاره کند
+و کانتینر به آن دسترسی اینترنتی نداشته باشد، WeasyPrint می‌تواند
+بی‌نهایت منتظر بماند و کل ریکوئست هرگز پاسخ ندهد. به همین دلیل یک
+timeout سخت‌گیرانه دور رندر گذاشته شده تا در چنین حالتی کاربر خطای
+مشخص بگیرد، نه یک تب مرورگر که تا ابد در حال بارگذاری می‌ماند.
 """
 
 import asyncio
@@ -27,6 +33,8 @@ logger = get_logger(__name__)
 APP_DIR = Path(__file__).resolve().parent.parent  # .../app
 PDF_TEMPLATES_DIR = APP_DIR / "templates" / "pdf"
 
+PDF_RENDER_TIMEOUT_SECONDS = 40
+
 _env = Environment(loader=FileSystemLoader(str(PDF_TEMPLATES_DIR)))
 
 
@@ -36,6 +44,19 @@ class PDFExportError(Exception):
 
 def _sync_render_pdf(html_string: str) -> bytes:
     return HTML(string=html_string, base_url=str(APP_DIR)).write_pdf()
+
+
+async def _render_with_timeout(html_string: str) -> bytes:
+    try:
+        return await asyncio.wait_for(
+            asyncio.to_thread(_sync_render_pdf, html_string),
+            timeout=PDF_RENDER_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError as e:
+        raise PDFExportError(
+            "تولید فایل PDF بیش از حد طول کشید (احتمالاً به دلیل عدم دسترسی سرور به اینترنت). "
+            "لطفاً دوباره تلاش کنید."
+        ) from e
 
 
 async def render_analysis_pdf(
@@ -64,8 +85,10 @@ async def render_analysis_pdf(
             organ_groups=organ_groups,
         )
 
-        return await asyncio.to_thread(_sync_render_pdf, html_string)
+        return await _render_with_timeout(html_string)
 
+    except PDFExportError:
+        raise
     except Exception as e:
         logger.error(f"[PDFExportService] Failed to render analysis PDF: {e}")
         raise PDFExportError(f"تولید فایل PDF با خطا مواجه شد: {e}")
@@ -100,8 +123,10 @@ async def render_generic_pdf(
             disclaimer_text=disclaimer_text,
         )
 
-        return await asyncio.to_thread(_sync_render_pdf, html_string)
+        return await _render_with_timeout(html_string)
 
+    except PDFExportError:
+        raise
     except Exception as e:
         logger.error(f"[PDFExportService] Failed to render generic PDF: {e}")
         raise PDFExportError(f"تولید فایل PDF با خطا مواجه شد: {e}")
@@ -132,8 +157,10 @@ async def render_prescription_pdf(
             generated_at=datetime.utcnow(),
         )
 
-        return await asyncio.to_thread(_sync_render_pdf, html_string)
+        return await _render_with_timeout(html_string)
 
+    except PDFExportError:
+        raise
     except Exception as e:
         logger.error(f"[PDFExportService] Failed to render prescription PDF: {e}")
         raise PDFExportError(f"تولید فایل PDF نسخه با خطا مواجه شد: {e}")
