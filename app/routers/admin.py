@@ -6,8 +6,11 @@ Platform-admin panel:
 - /admin/analysis/{id}: مشاهده‌ی هر گزارش آزمایشی از هر کاربری
 - /admin/doctors: بررسی و تایید/رد ثبت‌نام پزشکان + مشاهده مدرک
 - /admin/users: مدیریت و حذف کاربران، اعطای دسترسی نامحدود رایگان
+- /admin/users/{id}: مشاهده‌ی جزئیات کامل یک کاربر (کد ملی رمزگشایی‌شده و...) + ریست رمز عبور
+- /admin/admins: مدیریت ادمین‌های پلتفرم (فقط ادمین مستر: ارتقا/عزل/تعیین مستر)
 
-فقط برای کاربرانی با role=platform_admin در دسترس است.
+فقط برای کاربرانی با role=platform_admin در دسترس است؛ بخش مدیریت
+ادمین‌ها فقط برای ادمین مستر (is_super_admin=True) در دسترس است.
 """
 
 from pathlib import Path
@@ -31,6 +34,12 @@ from app.services.auth_service import (
     approve_doctor,
     reject_doctor,
     admin_delete_user,
+    get_all_platform_admins,
+    find_user_by_identifier,
+    promote_to_platform_admin,
+    demote_platform_admin,
+    set_super_admin,
+    admin_reset_password,
     AuthError,
 )
 from app.services.email_service import EmailService
@@ -43,6 +52,7 @@ from app.services.billing_service import (
 )
 from app.core.exam_types import EXAM_TYPE_LABELS
 from app.core.csrf import get_or_create_csrf_token, is_valid_csrf
+from app.core.crypto import decrypt_value
 from app.core.limiter import limiter
 from app.core.logging_config import get_logger
 
@@ -61,6 +71,13 @@ DOCTOR_DOCS_DIR = Path("uploads/doctor_docs").resolve()
 def _require_admin(request: Request, db: Session):
     user = get_current_user(request, db)
     if not user or user.role != ROLE_PLATFORM_ADMIN:
+        return None
+    return user
+
+
+def _require_super_admin(request: Request, db: Session):
+    user = get_current_user(request, db)
+    if not user or user.role != ROLE_PLATFORM_ADMIN or not user.is_super_admin:
         return None
     return user
 
@@ -222,9 +239,6 @@ async def admin_doctors_page(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/admin/doctors/{doctor_id}/document")
 async def admin_view_doctor_document(doctor_id: int, request: Request, db: Session = Depends(get_db)):
-    """
-    نمایش/دانلود امن مدرک نظام پزشکی یک پزشک، فقط برای platform_admin.
-    """
 
     admin_user = _require_admin(request, db)
 
@@ -348,6 +362,51 @@ async def admin_users_page(request: Request, db: Session = Depends(get_db)):
     )
 
 
+@router.get("/admin/users/{target_user_id}")
+async def admin_user_detail_page(
+    target_user_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    new_password: str = None,
+):
+    """
+    نمایش جزئیات کامل یک کاربر برای ادمین: ایمیل، موبایل، کد ملی
+    رمزگشایی‌شده، آدرس، اطلاعات سلامت و... . رمز عبور به‌صورت متنی
+    قابل نمایش نیست (bcrypt یک‌طرفه است)؛ به‌جایش دکمه‌ی «ریست رمز
+    عبور» یک رمز جدید تولید می‌کند که فقط همان لحظه یک‌بار نمایش
+    داده می‌شود.
+    """
+    admin_user = _require_admin(request, db)
+
+    if not admin_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    target = db.query(User).filter(User.id == target_user_id).first()
+
+    if not target:
+        return templates.TemplateResponse(
+            request,
+            "error.html",
+            {"request": request, "message": "کاربر پیدا نشد.", "user": admin_user},
+            status_code=404,
+        )
+
+    csrf_token = get_or_create_csrf_token(request)
+
+    return templates.TemplateResponse(
+        request,
+        "admin_user_detail.html",
+        {
+            "request": request,
+            "user": admin_user,
+            "target": target,
+            "national_id_display": decrypt_value(target.national_id),
+            "csrf_token": csrf_token,
+            "new_password": new_password,
+        }
+    )
+
+
 @router.post("/admin/users/{target_user_id}/delete")
 @limiter.limit("20/hour")
 async def admin_delete_user_route(
@@ -386,13 +445,6 @@ async def admin_grant_unlimited_access(
     csrf_token: str = Form(...),
     db: Session = Depends(get_db),
 ):
-    """
-    ادمین پلتفرم می‌تواند به یک کاربر (مثلاً بیمار) دسترسی نامحدود و
-    رایگان به همه‌ی سرویس‌های پولی بدهد. این کار معادل رفتار
-    platform_admin در billing_service است، اما نقش کاربر تغییر
-    نمی‌کند.
-    """
-
     admin_user = _require_admin(request, db)
 
     if not admin_user:
@@ -432,3 +484,177 @@ async def admin_revoke_unlimited_access(
         logger.error(f"[Admin] Revoke unlimited access failed: {e}")
 
     return RedirectResponse(url="/admin/users", status_code=303)
+
+
+@router.post("/admin/users/{target_user_id}/reset-password")
+@limiter.limit("20/hour")
+async def admin_reset_password_route(
+    target_user_id: int,
+    request: Request,
+    csrf_token: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    admin_user = _require_admin(request, db)
+
+    if not admin_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    if not is_valid_csrf(request, csrf_token):
+        return RedirectResponse(url=f"/admin/users/{target_user_id}", status_code=303)
+
+    try:
+        _, new_password = admin_reset_password(db, target_user_id)
+    except AuthError as e:
+        logger.error(f"[Admin] Reset password failed: {e}")
+        return RedirectResponse(url=f"/admin/users/{target_user_id}", status_code=303)
+
+    return RedirectResponse(url=f"/admin/users/{target_user_id}?new_password={new_password}", status_code=303)
+
+
+# ==========================
+# مدیریت ادمین‌های پلتفرم (فقط ادمین مستر)
+# ==========================
+
+@router.get("/admin/admins")
+async def admin_admins_page(request: Request, db: Session = Depends(get_db)):
+
+    admin_user = _require_admin(request, db)
+
+    if not admin_user:
+        return RedirectResponse(url="/login", status_code=303)
+
+    admins = get_all_platform_admins(db)
+    csrf_token = get_or_create_csrf_token(request)
+
+    return templates.TemplateResponse(
+        request,
+        "admin_admins.html",
+        {
+            "request": request,
+            "user": admin_user,
+            "admins": admins,
+            "csrf_token": csrf_token,
+            "error": None,
+        }
+    )
+
+
+@router.post("/admin/admins/promote")
+@limiter.limit("20/hour")
+async def admin_promote_admin(
+    request: Request,
+    identifier: str = Form(...),
+    csrf_token: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    admin_user = _require_super_admin(request, db)
+
+    if not admin_user:
+        return RedirectResponse(url="/admin/admins", status_code=303)
+
+    if not is_valid_csrf(request, csrf_token):
+        return RedirectResponse(url="/admin/admins", status_code=303)
+
+    target = find_user_by_identifier(db, identifier)
+
+    if not target:
+        return templates.TemplateResponse(
+            request,
+            "admin_admins.html",
+            {
+                "request": request,
+                "user": admin_user,
+                "admins": get_all_platform_admins(db),
+                "csrf_token": get_or_create_csrf_token(request),
+                "error": "کاربری با این ایمیل/موبایل/آیدی پیدا نشد.",
+            }
+        )
+
+    try:
+        promote_to_platform_admin(db, target.id)
+    except AuthError as e:
+        return templates.TemplateResponse(
+            request,
+            "admin_admins.html",
+            {
+                "request": request,
+                "user": admin_user,
+                "admins": get_all_platform_admins(db),
+                "csrf_token": get_or_create_csrf_token(request),
+                "error": str(e),
+            }
+        )
+
+    return RedirectResponse(url="/admin/admins", status_code=303)
+
+
+@router.post("/admin/admins/{admin_id}/demote")
+@limiter.limit("20/hour")
+async def admin_demote_admin(
+    admin_id: int,
+    request: Request,
+    csrf_token: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    admin_user = _require_super_admin(request, db)
+
+    if not admin_user:
+        return RedirectResponse(url="/admin/admins", status_code=303)
+
+    if not is_valid_csrf(request, csrf_token):
+        return RedirectResponse(url="/admin/admins", status_code=303)
+
+    try:
+        demote_platform_admin(db, admin_id, admin_user.id)
+    except AuthError as e:
+        logger.error(f"[Admin] Demote admin failed: {e}")
+
+    return RedirectResponse(url="/admin/admins", status_code=303)
+
+
+@router.post("/admin/admins/{admin_id}/make-super")
+@limiter.limit("10/hour")
+async def admin_make_super(
+    admin_id: int,
+    request: Request,
+    csrf_token: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    admin_user = _require_super_admin(request, db)
+
+    if not admin_user:
+        return RedirectResponse(url="/admin/admins", status_code=303)
+
+    if not is_valid_csrf(request, csrf_token):
+        return RedirectResponse(url="/admin/admins", status_code=303)
+
+    try:
+        set_super_admin(db, admin_id, True, admin_user.id)
+    except AuthError as e:
+        logger.error(f"[Admin] Set super admin failed: {e}")
+
+    return RedirectResponse(url="/admin/admins", status_code=303)
+
+
+@router.post("/admin/admins/{admin_id}/revoke-super")
+@limiter.limit("10/hour")
+async def admin_revoke_super(
+    admin_id: int,
+    request: Request,
+    csrf_token: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    admin_user = _require_super_admin(request, db)
+
+    if not admin_user:
+        return RedirectResponse(url="/admin/admins", status_code=303)
+
+    if not is_valid_csrf(request, csrf_token):
+        return RedirectResponse(url="/admin/admins", status_code=303)
+
+    try:
+        set_super_admin(db, admin_id, False, admin_user.id)
+    except AuthError as e:
+        logger.error(f"[Admin] Revoke super admin failed: {e}")
+
+    return RedirectResponse(url="/admin/admins", status_code=303)

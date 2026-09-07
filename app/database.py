@@ -18,19 +18,13 @@ _connect_args = {"check_same_thread": False} if _IS_SQLITE else {}
 engine = create_engine(
     DATABASE_URL,
     connect_args=_connect_args,
-    pool_pre_ping=not _IS_SQLITE,  # اتصال‌های مرده به PostgreSQL را قبل از استفاده تشخیص می‌دهد
+    pool_pre_ping=not _IS_SQLITE,
 )
 
 
 if _IS_SQLITE:
     @event.listens_for(Engine, "connect")
     def _enable_sqlite_foreign_keys(dbapi_connection, connection_record):
-        """
-        در SQLite، اعمال محدودیت‌های foreign key به‌صورت پیش‌فرض خاموش
-        است و باید روی هر اتصال جداگانه فعال شود. PostgreSQL این
-        محدودیت‌ها را همیشه به‌صورت پیش‌فرض اعمال می‌کند، پس این
-        event فقط برای SQLite ثبت می‌شود.
-        """
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
@@ -47,20 +41,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
-
-# ==========================
-# NOTE — Migration strategy
-#
-# از این پس، هر تغییر جدید در ساختار دیتابیس (ستون/جدول جدید، تغییر
-# نوع، حذف ستون) باید با یک فایل Alembic migration در alembic/versions
-# نوشته شود (دستور: alembic revision --autogenerate -m "توضیح").
-# توابع زیر (_add_column_if_missing و _run_light_migrations) روی هر
-# دو دیتابیس (SQLite و PostgreSQL) اجرا می‌شوند تا اگر یک دیتابیس
-# (مثلاً یک volume تازه‌ی PostgreSQL در داکر) بدون عبور از Alembic
-# ساخته شده باشد، ستون‌های جدیدی که به مدل‌ها اضافه شده‌اند خودکار
-# ساخته شوند و برنامه با خطای "column does not exist" کرش نکند.
-# ==========================
 
 
 def _bool_default_literal(value: bool) -> str:
@@ -185,6 +165,7 @@ def _run_light_migrations():
                 _add_column_if_missing(conn, "users", column, ddl_type)
             _add_column_if_missing(conn, "users", "updated_at", datetime_type)
             _add_column_if_missing(conn, "users", "profile_notice_seen", f"BOOLEAN DEFAULT {_bool_default_literal(False)}")
+            _add_column_if_missing(conn, "users", "is_super_admin", f"BOOLEAN DEFAULT {_bool_default_literal(False)}")
 
     if "family_members" in table_names:
         with engine.connect() as conn:
@@ -208,7 +189,6 @@ def _run_light_migrations():
         with engine.connect() as conn:
             _add_column_if_missing(conn, "patient_followups", "reminder_sent", f"BOOLEAN DEFAULT {_bool_default_literal(False)}")
 
-    # این ستون‌ها به‌اشتباه روی جدول reviews ساخته شده بودند؛ در صورت وجود پاک می‌شوند.
     if "reviews" in table_names:
         with engine.connect() as conn:
             for column, _ in EMERGENCY_CONTACT_COLUMNS:

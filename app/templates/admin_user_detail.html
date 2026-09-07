@@ -1,0 +1,96 @@
+<!-- app/templates/admin_user_detail.html -->
+{% extends "base.html" %}
+
+{% block title %}جزئیات کاربر — {{ target.display_name }}{% endblock %}
+
+{% block content %}
+
+<section class="cl-profile-section">
+    <div class="container">
+
+        <div class="result-actions" style="margin:0 0 20px; text-align:right;">
+            <a href="/admin/users" class="btn btn-outline">
+                <span class="material-symbols-outlined" style="font-size:18px;">arrow_forward</span>
+                بازگشت به فهرست کاربران
+            </a>
+        </div>
+
+        <div class="cl-profile-header">
+            <div class="cl-profile-avatar">{{ (target.display_name or "?")[0] }}</div>
+            <div>
+                <h1>{{ target.display_name }}</h1>
+                <p>
+                    {% if target.role == 'patient' %}بیمار{% elif target.role == 'doctor' %}پزشک{% elif target.role == 'org_admin' %}مدیر سازمان{% else %}ادمین پلتفرم{% endif %}
+                    {% if target.is_super_admin %} — <strong>ادمین مستر</strong>{% endif %}
+                </p>
+            </div>
+        </div>
+
+        {% if new_password %}
+        <div class="cl-auth-alert cl-auth-alert-success" style="text-align:right; line-height:2;">
+            رمز عبور جدید این کاربر: <strong style="font-family:monospace; font-size:16px;">{{ new_password }}</strong><br>
+            این رمز فقط همین یک‌بار نمایش داده می‌شود؛ آن را همین حالا در جای امنی ذخیره کنید.
+        </div>
+        {% endif %}
+
+        <div class="cl-profile-grid">
+
+            <div class="cl-profile-card">
+                <h3 class="cl-profile-card-title">اطلاعات حساب کاربری</h3>
+
+                <div class="cl-info-row"><span class="cl-info-label">آیدی</span><span class="cl-info-value">#{{ target.id }}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">ایمیل</span><span class="cl-info-value">{{ target.email or "—" }} {% if target.email_verified %}(تایید‌شده){% endif %}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">موبایل</span><span class="cl-info-value">{{ target.phone }} {% if target.phone_verified %}(تایید‌شده){% endif %}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">کد ملی</span><span class="cl-info-value">{{ national_id_display or "ثبت نشده" }}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">آدرس</span><span class="cl-info-value">{{ target.address or "—" }}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">استان/شهر</span><span class="cl-info-value">{{ target.province or "—" }} / {{ target.city or "—" }}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">وضعیت حساب</span><span class="cl-info-value">{{ "فعال" if target.is_active else "غیرفعال" }}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">دسترسی نامحدود</span><span class="cl-info-value">{{ "بله" if target.unlimited_access else "خیر" }}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">تاریخ ثبت‌نام</span><span class="cl-info-value">{{ target.created_at.strftime("%Y-%m-%d %H:%M") }}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">آخرین ورود</span><span class="cl-info-value">{{ target.last_login_at.strftime("%Y-%m-%d %H:%M") if target.last_login_at else "—" }}</span></div>
+
+                <div class="cl-info-note">
+                    رمز عبور به‌صورت هش یک‌طرفه (bcrypt) ذخیره شده و امکان نمایش متن اصلی آن وجود ندارد.
+                    برای دسترسی به حساب، رمز عبور جدید تولید کنید:
+                </div>
+
+                <form method="post" action="/admin/users/{{ target.id }}/reset-password" onsubmit="return confirm('رمز عبور فعلی این کاربر باطل و رمز جدید تولید شود؟');" style="margin-top:14px;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="cl-btn cl-btn-danger">ریست رمز عبور و ساخت رمز جدید</button>
+                </form>
+            </div>
+
+            <div class="cl-profile-card">
+                <h3 class="cl-profile-card-title">اطلاعات سلامت و تماس اضطراری</h3>
+                <div class="cl-info-row"><span class="cl-info-label">سن</span><span class="cl-info-value">{{ target.age or "—" }}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">جنسیت</span><span class="cl-info-value">{{ target.gender or "—" }}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">قد/وزن</span><span class="cl-info-value">{{ target.height_cm or "—" }} cm / {{ target.weight_kg or "—" }} kg</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">گروه خونی</span><span class="cl-info-value">{{ target.blood_type or "—" }}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">بیماری‌های مزمن</span><span class="cl-info-value">{{ target.chronic_diseases or "—" }}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">حساسیت‌ها</span><span class="cl-info-value">{{ target.allergies or "—" }}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">داروهای مصرفی</span><span class="cl-info-value">{{ target.current_medications or "—" }}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">مخاطب اضطراری</span><span class="cl-info-value">{{ target.emergency_contact_name or "—" }} — {{ target.emergency_contact_phone or "—" }}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">بیمارستان/آزمایشگاه ترجیحی</span><span class="cl-info-value">{{ target.preferred_hospital or "—" }} / {{ target.preferred_lab or "—" }}</span></div>
+
+                {% if target.role == 'doctor' and target.doctor_profile %}
+                <hr style="margin:20px 0; border:none; border-top:1px solid var(--color-border);">
+                <h3 class="cl-profile-card-title">پروفایل پزشکی</h3>
+                <div class="cl-info-row"><span class="cl-info-label">تخصص</span><span class="cl-info-value">{{ target.doctor_profile.specialty or "—" }}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">شماره نظام پزشکی</span><span class="cl-info-value">{{ target.doctor_profile.medical_council_no or "—" }}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">وضعیت تایید</span><span class="cl-info-value">{{ target.verification_status or "—" }}</span></div>
+                {% endif %}
+
+                {% if target.role == 'org_admin' and target.organization_profile %}
+                <hr style="margin:20px 0; border:none; border-top:1px solid var(--color-border);">
+                <h3 class="cl-profile-card-title">پروفایل سازمان</h3>
+                <div class="cl-info-row"><span class="cl-info-label">نام سازمان</span><span class="cl-info-value">{{ target.organization_profile.org_name }}</span></div>
+                <div class="cl-info-row"><span class="cl-info-label">نوع سازمان</span><span class="cl-info-value">{{ target.organization_profile.org_type or "—" }}</span></div>
+                {% endif %}
+            </div>
+
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

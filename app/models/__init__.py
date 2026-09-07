@@ -42,6 +42,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     role = Column(String, nullable=False, default=ROLE_PATIENT, index=True)
+    is_super_admin = Column(Boolean, default=False, nullable=False)
     email = Column(String, unique=True, index=True, nullable=True)
     password_hash = Column(String, nullable=False)
     phone = Column(String, unique=True, index=True, nullable=False)

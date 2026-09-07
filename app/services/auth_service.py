@@ -2,7 +2,8 @@
 app/services/auth_service.py
 
 سرویس مستقل احراز هویت: ثبت‌نام بیمار/پزشک/سازمان، ورود بر اساس کد
-ملی، OTP موبایل، تایید ایمیل (اختیاری)، بازیابی رمز عبور.
+ملی، OTP موبایل، تایید ایمیل (اختیاری)، بازیابی رمز عبور، و مدیریت
+ادمین‌های پلتفرم (ارتقا/عزل/مستر).
 """
 
 from datetime import datetime
@@ -11,16 +12,18 @@ from sqlalchemy.orm import Session
 
 from app.models import (
     User, DoctorProfile, OrganizationProfile, VerificationCode,
-    ROLE_PATIENT, ROLE_DOCTOR, ROLE_ORG_ADMIN,
+    ROLE_PATIENT, ROLE_DOCTOR, ROLE_ORG_ADMIN, ROLE_PLATFORM_ADMIN,
     VERIFICATION_PENDING, VERIFICATION_APPROVED, VERIFICATION_REJECTED,
 )
 from app.core.security import (
     hash_password, verify_password, validate_password_strength,
     generate_otp_code, generate_url_token, hash_code, verify_code,
     otp_expiry, email_token_expiry, reset_token_expiry,
-    MAX_VERIFY_ATTEMPTS,
+    MAX_VERIFY_ATTEMPTS, generate_url_token as _gen_token,
 )
 from app.core.crypto import encrypt_value, hash_national_id, normalize_national_id
+import secrets
+import string
 
 
 class AuthError(Exception):
@@ -129,11 +132,6 @@ def register_org(
     db: Session, national_id: str, phone: str, password: str, display_name: str,
     org_name: str, org_type: str | None = None, email: str | None = None,
 ) -> User:
-    """
-    ثبت‌نام مدیر سازمان (کلینیک/آزمایشگاه/بیمارستان). برخلاف پزشک،
-    نیازی به تایید ادمین ندارد و بلافاصله فعال است، چون اشتراک سازمانی
-    خودش هزینه‌ی بالایی دارد و از طریق درگاه پرداخت احراز می‌شود.
-    """
     user = _register_common(db, national_id=national_id, email=email, phone=phone, password=password, display_name=display_name, role=ROLE_ORG_ADMIN)
 
     profile = OrganizationProfile(
@@ -169,7 +167,6 @@ def _register_common(db: Session, national_id: str, email: str | None, phone: st
     if password_error:
         raise AuthError(password_error)
 
-    # ایمیل اختیاری است؛ فقط اگر وارد شده، باید فرمت معتبری داشته باشد.
     if email and "@" not in email:
         raise AuthError("ایمیل وارد‌شده معتبر نیست.")
 
@@ -226,10 +223,6 @@ def authenticate(db: Session, national_id: str, password: str) -> User:
 
 
 def set_national_id(db: Session, user: User, national_id: str | None) -> None:
-    """
-    تغییر/ثبت کد ملی از صفحه‌ی پروفایل. چون کد ملی برای ورود استفاده
-    می‌شود، یکتا بودنش (از طریق national_id_hash) دوباره بررسی می‌شود.
-    """
     if not national_id or not national_id.strip():
         user.national_id = None
         user.national_id_hash = None
@@ -370,7 +363,6 @@ def change_email(db: Session, user: User, new_email: str, current_password: str)
         raise AuthError("رمز عبور فعلی اشتباه است.")
 
     if not new_email:
-        # حذف ایمیل مجاز است چون ایمیل اختیاری است.
         user.email = None
         user.email_verified = False
         db.commit()
@@ -422,3 +414,115 @@ def admin_delete_user(db: Session, user_id: int) -> User:
     db.commit()
 
     return user
+
+
+# ==========================
+# مدیریت ادمین‌های پلتفرم (فقط ادمین مستر)
+# ==========================
+
+def get_all_platform_admins(db: Session):
+    return (
+        db.query(User)
+        .filter(User.role == ROLE_PLATFORM_ADMIN)
+        .order_by(User.is_super_admin.desc(), User.created_at.asc())
+        .all()
+    )
+
+
+def find_user_by_identifier(db: Session, identifier: str) -> User | None:
+    """
+    جستجوی کاربر برای ارتقا به ادمین، بر اساس ایمیل، شماره موبایل یا آیدی عددی.
+    """
+    identifier = (identifier or "").strip()
+
+    if not identifier:
+        return None
+
+    if identifier.isdigit():
+        by_id = db.query(User).filter(User.id == int(identifier)).first()
+        if by_id:
+            return by_id
+
+    by_phone = get_user_by_phone(db, identifier)
+    if by_phone:
+        return by_phone
+
+    return get_user_by_email(db, identifier)
+
+
+def promote_to_platform_admin(db: Session, user_id: int) -> User:
+    user = get_user_by_id(db, user_id)
+
+    if not user:
+        raise AuthError("کاربر پیدا نشد.")
+
+    if user.role == ROLE_PLATFORM_ADMIN:
+        raise AuthError("این کاربر از قبل ادمین پلتفرم است.")
+
+    user.role = ROLE_PLATFORM_ADMIN
+    user.is_active = True
+    user.verification_status = None
+
+    db.commit()
+    db.refresh(user)
+
+    return user
+
+
+def demote_platform_admin(db: Session, admin_id: int, acting_user_id: int) -> User:
+    admin = get_user_by_id(db, admin_id)
+
+    if not admin or admin.role != ROLE_PLATFORM_ADMIN:
+        raise AuthError("ادمین مورد نظر پیدا نشد.")
+
+    if admin.id == acting_user_id:
+        raise AuthError("نمی‌توانید خودتان را عزل کنید.")
+
+    if admin.is_super_admin:
+        raise AuthError("نمی‌توانید ادمین مستر را عزل کنید؛ ابتدا وضعیت مستر را از او بگیرید.")
+
+    admin.role = ROLE_PATIENT
+    admin.is_super_admin = False
+
+    db.commit()
+    db.refresh(admin)
+
+    return admin
+
+
+def set_super_admin(db: Session, admin_id: int, value: bool, acting_user_id: int) -> User:
+    admin = get_user_by_id(db, admin_id)
+
+    if not admin or admin.role != ROLE_PLATFORM_ADMIN:
+        raise AuthError("ادمین مورد نظر پیدا نشد.")
+
+    if not value and admin.id == acting_user_id:
+        raise AuthError("نمی‌توانید وضعیت مستر بودن خودتان را حذف کنید. ابتدا شخص دیگری را مستر کنید.")
+
+    admin.is_super_admin = value
+    db.commit()
+    db.refresh(admin)
+
+    return admin
+
+
+def admin_reset_password(db: Session, target_user_id: int) -> tuple[User, str]:
+    """
+    یک رمز عبور تصادفی جدید برای کاربر تولید و ذخیره می‌کند (هش‌شده).
+    رمز خام فقط یک‌بار در همین بازگشت مقدار در دسترس است و در دیتابیس
+    ذخیره نمی‌شود، چون رمزها فقط به‌صورت هش (bcrypt، یک‌طرفه) نگه‌داری
+    می‌شوند و امکان بازیابی متن اصلی رمز قبلی وجود ندارد.
+    """
+    user = get_user_by_id(db, target_user_id)
+
+    if not user:
+        raise AuthError("کاربر پیدا نشد.")
+
+    alphabet = string.ascii_letters + string.digits
+    new_password = "".join(secrets.choice(alphabet) for _ in range(12))
+
+    user.password_hash = hash_password(new_password)
+    db.commit()
+    db.refresh(user)
+
+    return user, new_password

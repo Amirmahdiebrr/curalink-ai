@@ -1,0 +1,91 @@
+<!-- app/templates/admin_admins.html -->
+{% extends "base.html" %}
+
+{% block title %}مدیریت ادمین‌های پلتفرم{% endblock %}
+
+{% block content %}
+
+<section class="cl-profile-section">
+    <div class="container">
+
+        <div class="result-actions" style="margin:0 0 20px; text-align:right;">
+            <a href="/admin/users" class="btn btn-outline">بازگشت به فهرست کاربران</a>
+        </div>
+
+        <div class="cl-profile-header">
+            <div class="cl-profile-avatar">{{ (user.display_name or "?")[0] }}</div>
+            <div>
+                <h1>مدیریت ادمین‌های پلتفرم</h1>
+                <p>{{ admins|length }} ادمین ثبت‌شده</p>
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="cl-auth-alert cl-auth-alert-error">{{ error }}</div>
+        {% endif %}
+
+        {% if not user.is_super_admin %}
+        <div class="cl-auth-alert cl-auth-alert-error">
+            فقط ادمین مستر می‌تواند ادمین‌ها را ارتقا/عزل کند یا وضعیت مستر بودن را تغییر دهد. شما فقط این فهرست را می‌بینید.
+        </div>
+        {% endif %}
+
+        {% if user.is_super_admin %}
+        <div class="cl-profile-card" style="margin-bottom:24px;">
+            <h3 class="cl-profile-card-title">ارتقای کاربر به ادمین پلتفرم</h3>
+            <form method="post" action="/admin/admins/promote" class="cl-auth-fields">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <div class="cl-field">
+                    <label for="identifier">ایمیل، شماره موبایل یا آیدی کاربر</label>
+                    <input type="text" id="identifier" name="identifier" placeholder="مثلاً: 09121234567 یا user@example.com" required>
+                </div>
+                <button type="submit" class="cl-auth-submit">ارتقا به ادمین پلتفرم</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <div class="cl-profile-card">
+            <h3 class="cl-profile-card-title">ادمین‌های فعلی</h3>
+
+            <div class="cl-history-list">
+                {% for a in admins %}
+                <div class="cl-history-item" style="flex-wrap:wrap; gap:12px;">
+                    <div class="cl-history-item-main">
+                        <span class="cl-history-badge">{% if a.is_super_admin %}مستر{% else %}ادمین{% endif %}</span>
+                        <span class="cl-history-filename">{{ a.display_name }} — {{ a.email or a.phone }}</span>
+                    </div>
+
+                    {% if user.is_super_admin %}
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+
+                        {% if a.is_super_admin %}
+                        {% if a.id != user.id %}
+                        <form method="post" action="/admin/admins/{{ a.id }}/revoke-super" onsubmit="return confirm('وضعیت مستر بودن این ادمین حذف شود؟');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px;">حذف وضعیت مستر</button>
+                        </form>
+                        {% endif %}
+                        {% else %}
+                        <form method="post" action="/admin/admins/{{ a.id }}/make-super" onsubmit="return confirm('این ادمین، مستر و رئیس بقیه‌ی ادمین‌ها شود؟');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-solid" style="height:36px; padding:0 14px; font-size:12.5px;">تعیین به‌عنوان مستر</button>
+                        </form>
+                        <form method="post" action="/admin/admins/{{ a.id }}/demote" onsubmit="return confirm('این ادمین از پلتفرم عزل شود؟');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px; color:var(--warn); border-color:var(--warn);">عزل از ادمینی</button>
+                        </form>
+                        {% endif %}
+
+                        <a href="/admin/users/{{ a.id }}" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px;">جزئیات</a>
+
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}

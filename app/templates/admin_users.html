@@ -16,21 +16,29 @@
             </div>
         </div>
 
+        <div class="result-actions" style="margin:0 0 20px; text-align:right;">
+            <a href="/admin/admins" class="btn btn-outline">مدیریت ادمین‌های پلتفرم</a>
+        </div>
+
         <div class="cl-profile-card">
             <div class="cl-history-list">
                 {% for u in users %}
                 <div class="cl-history-item" style="flex-wrap:wrap; gap:12px;">
-                    <div class="cl-history-item-main">
+                    <a href="/admin/users/{{ u.id }}" class="cl-history-item-main" style="text-decoration:none;">
                         <span class="cl-history-badge">
                             {% if u.role == 'patient' %}{{ t('role_patient') }}{% elif u.role == 'doctor' %}{{ t('role_doctor') }}{% elif u.role == 'org_admin' %}{{ t('role_org_admin') }}{% else %}{{ t('role_platform_admin') }}{% endif %}
+                            {% if u.is_super_admin %} — مستر{% endif %}
                         </span>
-                        <span class="cl-history-filename">{{ u.display_name }} — {{ u.email }}</span>
+                        <span class="cl-history-filename">{{ u.display_name }} — {{ u.email or "بدون ایمیل" }} — {{ u.phone }}</span>
+                    </a>
+
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+
                         {% if u.unlimited_access %}
                         <span class="cl-badge cl-badge-success" title="دسترسی نامحدود و رایگان فعال است">دسترسی نامحدود</span>
                         {% endif %}
-                    </div>
 
-                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <a href="/admin/users/{{ u.id }}" class="btn btn-outline" style="height:36px; padding:0 14px; font-size:12.5px;">مشاهده جزئیات</a>
 
                         {% if u.role != 'platform_admin' %}
                             {% if u.unlimited_access %}
