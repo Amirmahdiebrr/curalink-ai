@@ -70,20 +70,20 @@
 
                 <div id="exam-type-guide" class="cl-alert cl-alert-info" style="display:none; margin:-6px 0 4px;"></div>
 
-                <label class="field-label" for="series_mode">این آزمایش بخشی از یک روند/سری پیگیری چندمرحله‌ای است؟</label>
+                <label class="field-label" for="series_mode">{{ t('upload_series_mode_label') }}</label>
                 <select name="series_mode" id="series_mode">
-                    <option value="none" selected>مستقل است (این آزمایش به آزمایش دیگری متصل نیست)</option>
-                    <option value="new">شروع یک روند/سری جدید (مثلاً پیگیری روزانه بعد از ترخیص)</option>
-                    <option value="continue">ادامه‌ی یک روند/سری قبلی</option>
+                    <option value="none" selected>{{ t('upload_series_mode_none') }}</option>
+                    <option value="new">{{ t('upload_series_mode_new') }}</option>
+                    <option value="continue">{{ t('upload_series_mode_continue') }}</option>
                 </select>
-                <p class="cl-field-hint">اگر این آزمایش ادامه‌ی یک روند پیگیری قبلی است (مثلاً آزمایش‌های روزانه‌ی بعد از جراحی یا ترخیص از بیمارستان)، با انتخاب «ادامه‌ی یک روند» یا «شروع یک روند جدید»، هوش مصنوعی نتایج قبلی همین روند را هم در تحلیل جدید در نظر می‌گیرد.</p>
+                <p class="cl-field-hint">{{ t('upload_series_mode_hint') }}</p>
 
                 <div id="series-continue-wrap" style="display:none;">
-                    <label class="field-label" for="series_choice_id">انتخاب روند/سری</label>
+                    <label class="field-label" for="series_choice_id">{{ t('upload_series_choice_label') }}</label>
                     <select name="series_choice_id" id="series_choice_id">
-                        <option value="" selected>در حال بارگذاری...</option>
+                        <option value="" selected>{{ t('upload_series_loading') }}</option>
                     </select>
-                    <p class="cl-field-hint">اگر هنوز روندی برای این فرد ثبت نکرده‌اید، این لیست خالی خواهد بود؛ در این صورت گزینه‌ی «شروع یک روند/سری جدید» را انتخاب کنید.</p>
+                    <p class="cl-field-hint">{{ t('upload_series_choice_hint') }}</p>
                 </div>
 
                 <label class="upload-area" id="dropzone" for="file">
@@ -270,7 +270,7 @@
     function loadSeriesOptions() {
         if (!seriesChoiceSelect) return;
 
-        seriesChoiceSelect.innerHTML = '<option value="" selected>در حال بارگذاری...</option>';
+        seriesChoiceSelect.innerHTML = '<option value="" selected>{{ t("upload_series_loading") }}</option>';
 
         var fmValue = familyMemberSelect ? familyMemberSelect.value : 'self';
 
@@ -280,7 +280,7 @@
                 var options = (data && data.options) || [];
 
                 if (!options.length) {
-                    seriesChoiceSelect.innerHTML = '<option value="">هیچ روند قبلی‌ای برای این فرد پیدا نشد</option>';
+                    seriesChoiceSelect.innerHTML = '<option value="">{{ t("upload_series_none_found") }}</option>';
                     return;
                 }
 
@@ -293,7 +293,7 @@
                 });
             })
             .catch(function () {
-                seriesChoiceSelect.innerHTML = '<option value="">خطا در بارگذاری لیست روندها</option>';
+                seriesChoiceSelect.innerHTML = '<option value="">{{ t("upload_series_load_error") }}</option>';
             });
     }
 

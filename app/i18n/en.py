@@ -12,6 +12,7 @@ EN_TRANSLATIONS = {
 
     # ===== Navbar =====
     "nav_home": "Home",
+    "nav_main_site": "Main Site",
     "nav_services": "Health Services",
     "nav_svc_analyze": "Analyze Test",
     "nav_svc_analyze_sub": "Upload & get smart interpretation",
@@ -162,6 +163,16 @@ EN_TRANSLATIONS = {
     "upload_symptoms_label": "Symptoms or medical history (optional)",
     "upload_symptoms_placeholder": "e.g. Headaches and fatigue for a few weeks, history of high blood pressure...",
     "upload_symptoms_hint": "Entering symptoms or medical history is entirely optional, but it helps the AI give a more accurate analysis tailored to your situation.",
+    "upload_series_mode_label": "Is this test part of a multi-step follow-up series?",
+    "upload_series_mode_none": "Independent (not linked to another test)",
+    "upload_series_mode_new": "Start a new series (e.g. daily follow-up after discharge)",
+    "upload_series_mode_continue": "Continue an existing series",
+    "upload_series_mode_hint": "If this test continues a previous follow-up series (e.g. daily tests after surgery or hospital discharge), choosing \"continue a series\" or \"start a new series\" lets the AI take the series' previous results into account in the new analysis.",
+    "upload_series_choice_label": "Select series",
+    "upload_series_loading": "Loading...",
+    "upload_series_choice_hint": "If you haven't recorded any series for this person yet, this list will be empty; in that case choose \"start a new series\".",
+    "upload_series_none_found": "No previous series found for this person",
+    "upload_series_load_error": "Error loading the series list",
     "upload_submit": "Start AI Analysis",
     "upload_locked_title": "Upload a test",
     "upload_locked_subtitle": "To use smart test analysis, you must first sign in to your account",
@@ -1035,7 +1046,7 @@ EN_TRANSLATIONS = {
     "result_share_dialog_title": "CuraLink Analysis Report",
     "result_history_link": "Report history",
     "result_new_analysis_btn": "Analyze a new test",
-# ===== Admin users page =====
+    # ===== Admin users page =====
     "admin_users_title": "Manage Users",
     "admin_users_heading": "Manage Users",
     "admin_users_count": "{n} registered users",
@@ -1045,7 +1056,7 @@ EN_TRANSLATIONS = {
     "role_platform_admin": "Platform Admin",
     "admin_delete_user_confirm": "Delete this user? This action cannot be undone.",
     "admin_delete_btn": "Delete",
-# ===== Register doctor page =====
+    # ===== Register doctor page =====
     "register_doctor_title": "Doctor Sign Up | CuraLink AI",
     "register_doctor_brand_heading": "Join CuraLink's team of doctors",
     "register_doctor_brand_desc": "Sign up as a doctor to review patients' test reports and record your expert opinion.",
